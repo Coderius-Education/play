@@ -112,9 +112,7 @@ class Sprite(
                 if callback in self._touching_callback:
                     self._touching_callback[CollisionType.SPRITE] = None
 
-        if callback_manager.get_callback(
-            CallbackType.WHEN_TOUCHING_WALL, id(self)
-        ):
+        if callback_manager.get_callback(CallbackType.WHEN_TOUCHING_WALL, id(self)):
             for callback in callback_manager.get_callback(
                 CallbackType.WHEN_TOUCHING_WALL, id(self)
             ):
