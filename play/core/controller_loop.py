@@ -1,29 +1,43 @@
 """This module contains the controller loop, which handles controller events in the game loop."""
 
-import pygame  # pylint: disable=import-error
+import pygame
 
 from ..callback import callback_manager, CallbackType
 from ..io.controllers import (
     controllers,
 )
 
-controller_axis_moved = False  # pylint: disable=invalid-name
-controller_button_pressed = False  # pylint: disable=invalid-name
-controller_button_released = False  # pylint: disable=invalid-name
+
+class ControllerState:
+    """Class to manage the state of the controller."""
+
+    axis_moved = False
+    button_pressed = False
+    button_released = False
+
+    def clear(self):
+        """Clear the controller state for the next frame."""
+        self.axis_moved = False
+        self.button_pressed = False
+        self.button_released = False
+
+    def any(self):
+        """Check if any controller event has occurred."""
+        return self.axis_moved or self.button_pressed or self.button_released
+
+
+controller_state = ControllerState()
 
 
 def handle_controller_events(event):
     """Handle controller events in the game loop.
     :param event: The event to handle."""
     if event.type == pygame.JOYAXISMOTION:  # pylint: disable=no-member
-        global controller_axis_moved
-        controller_axis_moved = True
+        controller_state.axis_moved = True
     if event.type == pygame.JOYBUTTONDOWN:  # pylint: disable=no-member
-        global controller_button_pressed
-        controller_button_pressed = True
+        controller_state.button_pressed = True
     if event.type == pygame.JOYBUTTONUP:
-        global controller_button_released
-        controller_button_released = True
+        controller_state.button_released = True
 
 
 async def handle_controller():  # pylint: disable=too-many-branches
@@ -31,8 +45,7 @@ async def handle_controller():  # pylint: disable=too-many-branches
     ############################################################
     # @controller.when_button_pressed and @controller.when_any_button_pressed
     ############################################################
-    global controller_button_pressed, controller_button_released, controller_axis_moved
-    if controller_button_pressed:
+    if controller_state.button_pressed:
         for controller in controllers.get_controllers():
             controller_buttons_pressed = controllers.get_controller(
                 controller
@@ -44,12 +57,12 @@ async def handle_controller():  # pylint: disable=too-many-branches
                 [],
                 {"controller": controller},
             )
-        controller_button_pressed = False
+        controller_state.button_pressed = False
 
     ############################################################
     # @controller.when_button_released
     ############################################################
-    if controller_button_released:
+    if controller_state.button_released:
         for controller in controllers.get_controllers():
             controller_buttons_released = controllers.get_controller(
                 controller
@@ -61,11 +74,11 @@ async def handle_controller():  # pylint: disable=too-many-branches
                 [],
                 {"controller": controller},
             )
-        controller_button_released = False
+        controller_state.button_released = False
     ############################################################
     # @controller.when_axis_moved
     ############################################################
-    if controller_axis_moved:
+    if controller_state.axis_moved:
         for controller in controllers.get_controllers():
             controller_axis_moved = controllers.get_controller(
                 controller
@@ -77,4 +90,4 @@ async def handle_controller():  # pylint: disable=too-many-branches
                 [],
                 {"controller": controller},
             )
-        controller_axis_moved = False
+        controller_state.axis_moved = False

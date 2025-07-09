@@ -17,7 +17,8 @@ pygame.joystick.init()
 def when_button(index: int, released: bool, *buttons: list[int | list[int]] | None):
     """A decorator that runs a function when a button on a controller is pressed.
     :param index: The index of the controller.
-    :param button: The index of the button.
+    :param released: Whether the button is released (True) or pressed (False).
+    :param buttons: The index of the button or a list of indices.
     :return: The function to run."""
     if isinstance(buttons, list):
         for button in buttons:

@@ -1,6 +1,5 @@
 """The library to make pygame easier to use."""
 
-import warnings
 import pygame
 
 from .api import *

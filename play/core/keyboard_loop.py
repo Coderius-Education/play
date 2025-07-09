@@ -12,16 +12,16 @@ from ..io.keypress import (
 
 def handle_keyboard_events(event):
     """Handle keyboard events and update the keyboard state."""
-    if event.type == pygame.KEYDOWN:  # pylint: disable=no-member
+    if event.type == pygame.KEYDOWN:
         if event.key not in KEYS_TO_SKIP:
             name = _pygame_key_to_name(event)
-            if name not in keyboard_state.pressed_keys:
-                keyboard_state.pressed_keys.append(name)
-    if event.type == pygame.KEYUP:  # pylint: disable=no-member
+            if name not in keyboard_state.pressed:
+                keyboard_state.pressed.append(name)
+    if event.type == pygame.KEYUP:
         name = _pygame_key_to_name(event)
-        if not (event.key in KEYS_TO_SKIP) and name in keyboard_state.pressed_keys:
-            keyboard_state.keys_released.append(name)
-            keyboard_state.pressed_keys.remove(name)
+        if not (event.key in KEYS_TO_SKIP) and name in keyboard_state.pressed:
+            keyboard_state.released.append(name)
+            keyboard_state.pressed.remove(name)
 
 
 async def handle_keyboard():
@@ -30,12 +30,12 @@ async def handle_keyboard():
     # @when_any_key_pressed and @when_key_pressed callbacks
     ############################################################
     await callback_manager.run_callbacks_with_filter(
-        CallbackType.PRESSED_KEYS, keyboard_state.pressed_keys, ["key"]
+        CallbackType.PRESSED_KEYS, keyboard_state.pressed, ["key"]
     )
 
     ############################################################
     # @when_any_key_released and @when_key_released callbacks
     ############################################################
     await callback_manager.run_callbacks_with_filter(
-        CallbackType.RELEASED_KEYS, keyboard_state.keys_released, ["key"]
+        CallbackType.RELEASED_KEYS, keyboard_state.released, ["key"]
     )

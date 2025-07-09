@@ -9,7 +9,7 @@ from ..io.logging import play_logger
 
 
 class Text(Sprite):
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(
         self,
         words="hi :)",
         x=0,

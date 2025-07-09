@@ -30,8 +30,8 @@ class Screen:
                 pygame.RESIZABLE
                 if self._resizable
                 else 0 | pygame.DOUBLEBUF | extra_flags
-            ),  # pylint: disable=no-member
-        )  # pylint: disable=no-member
+            ),
+        )
 
     def __init__(self, width=globals_list.WIDTH, height=globals_list.HEIGHT):
         self._width = width

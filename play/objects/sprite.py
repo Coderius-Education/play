@@ -84,7 +84,7 @@ class Sprite(
                 return True
         return False
 
-    def update(self):  # pylint: disable=too-many-nested-blocks, too-many-branches
+    def update(self):  # pylint: disable=too-many-branches
         """Update the sprite."""
         if not self._should_recompute:
             return
@@ -112,7 +112,7 @@ class Sprite(
                 if callback in self._touching_callback:
                     self._touching_callback[CollisionType.SPRITE] = None
 
-        if callback_manager.get_callback(  # pylint: disable=too-many-nested-blocks
+        if callback_manager.get_callback(
             CallbackType.WHEN_TOUCHING_WALL, id(self)
         ):
             for callback in callback_manager.get_callback(
@@ -614,7 +614,7 @@ You might want to look in your code where you're setting transparency and make s
         :return: The cloned sprite."""
         return self.__class__(image=self.image)
 
-    def start_physics(  # pylint: disable=too-many-arguments
+    def start_physics(
         self,
         can_move=True,
         stable=False,

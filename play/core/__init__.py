@@ -1,11 +1,9 @@
 """Core game loop and event handling functions."""
 
-import pygame  # pylint: disable=import-error
+import pygame
 
 from .controller_loop import (
-    controller_axis_moved,
-    controller_button_pressed,
-    controller_button_released,
+    controller_state,
     handle_controller as _handle_controller,
     handle_controller_events as _handle_controller_events,
 )
@@ -33,12 +31,12 @@ _clock = pygame.time.Clock()
 def _handle_pygame_events():
     """Handle pygame events in the game loop."""
     for event in pygame.event.get():
-        if event.type == pygame.QUIT or (  # pylint: disable=no-member
-            event.type == pygame.KEYDOWN  # pylint: disable=no-member
-            and event.key == pygame.K_q  # pylint: disable=no-member
+        if event.type == pygame.QUIT or (
+            event.type == pygame.KEYDOWN
+            and event.key == pygame.K_q
             and (
-                pygame.key.get_mods() & pygame.KMOD_META  # pylint: disable=no-member
-                or pygame.key.get_mods() & pygame.KMOD_CTRL  # pylint: disable=no-member
+                pygame.key.get_mods() & pygame.KMOD_META
+                or pygame.key.get_mods() & pygame.KMOD_CTRL
             )
         ):
             # quitting by clicking window's close button or pressing ctrl+q / command+q
@@ -64,12 +62,12 @@ def _handle_pygame_events():
     return True
 
 
-# pylint: disable=too-many-branches, too-many-statements
 @listen_to_failure()
 async def game_loop():
     """The main game loop."""
     keyboard_state.clear()
     mouse_state.clear()
+    controller_state.clear()
 
     _clock.tick(globals_list.FRAME_RATE)
 
@@ -78,13 +76,10 @@ async def game_loop():
 
     await _handle_keyboard()
 
-    if (
-        mouse_state.click_happened_this_frame
-        or mouse_state.click_release_happened_this_frame
-    ):
+    if mouse_state.click_happened or mouse_state.click_release_happened:
         await _handle_mouse_loop()
 
-    if controller_axis_moved or controller_button_pressed or controller_button_released:
+    if controller_state.any():
         await _handle_controller()
 
     #############################
@@ -110,4 +105,4 @@ async def game_loop():
     await _update_sprites()
 
     pygame.display.flip()
-    _loop.create_task(game_loop())  # Call self again
+    _loop.create_task(game_loop())

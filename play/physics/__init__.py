@@ -134,7 +134,7 @@ class Physics:
         Clone the physics object.
         :param sprite: The sprite to clone.
         """
-        return self.__class__(  # pylint: disable=no-value-for-parameter
+        return self.__class__(
             sprite=sprite,
             can_move=self.can_move,
             x_speed=self.x_speed,

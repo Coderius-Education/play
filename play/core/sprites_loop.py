@@ -16,7 +16,6 @@ async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-br
     """Update all sprites in the game loop.
     :param do_events: If True, run events for sprites. If False, only update positions.
     """
-    # pylint: disable=too-many-nested-blocks
     globals_list.sprites_group.update()
 
     for sprite in globals_list.sprites_group.sprites():
@@ -31,7 +30,6 @@ async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-br
                 sprite._y = body.position.y - (sprite.length / 2) * _math.sin(angle)
                 sprite._x1 = body.position.x + (sprite.length / 2) * _math.cos(angle)
                 sprite._y1 = body.position.y + (sprite.length / 2) * _math.sin(angle)
-                # sprite._length, sprite._angle = sprite._calc_length_angle()
             else:
                 if (
                     str(body.position.x) != "nan"
@@ -64,9 +62,8 @@ async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-br
         if mouse.is_clicked:
             if (
                 point_touching_sprite(convert_pos(mouse.x, mouse.y), sprite)
-                and mouse_state.click_happened_this_frame
+                and mouse_state.click_happened
             ):
-                # only run sprite clicks on the frame the mouse was clicked
                 sprite._is_clicked = True
                 callback_manager.run_callbacks(
                     CallbackType.WHEN_CLICKED_SPRITE, callback_discriminator=id(sprite)
