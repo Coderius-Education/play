@@ -42,18 +42,10 @@ async def handle_mouse_loop():
     # @mouse.when_clicked callbacks
     ####################################
     if mouse_state.click_happened_this_frame:
-        callback_manager.run_callbacks(
-            CallbackType.WHEN_CLICKED,
-            [],
-            [],
-        )
+        callback_manager.run_callbacks(CallbackType.WHEN_CLICKED)
 
     ########################################
     # @mouse.when_click_released callbacks
     ########################################
     if mouse_state.click_release_happened_this_frame:
-        callback_manager.run_callbacks(
-            CallbackType.WHEN_CLICK_RELEASED,
-            [],
-            [],
-        )
+        callback_manager.run_callbacks(CallbackType.WHEN_CLICK_RELEASED)
