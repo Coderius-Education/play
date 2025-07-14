@@ -42,6 +42,11 @@ class CallbackManager:
         :param callback_discriminator: The discriminator for the callback.
         :return: None
         """
+        if not isinstance(callback, tuple):
+            callback.type = callback_type
+        elif isinstance(callback, tuple):
+            callback[0].type = callback_type
+
         if callback_type not in self.callbacks:
             if callback_discriminator is None:
                 self.callbacks[callback_type] = []
@@ -70,6 +75,17 @@ class CallbackManager:
         :param callback_discriminator: The discriminator for the callback.
         :return: The callback(s) of the specified type.
         """
+        if isinstance(callback_type, list):
+            callbacks = []
+            for ctype in callback_type:
+                if ctype in self.callbacks:
+                    if callback_discriminator is None:
+                        callbacks.extend(self.callbacks[ctype])
+                    else:
+                        callbacks.extend(
+                            self.callbacks[ctype].get(callback_discriminator, [])
+                        )
+            return callbacks
         if callback_discriminator is None:
             return self.callbacks.get(callback_type, None)
         return self.callbacks.get(callback_type, {}).get(callback_discriminator, None)

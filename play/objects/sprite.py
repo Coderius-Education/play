@@ -7,7 +7,7 @@ import pygame
 import pymunk as _pymunk
 
 from ..callback import callback_manager, CallbackType
-from ..callback.callback_helpers import run_async_callback, run_callback
+from ..callback.callback_helpers import run_async_callback
 from ..callback.collision_callbacks import collision_registry, CollisionType
 from ..globals import globals_list
 from ..io.screen import screen
@@ -47,6 +47,7 @@ class Sprite(
 
         self._dependent_sprites = []
         self._touching_callback = [None, None]
+        self._stopped_callback = [None, None]
 
         self._image = image
         self.physics: _Physics | None = None
@@ -89,45 +90,42 @@ class Sprite(
         if not self._should_recompute:
             return
 
-        if callback_manager.get_callback(CallbackType.WHEN_TOUCHING, id(self)):
+        if callback_manager.get_callback(
+            [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING], id(self)
+        ):
             # Check if we are touching any other sprites
             for callback, b in callback_manager.get_callback(
-                CallbackType.WHEN_TOUCHING, id(self)
+                [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING],
+                id(self),
             ):
                 if self.is_touching(b):
                     if self._touching_callback[CollisionType.SPRITE] is None:
-                        self._touching_callback[CollisionType.SPRITE] = callback
+                        if callback.type == CallbackType.WHEN_TOUCHING:
+                            self._touching_callback[CollisionType.SPRITE] = callback
+                        else:
+                            self._touching_callback[CollisionType.SPRITE] = True
                     continue
-                if callback_manager.get_callback(
-                    CallbackType.WHEN_STOPPED_TOUCHING, id(self)
-                ):
-                    for (
-                        stopped_callback,
-                        stopped_b,
-                    ) in callback_manager.get_callback(
-                        CallbackType.WHEN_STOPPED_TOUCHING, id(self)
-                    ):
-                        if stopped_b == b and callback in self._touching_callback:
-                            run_callback(stopped_callback, [], [])
-                if callback in self._touching_callback:
+                if self._touching_callback[CollisionType.SPRITE] is not None:
                     self._touching_callback[CollisionType.SPRITE] = None
+                    self._stopped_callback[CollisionType.SPRITE] = callback
 
-        if callback_manager.get_callback(CallbackType.WHEN_TOUCHING_WALL, id(self)):
+        if callback_manager.get_callback(
+            [CallbackType.WHEN_TOUCHING_WALL, CallbackType.WHEN_STOPPED_TOUCHING_WALL],
+            id(self),
+        ):
             for callback in callback_manager.get_callback(
                 CallbackType.WHEN_TOUCHING_WALL, id(self)
             ):
                 if self.is_touching_wall():
                     if self._touching_callback[CollisionType.WALL] is None:
-                        self._touching_callback[CollisionType.WALL] = callback
-                elif callback in self._touching_callback:
-                    if callback_manager.get_callback(
-                        CallbackType.WHEN_STOPPED_TOUCHING_WALL, id(self)
-                    ):
-                        for stopped_callback in callback_manager.get_callback(
-                            CallbackType.WHEN_STOPPED_TOUCHING_WALL, id(self)
-                        ):
-                            run_callback(stopped_callback, [], [])
+                        if callback.type == CallbackType.WHEN_TOUCHING_WALL:
+                            self._touching_callback[CollisionType.WALL] = callback
+                        else:
+                            self._touching_callback[CollisionType.WALL] = True
+                    continue
+                if self._touching_callback[CollisionType.WALL] is not None:
                     self._touching_callback[CollisionType.WALL] = None
+                    self._stopped_callback[CollisionType.WALL] = callback
 
         if self._is_hidden:
             self._image = pygame.Surface((0, 0), pygame.SRCALPHA)
