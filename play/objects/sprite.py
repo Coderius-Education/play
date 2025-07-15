@@ -107,7 +107,8 @@ class Sprite(
                 self._stopped_callback[CollisionType.SPRITE] = callback
 
         for callback in callback_manager.get_callback(
-            [CallbackType.WHEN_TOUCHING_WALL, CallbackType.WHEN_STOPPED_TOUCHING_WALL], id(self)
+            [CallbackType.WHEN_TOUCHING_WALL, CallbackType.WHEN_STOPPED_TOUCHING_WALL],
+            id(self),
         ):
             if self.is_touching_wall():
                 if self._touching_callback[CollisionType.WALL] is None:
