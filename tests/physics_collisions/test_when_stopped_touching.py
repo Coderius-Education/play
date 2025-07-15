@@ -41,6 +41,7 @@ def test_ball_movement():
     @ball.when_stopped_touching(batje)
     def detect_collision():
         global num_collisions
+        print("Collision detected!")
         num_collisions += 1
 
     play.start_program()

@@ -90,42 +90,35 @@ class Sprite(
         if not self._should_recompute:
             return
 
-        if callback_manager.get_callback(
-            [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING], id(self)
-        ):
-            # Check if we are touching any other sprites
-            for callback, b in callback_manager.get_callback(
-                [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING],
-                id(self),
-            ):
-                if self.is_touching(b):
-                    if self._touching_callback[CollisionType.SPRITE] is None:
-                        if callback.type == CallbackType.WHEN_TOUCHING:
-                            self._touching_callback[CollisionType.SPRITE] = callback
-                        else:
-                            self._touching_callback[CollisionType.SPRITE] = True
-                    continue
-                if self._touching_callback[CollisionType.SPRITE] is not None:
-                    self._touching_callback[CollisionType.SPRITE] = None
-                    self._stopped_callback[CollisionType.SPRITE] = callback
-
-        if callback_manager.get_callback(
-            [CallbackType.WHEN_TOUCHING_WALL, CallbackType.WHEN_STOPPED_TOUCHING_WALL],
+        # Check if we are touching any other sprites
+        for callback, b in callback_manager.get_callback(
+            [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING],
             id(self),
         ):
-            for callback in callback_manager.get_callback(
-                CallbackType.WHEN_TOUCHING_WALL, id(self)
-            ):
-                if self.is_touching_wall():
-                    if self._touching_callback[CollisionType.WALL] is None:
-                        if callback.type == CallbackType.WHEN_TOUCHING_WALL:
-                            self._touching_callback[CollisionType.WALL] = callback
-                        else:
-                            self._touching_callback[CollisionType.WALL] = True
-                    continue
-                if self._touching_callback[CollisionType.WALL] is not None:
-                    self._touching_callback[CollisionType.WALL] = None
-                    self._stopped_callback[CollisionType.WALL] = callback
+            if self.is_touching(b):
+                if self._touching_callback[CollisionType.SPRITE] is None:
+                    if callback.type == CallbackType.WHEN_TOUCHING:
+                        self._touching_callback[CollisionType.SPRITE] = callback
+                    else:
+                        self._touching_callback[CollisionType.SPRITE] = True
+                continue
+            if self._touching_callback[CollisionType.SPRITE] is not None:
+                self._touching_callback[CollisionType.SPRITE] = None
+                self._stopped_callback[CollisionType.SPRITE] = callback
+
+        for callback in callback_manager.get_callback(
+            [CallbackType.WHEN_TOUCHING_WALL, CallbackType.WHEN_STOPPED_TOUCHING_WALL], id(self)
+        ):
+            if self.is_touching_wall():
+                if self._touching_callback[CollisionType.WALL] is None:
+                    if callback.type == CallbackType.WHEN_TOUCHING_WALL:
+                        self._touching_callback[CollisionType.WALL] = callback
+                    else:
+                        self._touching_callback[CollisionType.WALL] = True
+                continue
+            if self._touching_callback[CollisionType.WALL] is not None:
+                self._touching_callback[CollisionType.WALL] = None
+                self._stopped_callback[CollisionType.WALL] = callback
 
         if self._is_hidden:
             self._image = pygame.Surface((0, 0), pygame.SRCALPHA)

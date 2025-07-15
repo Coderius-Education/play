@@ -79,3 +79,19 @@ async def run_async_callback(callback, required_args, optional_args, *args, **kw
             f"{len(optional_args)} optional argument(s): {optional_args}\n"
             f"On line {actual_cb.__code__.co_firstlineno} in {actual_cb.__code__.co_filename}"
         )
+
+
+async def run_any_async_callback(callbacks, *args, **kwargs):
+    """
+    Run a callback function with the given arguments.
+    :param callbacks: A list of callback functions to run.
+    :param args: The arguments to pass to the callback function.
+    :param kwargs: The keyword arguments to pass to the callback
+    :return: The result of the callback function.
+    """
+    if not isinstance(callbacks, list):
+        raise ValueError("The callbacks parameter must be a list of async functions.")
+
+    for callback in callbacks:
+        if callback is not None and callable(callback):
+            await run_async_callback(callback, [], [], *args, **kwargs)

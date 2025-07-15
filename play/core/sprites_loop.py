@@ -4,7 +4,7 @@ import math as _math
 
 from .mouse_loop import mouse_state
 from ..callback import callback_manager, CallbackType
-from ..callback.callback_helpers import run_async_callback
+from ..callback.callback_helpers import run_any_async_callback
 from ..globals import globals_list
 from ..io.mouse import mouse
 from ..io.screen import convert_pos
@@ -51,30 +51,23 @@ async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-br
         #################################
         # All @sprite.when_touching events
         #################################
-        if sprite._touching_callback[0] and sprite._touching_callback[0] is not True:
-            await run_async_callback(sprite._touching_callback[0], [], [])
-        if sprite._touching_callback[1] and sprite._touching_callback[1] is not True:
-            await run_async_callback(sprite._touching_callback[1], [], [])
+        await run_any_async_callback(sprite._touching_callback, [], [])
 
-        if sprite._stopped_callback[0]:
-            await run_async_callback(sprite._stopped_callback[0], [], [])
-            sprite._stopped_callback[0] = None
-        if sprite._stopped_callback[1]:
-            await run_async_callback(sprite._stopped_callback[1], [], [])
-            sprite._stopped_callback[1] = None
+        await run_any_async_callback(sprite._stopped_callback, [], [])
+        sprite._stopped_callback = [None, None]
 
         #################################
         # @sprite.when_clicked events
         #################################
-        if mouse.is_clicked:
-            if (
-                point_touching_sprite(convert_pos(mouse.x, mouse.y), sprite)
-                and mouse_state.click_happened
-            ):
-                sprite._is_clicked = True
-                callback_manager.run_callbacks(
-                    CallbackType.WHEN_CLICKED_SPRITE, callback_discriminator=id(sprite)
-                )
+        if (
+            mouse.is_clicked
+            and point_touching_sprite(convert_pos(mouse.x, mouse.y), sprite)
+            and mouse_state.click_happened
+        ):
+            sprite._is_clicked = True
+            callback_manager.run_callbacks(
+                CallbackType.WHEN_CLICKED_SPRITE, callback_discriminator=id(sprite)
+            )
 
     globals_list.sprites_group.update()
     globals_list.sprites_group.draw(globals_list.display)
