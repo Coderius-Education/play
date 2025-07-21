@@ -23,6 +23,9 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
 
     def _handle_collision(self, arbiter, _, __):
         shape_a, shape_b = arbiter.shapes
+        if shape_a.collision_type == 0 or shape_b.collision_type == 0:
+            return True
+
         if (
             shape_a.collision_type in self.callbacks[True]
             and shape_b.collision_type in self.callbacks[True][shape_a.collision_type]
@@ -48,10 +51,14 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
 
     def _handle_end_collision(self, arbiter, _, __):
         shape_a, shape_b = arbiter.shapes
+        if shape_a.collision_type == 0 or shape_b.collision_type == 0:
+            return True
 
         if (
             shape_a.collision_type in self.shape_registry
-            and self.shape_registry[shape_a.collision_type]._touching_callback
+            and self.shape_registry[shape_a.collision_type]._touching_callback[
+                shape_a.collision_id
+            ]
         ):
             self.shape_registry[shape_a.collision_type]._touching_callback[
                 shape_a.collision_id
@@ -69,7 +76,9 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
 
         if (
             shape_b.collision_type in self.shape_registry
-            and self.shape_registry[shape_b.collision_type]._touching_callback
+            and self.shape_registry[shape_b.collision_type]._touching_callback[
+                shape_b.collision_id
+            ]
         ):
             self.shape_registry[shape_b.collision_type]._touching_callback[
                 shape_b.collision_id
@@ -94,16 +103,15 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         handler.begin = self._handle_collision
         handler.separate = self._handle_end_collision
 
-    def register(
-        self, sprite_a, shape_a, shape_b, callback, collision_type, begin=True
-    ):
+    def register(self, sprite_a, shape_a, shape_b, callback, collision_id, begin=True):
         """
         Register a callback with a name.
         """
         shape_a.collision_type = id(shape_a)
         shape_b.collision_type = id(shape_b)
         self.shape_registry[shape_a.collision_type] = sprite_a
-        shape_a.collision_id = collision_type
+        shape_a.collision_id = collision_id
+        shape_b.collision_id = collision_id
 
         if not shape_a.collision_type in self.callbacks[begin]:
             self.callbacks[begin][shape_a.collision_type] = {}

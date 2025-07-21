@@ -95,14 +95,16 @@ class Sprite(
             [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING],
             id(self),
         ):
+            if self.physics and b.physics:
+                continue
             if self.is_touching(b):
-                if self._touching_callback[CollisionType.SPRITE] is None:
+                if not callable(self._touching_callback[CollisionType.SPRITE]):
                     if callback.type == CallbackType.WHEN_TOUCHING:
                         self._touching_callback[CollisionType.SPRITE] = callback
                     else:
                         self._touching_callback[CollisionType.SPRITE] = True
                 continue
-            if self._touching_callback[CollisionType.SPRITE] is not None:
+            if callable(self._touching_callback[CollisionType.SPRITE]):
                 self._touching_callback[CollisionType.SPRITE] = None
                 self._stopped_callback[CollisionType.SPRITE] = callback
 
@@ -111,13 +113,13 @@ class Sprite(
             id(self),
         ):
             if self.is_touching_wall():
-                if self._touching_callback[CollisionType.WALL] is None:
+                if not callable(self._touching_callback[CollisionType.WALL]):
                     if callback.type == CallbackType.WHEN_TOUCHING_WALL:
                         self._touching_callback[CollisionType.WALL] = callback
                     else:
                         self._touching_callback[CollisionType.WALL] = True
                 continue
-            if self._touching_callback[CollisionType.WALL] is not None:
+            if callable(self._touching_callback[CollisionType.WALL]):
                 self._touching_callback[CollisionType.WALL] = None
                 self._stopped_callback[CollisionType.WALL] = callback
 

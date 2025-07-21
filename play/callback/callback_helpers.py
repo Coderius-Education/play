@@ -93,5 +93,5 @@ async def run_any_async_callback(callbacks, *args, **kwargs):
         raise ValueError("The callbacks parameter must be a list of async functions.")
 
     for callback in callbacks:
-        if callback is not None and callable(callback):
+        if callable(callback):
             await run_async_callback(callback, [], [], *args, **kwargs)
