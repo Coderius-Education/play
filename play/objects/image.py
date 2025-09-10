@@ -40,12 +40,13 @@ class Image(Sprite):
             self.rect = draw_image.get_rect()
             pos = convert_pos(self.x, self.y)
             self.rect.center = pos
+            self._transformed_image = draw_image
             super().update()
 
     @property
     def image(self):
         """Return the image."""
-        return self._image
+        return getattr(self, "_transformed_image", self._image)
 
     @image.setter
     def image(self, image: str):
