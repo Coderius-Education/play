@@ -46,7 +46,7 @@ class Image(Sprite):
     @property
     def image(self):
         """Return the image."""
-        return getattr(self, "_transformed_image", self._image)
+        return self._transformed_image if self._transformed_image else self._image
 
     @image.setter
     def image(self, image: str):
