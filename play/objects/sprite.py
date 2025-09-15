@@ -32,10 +32,11 @@ def point_touching_sprite(point, sprite):
     return sprite.rect.collidepoint(point)
 
 
-_should_ignore_update = ["_should_recompute", 
-                         "rect", 
-                         "_image", 
-                         ]
+_should_ignore_update = [
+    "_should_recompute",
+    "rect",
+    "_image",
+]
 
 
 class Sprite(
