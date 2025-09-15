@@ -32,7 +32,10 @@ def point_touching_sprite(point, sprite):
     return sprite.rect.collidepoint(point)
 
 
-_should_ignore_update = ["_should_recompute", "rect", "_image", "image"]
+_should_ignore_update = ["_should_recompute", 
+                         "rect", 
+                         "_image", 
+                         ]
 
 
 class Sprite(
@@ -239,6 +242,7 @@ You might want to look in your code where you're setting transparency and make s
     def size(self, percent):
         """Set the size of the sprite.
         :param percent: The size of the sprite as a percentage."""
+        self._should_recompute = True
         self._size = percent
         if self.physics:
             self.physics._remove()
