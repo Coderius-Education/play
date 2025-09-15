@@ -15,7 +15,7 @@ def new_text(
     words: str = "",
     x: int = 0,
     y: int = 0,
-    font: str = "/path/to/font",
+    font: str = "default",
     font_size: int = 50,
     color: str = "black",
     angle: int = 0,

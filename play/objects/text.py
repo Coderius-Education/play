@@ -11,7 +11,7 @@ from ..io.logging import play_logger
 class Text(Sprite):
     def __init__(
         self,
-        words="hi :)",
+        words="",
         x=0,
         y=0,
         font="default",
@@ -24,6 +24,7 @@ class Text(Sprite):
         super().__init__()
         self._font = font
         self._font_size = font_size
+
         self._load_font(font, font_size)
         self._words = words
         self._color = color
