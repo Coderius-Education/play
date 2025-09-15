@@ -620,7 +620,7 @@ You might want to look in your code where you're setting transparency and make s
         obeys_gravity=True,
         bounciness=1.0,
         mass=10,
-        friction=1.0,
+        friction=0,
     ):
         """Start the physics simulation for this sprite.
         :param can_move: Whether the object can move.
