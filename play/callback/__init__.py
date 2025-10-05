@@ -131,10 +131,10 @@ class CallbackManager:
         self,
         callback_type,
         activated_states,
+        *args,
         required_args=None,
         optional_args=None,
         property_filter={},
-        *args,
     ):
         """
         Run callbacks of a certain type with a specific discriminator.
@@ -151,18 +151,14 @@ class CallbackManager:
             optional_args = []
 
         def is_valid_callback(cb):
-            if not callable(cb):
-                return False
-            if hasattr(cb, "is_running") and cb.is_running:
+            if not callable(cb) or cb.is_running:
                 return False
 
             if property_filter:
                 for key, value in property_filter.items():
-                    if (
-                        getattr(cb, key, None) != value
-                        and getattr(cb, key, None) != "any"
-                    ):
+                    if value != 'any' and getattr(cb, key, None) != value:
                         return False
+
             return True
 
         if not activated_states or not self.get_callbacks(callback_type):
@@ -174,7 +170,7 @@ class CallbackManager:
                 for callback in subscriptions[state]:
                     if not is_valid_callback(callback):
                         continue
-
+            
                     await run_async_callback(
                         callback, required_args, optional_args, state, *args
                     )
