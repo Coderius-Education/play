@@ -3,9 +3,6 @@
 import pygame
 
 from ..callback import callback_manager, CallbackType
-from ..io.controllers import (
-    controllers,
-)
 
 
 class ControllerState:
