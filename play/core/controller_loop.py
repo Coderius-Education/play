@@ -64,7 +64,6 @@ async def handle_controller():  # pylint: disable=too-many-branches
             )
         controller_state.buttons_pressed.clear()
 
-
     ############################################################
     # @controller.when_button_released
     ############################################################
@@ -78,7 +77,6 @@ async def handle_controller():  # pylint: disable=too-many-branches
             )
         controller_state.buttons_released.clear()
 
-
     ############################################################
     # @controller.when_axis_moved
     ############################################################
@@ -86,10 +84,10 @@ async def handle_controller():  # pylint: disable=too-many-branches
         for axes_events in controller_state.axes_moved.values():
             for axis_event in axes_events:
                 await callback_manager.run_callbacks_with_filter(
-                    CallbackType.WHEN_CONTROLLER_AXIS_MOVED, # callback type
-                    [axis_event["axis"]], # activated states
-                    axis_event['value'], # value
-                    required_args=["axis", "value"], 
+                    CallbackType.WHEN_CONTROLLER_AXIS_MOVED,  # callback type
+                    [axis_event["axis"]],  # activated states
+                    axis_event["value"],  # value
+                    required_args=["axis", "value"],
                     property_filter={"axis": axis_event["axis"]},
                 )
         controller_state.axes_moved.clear()

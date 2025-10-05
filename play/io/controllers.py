@@ -194,6 +194,7 @@ class _Controllers:
         :param index: The index of the controller.
         :param axis: The index of the axis.
         :return: The function to run."""
+
         def decorator(func):
             async_callback = make_async(func)
 

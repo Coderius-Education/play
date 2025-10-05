@@ -156,7 +156,7 @@ class CallbackManager:
 
             if property_filter:
                 for key, value in property_filter.items():
-                    if value != 'any' and getattr(cb, key, None) != value:
+                    if value != "any" and getattr(cb, key, None) != value:
                         return False
 
             return True
@@ -170,7 +170,7 @@ class CallbackManager:
                 for callback in subscriptions[state]:
                     if not is_valid_callback(callback):
                         continue
-            
+
                     await run_async_callback(
                         callback, required_args, optional_args, state, *args
                     )
