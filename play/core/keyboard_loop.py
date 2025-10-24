@@ -30,12 +30,12 @@ async def handle_keyboard():
     # @when_any_key_pressed and @when_key_pressed callbacks
     ############################################################
     await callback_manager.run_callbacks_with_filter(
-        CallbackType.PRESSED_KEYS, keyboard_state.pressed, ["key"]
+        CallbackType.PRESSED_KEYS, keyboard_state.pressed,required_args=["key"]
     )
 
     ############################################################
     # @when_any_key_released and @when_key_released callbacks
     ############################################################
     await callback_manager.run_callbacks_with_filter(
-        CallbackType.RELEASED_KEYS, keyboard_state.released, ["key"]
+        CallbackType.RELEASED_KEYS, keyboard_state.released, required_args= ["key"]
     )
