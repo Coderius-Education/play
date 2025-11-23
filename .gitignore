@@ -2,3 +2,15 @@
 .idea
 
 test.py
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
