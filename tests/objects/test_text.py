@@ -1,6 +1,8 @@
 """Tests for Text object creation and properties."""
+
 import pytest
 import sys
+
 sys.path.insert(0, ".")
 
 
@@ -32,7 +34,7 @@ def test_text_creation_with_parameters():
         color="red",
         angle=45,
         transparency=80,
-        size=150
+        size=150,
     )
 
     assert text.words == "Hello World"
@@ -122,13 +124,7 @@ def test_text_clone():
     import play
 
     text1 = play.new_text(
-        words="Clone Me",
-        x=100,
-        y=200,
-        font_size=30,
-        color="purple",
-        angle=45,
-        size=150
+        words="Clone Me", x=100, y=200, font_size=30, color="purple", angle=45, size=150
     )
 
     text2 = text1.clone()

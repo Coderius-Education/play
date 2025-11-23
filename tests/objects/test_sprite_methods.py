@@ -1,7 +1,9 @@
 """Tests for sprite methods like go_to, point_towards, distance_to, etc."""
+
 import pytest
 import sys
 import math
+
 sys.path.insert(0, ".")
 
 
@@ -168,6 +170,7 @@ def test_sprite_remove():
 
     # Verify sprite is in the group
     from play.globals import globals_list
+
     assert sprite in globals_list.sprites_group
 
     sprite.remove()
@@ -223,14 +226,7 @@ def test_box_clone():
     """Test cloning a box sprite."""
     import play
 
-    box1 = play.new_box(
-        x=100,
-        y=200,
-        width=150,
-        height=200,
-        color="red",
-        angle=45
-    )
+    box1 = play.new_box(x=100, y=200, width=150, height=200, color="red", angle=45)
 
     box2 = box1.clone()
 
@@ -249,13 +245,7 @@ def test_circle_clone():
     """Test cloning a circle sprite."""
     import play
 
-    circle1 = play.new_circle(
-        x=100,
-        y=200,
-        radius=50,
-        color="blue",
-        angle=30
-    )
+    circle1 = play.new_circle(x=100, y=200, radius=50, color="blue", angle=30)
 
     circle2 = circle1.clone()
 

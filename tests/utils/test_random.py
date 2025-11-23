@@ -1,6 +1,8 @@
 """Tests for random utility functions."""
+
 import pytest
 import sys
+
 sys.path.insert(0, ".")
 
 
@@ -85,8 +87,8 @@ def test_random_position_default():
     for _ in range(10):
         pos = play.random_position()
         # Position should have x and y attributes
-        assert hasattr(pos, 'x')
-        assert hasattr(pos, 'y')
+        assert hasattr(pos, "x")
+        assert hasattr(pos, "y")
         # Values should be numbers
         assert isinstance(pos.x, (int, float))
         assert isinstance(pos.y, (int, float))

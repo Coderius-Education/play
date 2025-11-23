@@ -1,7 +1,9 @@
 """Tests for Line object creation and properties."""
+
 import pytest
 import sys
 import math
+
 sys.path.insert(0, ".")
 
 
@@ -23,14 +25,7 @@ def test_line_creation_with_length_angle():
     """Test creating a line with length and angle."""
     import play
 
-    line = play.new_line(
-        x=50,
-        y=60,
-        length=200,
-        angle=45,
-        color="red",
-        thickness=5
-    )
+    line = play.new_line(x=50, y=60, length=200, angle=45, color="red", thickness=5)
 
     assert line.x == 50
     assert line.y == 60
@@ -44,14 +39,7 @@ def test_line_creation_with_endpoint():
     """Test creating a line with x1, y1 endpoint."""
     import play
 
-    line = play.new_line(
-        x=0,
-        y=0,
-        x1=100,
-        y1=100,
-        color="blue",
-        thickness=3
-    )
+    line = play.new_line(x=0, y=0, x1=100, y1=100, color="blue", thickness=3)
 
     assert line.x == 0
     assert line.y == 0
@@ -175,14 +163,7 @@ def test_line_clone():
     """Test cloning a line object."""
     import play
 
-    line1 = play.new_line(
-        x=50,
-        y=60,
-        length=200,
-        angle=45,
-        color="purple",
-        thickness=7
-    )
+    line1 = play.new_line(x=50, y=60, length=200, angle=45, color="purple", thickness=7)
 
     line2 = line1.clone()
 
