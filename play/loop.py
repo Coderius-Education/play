@@ -12,13 +12,18 @@ def _handle_exception(loop, context):
     task_name = task.get_name() if task else "unknown"
 
     if exception:
-        tb_lines = traceback.format_exception(type(exception), exception, exception.__traceback__)
-        tb_str = ''.join(tb_lines)
+        tb_lines = traceback.format_exception(
+            type(exception), exception, exception.__traceback__
+        )
+        tb_str = "".join(tb_lines)
         play_logger.critical(f"Unhandled exception in task '{task_name}':\n{tb_str}")
     else:
-        play_logger.critical(context.get("message", "Unhandled exception in async task"))
+        play_logger.critical(
+            context.get("message", "Unhandled exception in async task")
+        )
 
     loop.stop()
+
 
 import sys
 
