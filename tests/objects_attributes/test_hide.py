@@ -21,6 +21,7 @@ def test_hide():
     @play.repeat_forever
     def move():
         global num_frames
+        global pixel_array
         num_frames += 1
 
         box.hide()
@@ -28,12 +29,12 @@ def test_hide():
         image.hide()
 
         if num_frames == max_frames:
+            the_surface = play.pygame.display.get_surface()
+            pixel_array = surfarray.array3d(the_surface)
             play.stop_program()
 
     play.start_program()
 
-    the_surface = pygame.display.get_surface()
-    pixel_array = surfarray.array3d(the_surface)
     for row in pixel_array:
         for r, g, b in row:
             if (r, g, b) != (255, 255, 255):
