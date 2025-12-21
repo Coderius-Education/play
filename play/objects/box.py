@@ -10,17 +10,17 @@ from ..utils import color_name_to_rgb as _color_name_to_rgb
 class Box(Sprite):
     def __init__(
         self,
-        color = "black",
-        x = 0,
-        y = 0,
-        width = 100,
-        height = 200,
-        border_color = "light blue",
-        border_width = 0,
-        border_radius = 0,
-        transparency = 100,
-        size = 100,
-        angle = 0,
+        color="black",
+        x=0,
+        y=0,
+        width=100,
+        height=200,
+        border_color="light blue",
+        border_width=0,
+        border_radius=0,
+        transparency=100,
+        size=100,
+        angle=0,
     ):
         super().__init__(self)
         self._color = color
@@ -161,10 +161,10 @@ class Box(Sprite):
         """Create a copy of the box.
         :return: A copy of the box."""
         return self.__class__(
-            color = self.color,
-            width = self.width,
-            height = self.height,
-            border_color = self.border_color,
-            border_width = self.border_width,
+            color=self.color,
+            width=self.width,
+            height=self.height,
+            border_color=self.border_color,
+            border_width=self.border_width,
             **self._common_properties()
         )
