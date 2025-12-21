@@ -251,15 +251,17 @@ You might want to look in your code where you're setting transparency and make s
 
     def hide(self):
         """Hide the sprite."""
-        self._is_hidden = True
-        if self.physics:
-            self.physics.pause()
+        if not self._is_hidden:
+            self._is_hidden = True
+            if self.physics:
+                self.physics.pause()
 
     def show(self):
         """Show the sprite."""
-        self._is_hidden = False
-        if self.physics:
-            self.physics.unpause()
+        if self._is_hidden:
+            self._is_hidden = False
+            if self.physics:
+                self.physics.unpause()
 
     @property
     def is_hidden(self):
@@ -355,9 +357,10 @@ You might want to look in your code where you're setting transparency and make s
 
     def remove(self):
         """Remove the sprite from the screen."""
-        if self.physics:
-            self.physics._remove()
-        globals_list.sprites_group.remove(self)
+        if self.alive():
+            if self.physics:
+                self.physics._remove()
+            globals_list.sprites_group.remove(self)
 
     @property
     def width(self):
