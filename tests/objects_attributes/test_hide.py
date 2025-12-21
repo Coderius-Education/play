@@ -19,7 +19,7 @@ def test_hide():
         image="tests/objects_attributes/yellow.jpg", size=10, transparency=0
     )
     image_physics.start_physics(obeys_gravity=False)
-    
+
     box = play.new_box(x=200)
     box_physics = play.new_box(x=200)
     box_physics.start_physics(obeys_gravity=False)
@@ -28,11 +28,8 @@ def test_hide():
     circle_physics = play.new_circle(x=0)
     circle_physics.start_physics(obeys_gravity=False)
 
-    sprites = [image, image_physics,
-               box, box_physics,
-               circle, circle_physics]
-    methods = ['hide', 'show', 'remove']
-
+    sprites = [image, image_physics, box, box_physics, circle, circle_physics]
+    methods = ["hide", "show", "remove"]
 
     for method_name in methods:
         for sprite in sprites:
