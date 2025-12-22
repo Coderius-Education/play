@@ -6,8 +6,10 @@ import pygame
 from .sprite import Sprite
 from ..io.screen import convert_pos, screen
 from ..utils import color_name_to_rgb as _color_name_to_rgb
+from ..utils import experimental
 
 
+@experimental
 class Line(Sprite):
     def __init__(  # pylint: disable=too-many-arguments
         self,

@@ -1,8 +1,40 @@
 """A bunch of random math functions."""
 
+import warnings
+from functools import wraps
 from typing import Sequence
 
 import pygame
+
+
+def experimental(cls):
+    """
+    Decorator to mark a class as experimental.
+
+    When the class is instantiated, a FutureWarning will be issued to inform
+    users that the class is experimental and may change in future versions.
+    """
+    original_init = cls.__init__
+
+    @wraps(original_init)
+    def new_init(self, *args, **kwargs):
+        warnings.warn(
+            f"{cls.__name__} is experimental and may change in future versions. "
+            f"Use at your own risk.",
+            FutureWarning,
+            stacklevel=2
+        )
+        original_init(self, *args, **kwargs)
+
+    cls.__init__ = new_init
+
+    # Add experimental marker to docstring
+    if cls.__doc__:
+        cls.__doc__ = f"**EXPERIMENTAL**: {cls.__doc__}"
+    else:
+        cls.__doc__ = "**EXPERIMENTAL**: This class is experimental and may change in future versions."
+
+    return cls
 
 
 def clamp(num, min_, max_):
