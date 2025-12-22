@@ -2,6 +2,7 @@
 
 import warnings
 from functools import wraps
+import inspect
 from typing import Sequence
 
 import pygame
@@ -101,3 +102,14 @@ def color_name_to_rgb(
 Try using the RGB number form of the color e.g. '(0, 255, 255)'.
 You can find the RGB form of a color on websites like this: https://www.rapidtables.com/web/color/RGB_Color.html\n"""
         ) from exception
+
+
+def is_called_from_pygame():
+    """Check if the current method is being called from pygame's internal code."""
+    stack = inspect.stack()
+
+    for frame_info in stack:
+        filename = frame_info.filename
+        if "pygame" in filename and "site-packages" in filename:
+            return True
+    return False
