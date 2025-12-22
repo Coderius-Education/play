@@ -22,7 +22,7 @@ def experimental(cls):
             f"{cls.__name__} is experimental and may change in future versions. "
             f"Use at your own risk.",
             FutureWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         original_init(self, *args, **kwargs)
 
