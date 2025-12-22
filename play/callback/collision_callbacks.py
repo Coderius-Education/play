@@ -1,6 +1,7 @@
 """Collision callbacks for sprites."""
 
-from play.objects import Sprite
+from pymunk import CollisionHandler, Shape, Arbiter
+
 
 try:
     from enum import EnumType
@@ -8,7 +9,6 @@ except ImportError:
     from enum import (
         EnumMeta as EnumType,
     )  # In Python 3.10 the alias for EnumMeta doesn't yet exist
-from pymunk import CollisionHandler, Shape, Arbiter
 
 from play.physics import physics_space
 
@@ -85,13 +85,15 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         shape_a, shape_b = arbiter.shapes
 
         self._handle_end_collision_shape(shape_a, shape_b)
-        self._handle_end_collision_shape(shape_b, shape_a)
+        self._handle_end_collision_shape(  # pylint: disable=arguments-out-of-order
+            shape_b, shape_a
+        )
 
         return True
 
     def _register_shape(
         self,
-        sprite: Sprite,
+        sprite,
         shape: Shape,
         other_shape: Shape,
         callback,
@@ -115,8 +117,8 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
 
     def register(
         self,
-        sprite_a: Sprite,
-        sprite_b: Sprite,
+        sprite_a,
+        sprite_b,
         shape_a: Shape,
         shape_b: Shape,
         callback,
