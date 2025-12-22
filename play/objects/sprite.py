@@ -12,7 +12,7 @@ from ..callback.collision_callbacks import collision_registry, CollisionType
 from ..globals import globals_list
 from ..io.screen import screen
 from ..physics import physics_space, Physics as _Physics
-from ..utils import clamp as _clamp
+from ..utils import clamp as _clamp, is_called_from_pygame
 from ..utils.async_helpers import make_async
 
 
@@ -321,6 +321,41 @@ You might want to look in your code where you're setting transparency and make s
         if self.physics:
             self.physics._remove()
         globals_list.sprites_group.remove(self)
+
+    def add(self, *groups):
+        """Add the sprite to groups (pygame internal method).
+        Warning: This is a pygame internal method. Use at your own risk."""
+        if not is_called_from_pygame():
+            _warnings.warn(
+                "The 'add' method is a pygame internal method and should not be called directly. "
+                "Sprites are automatically added to the sprite group when created.",
+                UserWarning,
+                stacklevel=2,
+            )
+        super().add(*groups)
+
+    def add_internal(self, group):
+        """Add the sprite to a group internally (pygame internal method).
+        Warning: This is a pygame internal method. Use at your own risk."""
+        if not is_called_from_pygame():
+            _warnings.warn(
+                "The 'add_internal' method is a pygame internal method and should not be called directly.",
+                UserWarning,
+                stacklevel=2,
+            )
+        super().add_internal(group)
+
+    def remove_internal(self, group):
+        """Remove the sprite from a group internally (pygame internal method).
+        Warning: This is a pygame internal method. Use at your own risk."""
+        if not is_called_from_pygame():
+            _warnings.warn(
+                "The 'remove_internal' method is a pygame internal method and should not be called directly. "
+                "Use the 'remove' method instead.",
+                UserWarning,
+                stacklevel=2,
+            )
+        super().remove_internal(group)
 
     @property
     def width(self):
