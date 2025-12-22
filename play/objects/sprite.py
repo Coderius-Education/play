@@ -137,18 +137,6 @@ class Sprite(
         :return: Whether the sprite is clicked."""
         return self._is_clicked
 
-    def move(self, steps=3):
-        """Move the sprite.
-        :param steps: The number of steps to move the sprite."""
-        angle = _math.radians(self.angle)
-        self.x += steps * _math.cos(angle)
-        self.y += steps * _math.sin(angle)
-
-    def turn(self, degrees=10):
-        """Turn the sprite.
-        :param degrees: The number of degrees to turn the sprite."""
-        self.angle += degrees
-
     @property
     def x(self):
         """Get the x-coordinate of the sprite.
@@ -305,37 +293,6 @@ You might want to look in your code where you're setting transparency and make s
                 )
             return _sprite_touching_sprite(self, sprite_or_point)
         return point_touching_sprite(sprite_or_point, self)
-
-    def point_towards(self, x, y=None):
-        """Point the sprite towards a point or another sprite.
-        :param x: The x-coordinate of the point.
-        :param y: The y-coordinate of the point."""
-        try:
-            x, y = x.x, x.y
-        except AttributeError:
-            pass
-        self.angle = _math.degrees(_math.atan2(y - self.y, x - self.x))
-
-    def go_to(self, x=None, y=None):
-        """
-        Example:
-
-            # text will follow around the mouse
-            text = play.new_text('yay')
-
-            @play.repeat_forever
-            async def do():
-                text.go_to(play.mouse)
-        """
-        assert not x is None
-
-        try:
-            # users can call e.g. sprite.go_to(play.mouse), so x will be an object with x and y
-            self.x = x.x
-            self.y = x.y
-        except AttributeError:
-            self.x = x
-            self.y = y
 
     def distance_to(self, x, y=None):
         """Calculate the distance to a point or sprite.
