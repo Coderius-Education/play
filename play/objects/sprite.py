@@ -294,26 +294,25 @@ You might want to look in your code where you're setting transparency and make s
             return _sprite_touching_sprite(self, sprite_or_point)
         return point_touching_sprite(sprite_or_point, self)
 
-    def go_to(self, x=None, y=None):
-        """
-        Example:
-
-            # text will follow around the mouse
-            text = play.new_text('yay')
-
-            @play.repeat_forever
-            async def do():
-                text.go_to(play.mouse)
-        """
+    def distance_to(self, x, y=None):
+        """Calculate the distance to a point or sprite.
+        :param x: The x-coordinate of the point.
+        :param y: The y-coordinate of the point.
+        :return: The distance to the point or sprite."""
         assert not x is None
 
         try:
-            # users can call e.g. sprite.go_to(play.mouse), so x will be an object with x and y
-            self.x = x.x
-            self.y = x.y
+            # x can either be a number or a sprite. If it's a sprite:
+            x1 = x.x
+            y1 = x.y
         except AttributeError:
-            self.x = x
-            self.y = y
+            x1 = x
+            y1 = y
+
+        dx = self.x - x1
+        dy = self.y - y1
+
+        return _math.sqrt(dx**2 + dy**2)
 
     def remove(self):
         """Remove the sprite from the screen."""

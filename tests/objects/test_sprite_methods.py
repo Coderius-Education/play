@@ -1,4 +1,4 @@
-"""Tests for sprite methods like go_to, etc."""
+"""Tests for sprite methods like distance_to, etc."""
 
 import pytest
 import sys
@@ -7,28 +7,38 @@ import math
 sys.path.insert(0, ".")
 
 
-def test_sprite_go_to_coordinates():
-    """Test go_to method with x, y coordinates."""
+def test_sprite_distance_to_coordinates():
+    """Test distance_to method with x, y coordinates."""
     import play
 
     sprite = play.new_box(x=0, y=0)
-    sprite.go_to(100, 200)
+    distance = sprite.distance_to(3, 4)
 
-    assert sprite.x == 100
-    assert sprite.y == 200
+    assert abs(distance - 5.0) < 0.1  # 3-4-5 triangle
 
 
-def test_sprite_go_to_object():
-    """Test go_to method with an object that has x and y."""
+def test_sprite_distance_to_sprite():
+    """Test distance_to method with another sprite."""
     import play
 
-    sprite = play.new_box(x=0, y=0)
-    target = play.new_circle(x=150, y=250)
+    sprite1 = play.new_box(x=0, y=0)
+    sprite2 = play.new_circle(x=3, y=4)
 
-    sprite.go_to(target)
+    distance = sprite1.distance_to(sprite2)
 
-    assert sprite.x == 150
-    assert sprite.y == 250
+    assert abs(distance - 5.0) < 0.1  # 3-4-5 triangle
+
+
+def test_sprite_distance_to_same_position():
+    """Test distance_to when sprites are at same position."""
+    import play
+
+    sprite1 = play.new_box(x=100, y=100)
+    sprite2 = play.new_circle(x=100, y=100)
+
+    distance = sprite1.distance_to(sprite2)
+
+    assert abs(distance) < 0.1
 
 
 def test_sprite_hide_show():
