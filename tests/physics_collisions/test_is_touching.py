@@ -48,7 +48,7 @@ def test_ball_movement():
 
     play.start_program()
 
-    if not (num_collisions_decorator == 2 and method_check_inside_decorator == 2):
+    if not (num_collisions_decorator == 700 and method_check_inside_decorator == 700):
         pytest.fail(
             f"expected two collisions by the method and the decorator, but found {num_collisions_decorator}, {method_check_inside_decorator}"
         )

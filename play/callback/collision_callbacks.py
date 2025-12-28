@@ -37,6 +37,15 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         if not hasattr(shape_a, "collision_id") or not hasattr(shape_b, "collision_id"):
             return True
 
+        # check for walls
+        if any(
+            [
+                self.shape_registry[shape_a.collision_type] is None,
+                self.shape_registry[shape_b.collision_type] is None,
+            ]
+        ):
+            return False
+
         if (
             shape_a.collision_type in self.callbacks[True]
             and shape_b.collision_type in self.callbacks[True][shape_a.collision_type]
@@ -58,11 +67,20 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             self.shape_registry[shape_b.collision_type]._touching_callback[
                 shape_a.collision_id
             ] = callback
-        return True
+        return False
 
     def _handle_end_collision_shape(self, shape_a: Shape, shape_b: Shape):
         if not hasattr(shape_a, "collision_id") or not hasattr(shape_b, "collision_id"):
-            return
+            return False
+
+        # check for walls
+        if any(
+            [
+                self.shape_registry[shape_a.collision_type] is None,
+                self.shape_registry[shape_b.collision_type] is None,
+            ]
+        ):
+            return False
 
         if shape_a.collision_type in self.shape_registry and self.shape_registry[
             shape_a.collision_type
@@ -80,6 +98,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             self.shape_registry[shape_a.collision_type]._stopped_callback[
                 shape_b.collision_id
             ] = callback
+        return False
 
     def _handle_end_collision(self, arbiter: Arbiter, _, __):
         shape_a, shape_b = arbiter.shapes

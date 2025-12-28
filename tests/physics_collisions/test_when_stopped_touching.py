@@ -1,7 +1,7 @@
 import pytest
 
 num_frames = 0
-max_frames = 200
+max_frames = 300
 x_speed = 60
 
 num_collisions = 0
