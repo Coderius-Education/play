@@ -2,8 +2,10 @@
 
 import pygame
 from ..io.logging import play_logger as logger
+from ..utils import experimental
 
 
+@experimental
 class Sound:
     def __init__(self, file_name, volume=1.0, loops=1):
         """

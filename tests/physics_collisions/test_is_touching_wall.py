@@ -24,7 +24,7 @@ def test_ball_movement():
         obeys_gravity=False, x_speed=x_speed, friction=0, mass=10, bounciness=1.0
     )
 
-    @ball.when_touching_wall
+    @ball.when_stopped_touching_wall
     def detect_collision():
         global num_collisions_decorator
         num_collisions_decorator += 1
