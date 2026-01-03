@@ -77,8 +77,14 @@ class Sprite(
         :return: Whether the sprite is touching the edge of the screen."""
         if self.physics:
             for wall in globals_list.walls:
-                if self.physics._pymunk_shape.shapes_collide(wall).points:
-                    return True
+                try:
+                    contact_set = self.physics._pymunk_shape.shapes_collide(wall)
+                    # Check if there are any contact points (shapes are colliding)
+                    if contact_set and len(contact_set.points) > 0:
+                        return True
+                except (AssertionError, AttributeError):
+                    # Handle pymunk internal assertion errors or missing attributes
+                    continue
         else:
             if (
                 self.left < -screen.width / 2
