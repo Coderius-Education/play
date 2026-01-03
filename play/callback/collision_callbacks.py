@@ -1,6 +1,6 @@
 """Collision callbacks for sprites."""
 
-from pymunk import CollisionHandler, Shape, Arbiter
+from pymunk import Shape, Arbiter
 
 
 try:
@@ -27,9 +27,10 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         self.callbacks = {True: {}, False: {}}
         self.shape_registry = {}
 
-        handler: CollisionHandler = physics_space.add_default_collision_handler()
-        handler.begin = self._handle_collision
-        handler.separate = self._handle_end_collision
+        # Use pymunk 7.2.0 API - on_collision instead of add_default_collision_handler
+        physics_space.on_collision(
+            begin=self._handle_collision, separate=self._handle_end_collision
+        )
 
     def _handle_collision(self, arbiter, _, __):
         shape_a, shape_b = arbiter.shapes
