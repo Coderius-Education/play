@@ -50,8 +50,8 @@ class Sprite(
         self._transparency = None
 
         self._dependent_sprites = []
-        self._touching_callback = [None, None]
-        self._stopped_callback = [None, None]
+        self._touching_callback = {}
+        self._stopped_callback = {}
 
         self._image = image
         self.physics: _Physics | None = None
@@ -77,8 +77,14 @@ class Sprite(
         :return: Whether the sprite is touching the edge of the screen."""
         if self.physics:
             for wall in globals_list.walls:
-                if self.physics._pymunk_shape.shapes_collide(wall).points:
-                    return True
+                try:
+                    contact_set = self.physics._pymunk_shape.shapes_collide(wall)
+                    # Check if there are any contact points (shapes are colliding)
+                    if contact_set and len(contact_set.points) > 0:
+                        return True
+                except (AssertionError, AttributeError):
+                    # Handle pymunk internal assertion errors or missing attributes
+                    continue
         else:
             if (
                 self.left < -screen.width / 2
@@ -95,37 +101,40 @@ class Sprite(
             return
 
         # Check if we are touching any other sprites
-        for callback, b in callback_manager.get_callback(
+        for callback, shape_b in callback_manager.get_callback(
             [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING],
             id(self),
         ):
-            if self.physics and b.physics:
+            if self.physics and shape_b.physics:
                 continue
-            if self.is_touching(b):
-                if not callable(self._touching_callback[CollisionType.SPRITE]):
+            collision_key = id(shape_b)
+            if self.is_touching(shape_b):
+                if collision_key not in self._touching_callback:
                     if callback.type == CallbackType.WHEN_TOUCHING:
-                        self._touching_callback[CollisionType.SPRITE] = callback
+                        self._touching_callback[collision_key] = callback
                     else:
-                        self._touching_callback[CollisionType.SPRITE] = True
+                        self._touching_callback[collision_key] = True
                 continue
-            if callable(self._touching_callback[CollisionType.SPRITE]):
-                self._touching_callback[CollisionType.SPRITE] = None
-                self._stopped_callback[CollisionType.SPRITE] = callback
+            if collision_key in self._touching_callback:
+                del self._touching_callback[collision_key]
+                if callback.type == CallbackType.WHEN_STOPPED_TOUCHING:
+                    self._stopped_callback[collision_key] = callback
 
         for callback in callback_manager.get_callback(
             [CallbackType.WHEN_TOUCHING_WALL, CallbackType.WHEN_STOPPED_TOUCHING_WALL],
             id(self),
         ):
             if self.is_touching_wall():
-                if not callable(self._touching_callback[CollisionType.WALL]):
+                if CollisionType.WALL not in self._touching_callback:
                     if callback.type == CallbackType.WHEN_TOUCHING_WALL:
                         self._touching_callback[CollisionType.WALL] = callback
                     else:
                         self._touching_callback[CollisionType.WALL] = True
                 continue
-            if callable(self._touching_callback[CollisionType.WALL]):
-                self._touching_callback[CollisionType.WALL] = None
-                self._stopped_callback[CollisionType.WALL] = callback
+            if CollisionType.WALL in self._touching_callback:
+                del self._touching_callback[CollisionType.WALL]
+                if callback.type == CallbackType.WHEN_STOPPED_TOUCHING_WALL:
+                    self._stopped_callback[CollisionType.WALL] = callback
 
         if self._is_hidden:
             self._image = pygame.Surface((0, 0), pygame.SRCALPHA)
@@ -469,6 +478,7 @@ You might want to look in your code where you're setting transparency and make s
                         continue
                     collision_registry.register(
                         self,
+                        sprite,
                         self.physics._pymunk_shape,
                         sprite.physics._pymunk_shape,
                         async_callback,
@@ -509,6 +519,7 @@ You might want to look in your code where you're setting transparency and make s
                         continue
                     collision_registry.register(
                         self,
+                        sprite,
                         self.physics._pymunk_shape,
                         sprite.physics._pymunk_shape,
                         async_callback,
@@ -554,6 +565,7 @@ You might want to look in your code where you're setting transparency and make s
             for wall in globals_list.walls:
                 collision_registry.register(
                     self,
+                    None,
                     self.physics._pymunk_shape,
                     wall,
                     wrapper,
@@ -582,6 +594,7 @@ You might want to look in your code where you're setting transparency and make s
             for wall in globals_list.walls:
                 collision_registry.register(
                     self,
+                    None,
                     self.physics._pymunk_shape,
                     wall,
                     wrapper,

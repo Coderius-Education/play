@@ -1,12 +1,14 @@
 """Collision callbacks for sprites."""
 
+from pymunk import Shape, Arbiter
+
+
 try:
     from enum import EnumType
 except ImportError:
     from enum import (
         EnumMeta as EnumType,
     )  # In Python 3.10 the alias for EnumMeta doesn't yet exist
-from pymunk import CollisionHandler
 
 from play.physics import physics_space
 
@@ -21,9 +23,28 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
     A registry for collision callbacks.
     """
 
+    def __init__(self):
+        self.callbacks = {True: {}, False: {}}
+        self.shape_registry = {}
+
+        # Use pymunk 7.2.0 API - on_collision instead of add_default_collision_handler
+        physics_space.on_collision(
+            begin=self._handle_collision, separate=self._handle_end_collision
+        )
+
     def _handle_collision(self, arbiter, _, __):
         shape_a, shape_b = arbiter.shapes
-        if shape_a.collision_type == 0 or shape_b.collision_type == 0:
+
+        if not hasattr(shape_a, "collision_id") or not hasattr(shape_b, "collision_id"):
+            return True
+
+        # check for walls
+        if any(
+            [
+                self.shape_registry[shape_a.collision_type] is None,
+                self.shape_registry[shape_b.collision_type] is None,
+            ]
+        ):
             return True
 
         if (
@@ -34,7 +55,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
                 shape_b.collision_type
             ]
             self.shape_registry[shape_a.collision_type]._touching_callback[
-                shape_a.collision_id
+                shape_b.collision_id
             ] = callback
 
         if (
@@ -45,23 +66,28 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
                 shape_a.collision_type
             ]
             self.shape_registry[shape_b.collision_type]._touching_callback[
-                shape_b.collision_id
+                shape_a.collision_id
             ] = callback
         return True
 
-    def _handle_end_collision(self, arbiter, _, __):
-        shape_a, shape_b = arbiter.shapes
-        if shape_a.collision_type == 0 or shape_b.collision_type == 0:
-            return True
+    def _handle_end_collision_shape(self, shape_a: Shape, shape_b: Shape):
+        if not hasattr(shape_a, "collision_id") or not hasattr(shape_b, "collision_id"):
+            return False
 
-        if (
-            shape_a.collision_type in self.shape_registry
-            and self.shape_registry[shape_a.collision_type]._touching_callback[
-                shape_a.collision_id
+        # check for walls
+        if any(
+            [
+                self.shape_registry[shape_a.collision_type] is None,
+                self.shape_registry[shape_b.collision_type] is None,
             ]
         ):
+            return True
+
+        if shape_a.collision_type in self.shape_registry and self.shape_registry[
+            shape_a.collision_type
+        ]._touching_callback.get(shape_b.collision_id):
             self.shape_registry[shape_a.collision_type]._touching_callback[
-                shape_a.collision_id
+                shape_b.collision_id
             ] = None
         if (
             shape_a.collision_type in self.callbacks[False]
@@ -71,53 +97,63 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
                 shape_b.collision_type
             ]
             self.shape_registry[shape_a.collision_type]._stopped_callback[
-                shape_a.collision_id
+                shape_b.collision_id
             ] = callback
+        return True
 
-        if (
-            shape_b.collision_type in self.shape_registry
-            and self.shape_registry[shape_b.collision_type]._touching_callback[
-                shape_b.collision_id
-            ]
-        ):
-            self.shape_registry[shape_b.collision_type]._touching_callback[
-                shape_b.collision_id
-            ] = None
-        if (
-            shape_b.collision_type in self.callbacks[False]
-            and shape_a.collision_type in self.callbacks[False][shape_b.collision_type]
-        ):
-            callback = self.callbacks[False][shape_b.collision_type][
-                shape_a.collision_type
-            ]
-            self.shape_registry[shape_b.collision_type]._stopped_callback[
-                shape_b.collision_id
-            ] = callback
+    def _handle_end_collision(self, arbiter: Arbiter, _, __):
+        shape_a, shape_b = arbiter.shapes
+
+        self._handle_end_collision_shape(shape_a, shape_b)
+        self._handle_end_collision_shape(  # pylint: disable=arguments-out-of-order
+            shape_b, shape_a
+        )
 
         return True
 
-    def __init__(self):
-        self.callbacks = {True: {}, False: {}}
-        self.shape_registry = {}
-        handler: CollisionHandler = physics_space.add_default_collision_handler()
-        handler.begin = self._handle_collision
-        handler.separate = self._handle_end_collision
+    def _register_shape(
+        self,
+        sprite,
+        shape: Shape,
+        other_shape: Shape,
+        callback,
+        collision_type: CollisionType,
+        begin: bool = True,
+    ):
+        shape.collision_id = collision_type
+        shape.collision_type = id(shape)
 
-    def register(self, sprite_a, shape_a, shape_b, callback, collision_id, begin=True):
+        self.shape_registry[shape.collision_type] = sprite
+
+        if not shape.collision_type in self.callbacks[begin]:
+            self.callbacks[begin][shape.collision_type] = {}
+
+        if not hasattr(other_shape, "collision_type"):
+            other_shape.collision_type = id(other_shape)
+
+        self.callbacks[begin][shape.collision_type][
+            other_shape.collision_type
+        ] = callback
+
+    def register(
+        self,
+        sprite_a,
+        sprite_b,
+        shape_a: Shape,
+        shape_b: Shape,
+        callback,
+        collision_type: CollisionType,
+        begin: bool = True,
+    ):
         """
         Register a callback with a name.
         """
-        shape_a.collision_type = id(shape_a)
-        shape_b.collision_type = id(shape_b)
-        self.shape_registry[shape_a.collision_type] = sprite_a
-        shape_a.collision_id = collision_id
-        shape_b.collision_id = collision_id
-
-        if not shape_a.collision_type in self.callbacks[begin]:
-            self.callbacks[begin][shape_a.collision_type] = {}
-        if shape_b.collision_type in self.callbacks[begin][shape_a.collision_type]:
-            raise ValueError(f"Callback already registered for {shape_a} and {shape_b}")
-        self.callbacks[begin][shape_a.collision_type][shape_b.collision_type] = callback
+        self._register_shape(
+            sprite_a, shape_a, shape_b, callback, collision_type, begin
+        )
+        self._register_shape(
+            sprite_b, shape_b, shape_a, callback, collision_type, begin
+        )
 
 
 collision_registry = CollisionCallbackRegistry()

@@ -51,10 +51,10 @@ async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-br
         #################################
         # All @sprite.when_touching events
         #################################
-        await run_any_async_callback(sprite._touching_callback, [], [])
+        await run_any_async_callback(list(sprite._touching_callback.values()), [], [])
 
-        await run_any_async_callback(sprite._stopped_callback, [], [])
-        sprite._stopped_callback = [None, None]
+        await run_any_async_callback(list(sprite._stopped_callback.values()), [], [])
+        sprite._stopped_callback = {}
 
         #################################
         # @sprite.when_clicked events
