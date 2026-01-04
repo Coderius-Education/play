@@ -14,6 +14,7 @@ from screeninfo import get_monitors
 import pymunk as _pymunk
 
 from ..callback import run_callback, CallbackType, callback_manager
+from ..callback.collision_callbacks import WallSide
 from ..globals import globals_list
 from ..physics import physics_space
 from ..utils.async_helpers import make_async
@@ -190,13 +191,15 @@ class Screen:
 screen = Screen()
 
 
-def create_wall(a, b):
+def create_wall(a, b, wall_side):
     """Create a wall segment in the physics space.
     :param a: The start point of the wall segment.
-    :param b: The end point of the wall segment."""
+    :param b: The end point of the wall segment.
+    :param wall_side: The side of the screen this wall represents (WallSide enum)."""
     segment = _pymunk.Segment(physics_space.static_body, a, b, 0.0)
     segment.elasticity = 1.0
     segment.friction = 0.0
+    segment.wall_side = wall_side
     physics_space.add(segment)
     return segment
 
@@ -204,17 +207,23 @@ def create_wall(a, b):
 def create_walls():
     """Create walls around the screen."""
     globals_list.walls.append(
-        create_wall([screen.left, screen.top], [screen.right, screen.top])
-    )  # top
+        create_wall([screen.left, screen.top], [screen.right, screen.top], WallSide.TOP)
+    )
     globals_list.walls.append(
-        create_wall([screen.left, screen.bottom], [screen.right, screen.bottom])
-    )  # bottom
+        create_wall(
+            [screen.left, screen.bottom], [screen.right, screen.bottom], WallSide.BOTTOM
+        )
+    )
     globals_list.walls.append(
-        create_wall([screen.left, screen.bottom], [screen.left, screen.top])
-    )  # left
+        create_wall(
+            [screen.left, screen.bottom], [screen.left, screen.top], WallSide.LEFT
+        )
+    )
     globals_list.walls.append(
-        create_wall([screen.right, screen.bottom], [screen.right, screen.top])
-    )  # right
+        create_wall(
+            [screen.right, screen.bottom], [screen.right, screen.top], WallSide.RIGHT
+        )
+    )
 
 
 def remove_walls():
