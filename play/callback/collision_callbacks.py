@@ -17,6 +17,7 @@ from play.physics import physics_space
 
 class WallSide(Enum):
     """Enum representing the sides of the screen walls."""
+
     TOP = "top"
     BOTTOM = "bottom"
     LEFT = "left"

@@ -207,9 +207,7 @@ def create_wall(a, b, wall_side):
 def create_walls():
     """Create walls around the screen."""
     globals_list.walls.append(
-        create_wall(
-            [screen.left, screen.top], [screen.right, screen.top], WallSide.TOP
-        )
+        create_wall([screen.left, screen.top], [screen.right, screen.top], WallSide.TOP)
     )
     globals_list.walls.append(
         create_wall(
