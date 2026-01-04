@@ -33,3 +33,4 @@ from .utils import (
     set_physics_simulation_steps,
 )
 from .random import random_number, random_color, random_position
+from ..callback.collision_callbacks import WallSide
