@@ -13,7 +13,7 @@ with open(HERE / 'requirements.txt') as f:
 # This call to setup() does all the work
 setup(
     name="coderius-play",
-    version="3.0.0",
+    version="3.1.0",
     description="The easiest way to make games and media projects in Python.",
     long_description=README,
     long_description_content_type="text/markdown",
