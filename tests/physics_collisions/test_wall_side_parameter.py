@@ -160,9 +160,7 @@ def test_get_touching_walls_for_non_physics_sprite():
     import play
 
     # Create a box at the left edge
-    box = play.new_box(
-        color="cyan", x=-play.screen.width / 2, y=0, width=50, height=50
-    )
+    box = play.new_box(color="cyan", x=-play.screen.width / 2, y=0, width=50, height=50)
 
     touching = box.get_touching_walls()
     assert play.WallSide.LEFT in touching
