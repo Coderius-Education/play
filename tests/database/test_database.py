@@ -6,7 +6,6 @@ sys.path.append(".")
 
 def write_data():
     from play.db import Database
-
     db = Database()
 
     db.set_data("test", "value")
@@ -15,6 +14,8 @@ def write_data():
     assert db.get_data("test_nested") == {}
     db.set_data("test_nested:sub", "value")
     assert db.get_data("test_nested:sub") == "value"
+    db.set_data("test_none", None)
+    assert db.get_data("test_none") is None
 
 
 def check_data():
@@ -23,7 +24,10 @@ def check_data():
     db = Database()
 
     assert db.get_data("test") == "value"
+    assert db.get_data("test:sub", fallback="N/A") == "N/A"
     assert db.get_data("test_nested:sub") == "value"
+    assert db.get_data("missing", fallback="N/A") == "N/A"
+    assert db.get_data("test_nested:missing", fallback="N/A") == "N/A"
 
 
 def cleanup():
