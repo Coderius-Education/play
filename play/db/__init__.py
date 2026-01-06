@@ -35,7 +35,7 @@ class Database:
                     break
             else:
                 value = fallback
-                break    
+                break
         return value
 
     def set_data(self, key, value):
