@@ -24,7 +24,7 @@ class Mouse:
         """Check if the mouse is touching a sprite.
         :param other: The sprite to check.
         :return: True if the mouse is touching the sprite, False otherwise."""
-        return point_touching_sprite(self, other)
+        return point_touching_sprite((self.x, self.y), other)
 
     # @decorator
     def when_clicked(self, func):

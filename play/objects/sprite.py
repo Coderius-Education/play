@@ -99,7 +99,7 @@ class Sprite(
                 continue
 
             if self.is_hidden or shape_b.is_hidden:
-                continue 
+                continue
 
             collision_key = id(shape_b)
 
@@ -324,7 +324,6 @@ You might want to look in your code where you're setting transparency and make s
             return
         self.physics._remove()
         globals_list.sprites_group.remove(self)
-        
 
     def add(self, *groups):
         """Add the sprite to groups (pygame internal method).
@@ -696,17 +695,14 @@ You might want to look in your code where you're setting transparency and make s
         """
         # Get all the current callbacks before potentially removing physics
         when_touching = (
-            callback_manager.get_callback(CallbackType.WHEN_TOUCHING, id(self))
-            or []
+            callback_manager.get_callback(CallbackType.WHEN_TOUCHING, id(self)) or []
         )
         when_touching_wall = (
             callback_manager.get_callback(CallbackType.WHEN_TOUCHING_WALL, id(self))
             or []
         )
         when_stopped_touching = (
-            callback_manager.get_callback(
-                CallbackType.WHEN_STOPPED_TOUCHING, id(self)
-            )
+            callback_manager.get_callback(CallbackType.WHEN_STOPPED_TOUCHING, id(self))
             or []
         )
         when_stopped_touching_wall = (
