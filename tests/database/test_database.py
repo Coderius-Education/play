@@ -6,6 +6,7 @@ sys.path.append(".")
 
 def write_data():
     from play.db import Database
+
     db = Database()
 
     db.set_data("test", "value")
