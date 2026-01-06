@@ -49,6 +49,7 @@ class Line(Sprite):
         self._size = size
 
         self.rect = pygame.Rect(0, 0, 0, 0)
+        self.start_physics(can_move=False)
         self.update()
 
     def update(self):
@@ -139,8 +140,7 @@ class Line(Sprite):
         :param _angle: The new angle of the line."""
         self._angle = _angle
         self._x1, self._y1 = self._calc_endpoint()
-        if self.physics:
-            self.physics._pymunk_body.angle = _math.radians(_angle)
+        self.physics._pymunk_body.angle = _math.radians(_angle)
 
     def _calc_length_angle(self):
         dx = self.x1 - self.x

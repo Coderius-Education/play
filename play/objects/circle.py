@@ -38,6 +38,7 @@ class Circle(Sprite):
         self._when_clicked_callbacks = []
 
         self.rect = pygame.Rect(0, 0, 0, 0)
+        self.start_physics(can_move=False)
         self.update()
 
     def clone(self):
@@ -80,12 +81,9 @@ class Circle(Sprite):
             self.rect.x = pos[0] - self._radius
             self.rect.y = pos[1] - self._radius
 
-            if self.physics:
-                angle_deg = -_math.degrees(self.physics._pymunk_body.angle)
-                self._image = pygame.transform.rotate(draw_image, angle_deg)
-                self.rect = self._image.get_rect(center=self.rect.center)
-            else:
-                self._image = draw_image
+            angle_deg = -_math.degrees(self.physics._pymunk_body.angle)
+            self._image = pygame.transform.rotate(draw_image, angle_deg)
+            self.rect = self._image.get_rect(center=self.rect.center)
 
         super().update()
 
@@ -114,8 +112,7 @@ class Circle(Sprite):
         """Set the radius of the circle.
         :param _radius: The radius of the circle."""
         self._radius = _radius
-        if self.physics:
-            self.physics._pymunk_shape.unsafe_set_radius(self._radius)
+        self.physics._pymunk_shape.unsafe_set_radius(self._radius)
 
     ##### border_color #####
     @property

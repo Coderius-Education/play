@@ -62,6 +62,8 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         ):
             return True
 
+        # Only add callback to shape_a to avoid duplicate execution
+        # (both sprites would execute the same callback otherwise)
         if (
             shape_a.collision_type in self.callbacks[True]
             and shape_b.collision_type in self.callbacks[True][shape_a.collision_type]
@@ -72,16 +74,16 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             self.shape_registry[shape_a.collision_type]._touching_callback[
                 shape_b.collision_id
             ] = callback
-
-        if (
+        # If callback is only registered in the reverse direction, use that
+        elif (
             shape_b.collision_type in self.callbacks[True]
             and shape_a.collision_type in self.callbacks[True][shape_b.collision_type]
         ):
             callback = self.callbacks[True][shape_b.collision_type][
                 shape_a.collision_type
             ]
-            self.shape_registry[shape_b.collision_type]._touching_callback[
-                shape_a.collision_id
+            self.shape_registry[shape_a.collision_type]._touching_callback[
+                shape_b.collision_id
             ] = callback
         return True
 

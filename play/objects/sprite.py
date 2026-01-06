@@ -16,20 +16,13 @@ from ..utils import clamp as _clamp, is_called_from_pygame
 from ..utils.async_helpers import make_async
 
 
-def _sprite_touching_sprite(a, b):
-    """Check if two sprites are touching.
-    :param a: The first sprite to check if it's touching the other sprite.
-    :param b: The second sprite to check if it's touching the other sprite.
-    :return: Whether the two sprites are touching."""
-    return a.rect.colliderect(b.rect)
-
-
 def point_touching_sprite(point, sprite):
-    """Check if a point is touching a sprite.
-    :param point: The point to check if it's touching the sprite.
+    """Check if a point is touching a sprite using pymunk collision detection.
+    :param point: The point (x, y tuple) to check if it's touching the sprite.
     :param sprite: The sprite to check if it's touching the point.
     :return: Whether the point is touching the sprite."""
-    return sprite.rect.collidepoint(point)
+    point_info = sprite.physics._pymunk_shape.point_query(point)
+    return point_info.distance <= 0
 
 
 _should_ignore_update = [
@@ -54,7 +47,7 @@ class Sprite(
         self._stopped_callback = {}
 
         self._image = image
-        self.physics: _Physics | None = None
+        self.physics = None
         self._is_clicked = False
         self._is_hidden = False
         self._should_recompute = True
@@ -81,23 +74,13 @@ class Sprite(
         """Get a list of WallSide values for walls the sprite is currently touching.
         :return: A list of WallSide enum values."""
         touching = []
-        if self.physics:
-            for wall in globals_list.walls:
-                try:
-                    contact_set = self.physics._pymunk_shape.shapes_collide(wall)
-                    if contact_set and len(contact_set.points) > 0:
-                        touching.append(wall.wall_side)
-                except (AssertionError, AttributeError):
-                    continue
-        else:
-            if self.left < -screen.width / 2:
-                touching.append(WallSide.LEFT)
-            if self.right > screen.width / 2:
-                touching.append(WallSide.RIGHT)
-            if self.top > screen.height / 2:
-                touching.append(WallSide.TOP)
-            if self.bottom < -screen.height / 2:
-                touching.append(WallSide.BOTTOM)
+        for wall in globals_list.walls:
+            try:
+                contact_set = self.physics._pymunk_shape.shapes_collide(wall)
+                if contact_set and len(contact_set.points) > 0:
+                    touching.append(wall.wall_side)
+            except (AssertionError, AttributeError):
+                continue
         return touching
 
     def update(self):  # pylint: disable=too-many-branches
@@ -110,9 +93,16 @@ class Sprite(
             [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING],
             id(self),
         ):
+            # Pymunk collision registry handles physics-enabled sprite collisions
+            # This manual check is only a backup
             if self.physics and shape_b.physics:
                 continue
+
+            if self.is_hidden or shape_b.is_hidden:
+                continue 
+
             collision_key = id(shape_b)
+
             if self.is_touching(shape_b):
                 if collision_key not in self._touching_callback:
                     if callback.type == CallbackType.WHEN_TOUCHING:
@@ -169,10 +159,9 @@ class Sprite(
         """Set the x-coordinate of the sprite.
         :param _x: The x-coordinate of the sprite."""
         self._x = _x
-        if self.physics:
-            self.physics._pymunk_body.position = self._x, self._y
-            if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:
-                physics_space.reindex_static()
+        self.physics._pymunk_body.position = self._x, self._y
+        if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:
+            physics_space.reindex_static()
 
     @property
     def y(self):
@@ -185,10 +174,9 @@ class Sprite(
         """Set the y-coordinate of the sprite.
         :param _y: The y-coordinate of the sprite."""
         self._y = _y
-        if self.physics:
-            self.physics._pymunk_body.position = self._x, self._y
-            if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:
-                physics_space.reindex_static()
+        self.physics._pymunk_body.position = self._x, self._y
+        if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:
+            physics_space.reindex_static()
 
     @property
     def transparency(self):
@@ -238,9 +226,7 @@ You might want to look in your code where you're setting transparency and make s
         """Set the angle of the sprite.
         :param _angle: The angle of the sprite."""
         self._angle = _angle
-
-        if self.physics:
-            self.physics._pymunk_body.angle = _math.radians(_angle)
+        self.physics._pymunk_body.angle = _math.radians(_angle)
 
     @property
     def size(self):
@@ -254,25 +240,22 @@ You might want to look in your code where you're setting transparency and make s
         :param percent: The size of the sprite as a percentage."""
         self._should_recompute = True
         self._size = percent
-        if self.physics:
-            self.physics._remove()
-            self.physics._make_pymunk()
+        self.physics._remove()
+        self.physics._make_pymunk()
 
     def hide(self):
         """Hide the sprite."""
         if self._is_hidden:
             return
         self._is_hidden = True
-        if self.physics:
-            self.physics.pause()
+        self.physics.pause()
 
     def show(self):
         """Show the sprite."""
         if not self._is_hidden:
             return
         self._is_hidden = False
-        if self.physics:
-            self.physics.unpause()
+        self.physics.unpause()
 
     @property
     def is_hidden(self):
@@ -303,17 +286,17 @@ You might want to look in your code where you're setting transparency and make s
         :param sprite_or_point: The sprite or point to check if it's touching.
         :return: Whether the sprite is touching the other sprite or point."""
         if isinstance(sprite_or_point, Sprite):
-            if self.physics and sprite_or_point.physics:
-                return (
-                    len(
-                        self.physics._pymunk_shape.shapes_collide(
-                            sprite_or_point.physics._pymunk_shape
-                        ).points
-                    )
-                    > 0
+            try:
+                contact_set = self.physics._pymunk_shape.shapes_collide(
+                    sprite_or_point.physics._pymunk_shape
                 )
-            return _sprite_touching_sprite(self, sprite_or_point)
-        return point_touching_sprite(sprite_or_point, self)
+                return len(contact_set.points) > 0
+            except (AssertionError, AttributeError):
+                # Fallback: shapes might not be in a valid state for collision check
+                return False
+        # For point collision, use pymunk's point_query
+        point_info = self.physics._pymunk_shape.point_query(sprite_or_point)
+        return point_info.distance <= 0
 
     def distance_to(self, x, y=None):
         """Calculate the distance to a point or sprite.
@@ -339,9 +322,9 @@ You might want to look in your code where you're setting transparency and make s
         """Remove the sprite from the screen."""
         if not self.alive():
             return
-        if self.physics:
-            self.physics._remove()
+        self.physics._remove()
         globals_list.sprites_group.remove(self)
+        
 
     def add(self, *groups):
         """Add the sprite to groups (pygame internal method).
@@ -484,18 +467,15 @@ You might want to look in your code where you're setting transparency and make s
         def decorator(func):
             async_callback = make_async(func)
 
-            if self.physics:
-                for sprite in sprites:
-                    if not sprite.physics:
-                        continue
-                    collision_registry.register(
-                        self,
-                        sprite,
-                        self.physics._pymunk_shape,
-                        sprite.physics._pymunk_shape,
-                        async_callback,
-                        CollisionType.SPRITE,
-                    )
+            for sprite in sprites:
+                collision_registry.register(
+                    self,
+                    sprite,
+                    self.physics._pymunk_shape,
+                    sprite.physics._pymunk_shape,
+                    async_callback,
+                    CollisionType.SPRITE,
+                )
 
             async def wrapper():
                 await run_async_callback(
@@ -525,19 +505,16 @@ You might want to look in your code where you're setting transparency and make s
         def decorator(func):
             async_callback = make_async(func)
 
-            if self.physics:
-                for sprite in sprites:
-                    if not sprite.physics:
-                        continue
-                    collision_registry.register(
-                        self,
-                        sprite,
-                        self.physics._pymunk_shape,
-                        sprite.physics._pymunk_shape,
-                        async_callback,
-                        CollisionType.SPRITE,
-                        begin=False,
-                    )
+            for sprite in sprites:
+                collision_registry.register(
+                    self,
+                    sprite,
+                    self.physics._pymunk_shape,
+                    sprite.physics._pymunk_shape,
+                    async_callback,
+                    CollisionType.SPRITE,
+                    begin=False,
+                )
 
             async def wrapper():
                 await run_async_callback(
@@ -599,15 +576,14 @@ You might want to look in your code where you're setting transparency and make s
 
                 wrapper = make_wrapper(wall_side)
 
-                if self.physics:
-                    collision_registry.register(
-                        self,
-                        None,
-                        self.physics._pymunk_shape,
-                        wall_segment,
-                        wrapper,
-                        CollisionType.WALL,
-                    )
+                collision_registry.register(
+                    self,
+                    None,
+                    self.physics._pymunk_shape,
+                    wall_segment,
+                    wrapper,
+                    CollisionType.WALL,
+                )
 
                 wrapper.wall_filter = wall
                 callback_manager.add_callback(
@@ -659,16 +635,15 @@ You might want to look in your code where you're setting transparency and make s
 
                 wrapper = make_wrapper(wall_side)
 
-                if self.physics:
-                    collision_registry.register(
-                        self,
-                        None,
-                        self.physics._pymunk_shape,
-                        wall_segment,
-                        wrapper,
-                        CollisionType.WALL,
-                        begin=False,
-                    )
+                collision_registry.register(
+                    self,
+                    None,
+                    self.physics._pymunk_shape,
+                    wall_segment,
+                    wrapper,
+                    CollisionType.WALL,
+                    begin=False,
+                )
 
                 wrapper.wall_filter = wall
                 callback_manager.add_callback(
@@ -719,50 +694,57 @@ You might want to look in your code where you're setting transparency and make s
         :param mass: The mass of the object.
         :param friction: The friction of the object.
         """
-        if not self.physics:
-            self.physics = _Physics(
-                self,
-                can_move,
-                stable,
-                x_speed,
-                y_speed,
-                obeys_gravity,
-                bounciness,
-                mass,
-                friction,
+        # Get all the current callbacks before potentially removing physics
+        when_touching = (
+            callback_manager.get_callback(CallbackType.WHEN_TOUCHING, id(self))
+            or []
+        )
+        when_touching_wall = (
+            callback_manager.get_callback(CallbackType.WHEN_TOUCHING_WALL, id(self))
+            or []
+        )
+        when_stopped_touching = (
+            callback_manager.get_callback(
+                CallbackType.WHEN_STOPPED_TOUCHING, id(self)
             )
+            or []
+        )
+        when_stopped_touching_wall = (
+            callback_manager.get_callback(
+                CallbackType.WHEN_STOPPED_TOUCHING_WALL, id(self)
+            )
+            or []
+        )
 
-            # Get all the current callbacks and add them to the new physics object
-            when_touching = (
-                callback_manager.get_callback(CallbackType.WHEN_TOUCHING, id(self))
-                or []
-            )
-            when_touching_wall = (
-                callback_manager.get_callback(CallbackType.WHEN_TOUCHING_WALL, id(self))
-                or []
-            )
-            when_stopped_touching = (
-                callback_manager.get_callback(
-                    CallbackType.WHEN_STOPPED_TOUCHING, id(self)
-                )
-                or []
-            )
-            when_stopped_touching_wall = (
-                callback_manager.get_callback(
-                    CallbackType.WHEN_STOPPED_TOUCHING_WALL, id(self)
-                )
-                or []
-            )
-            for callback, sprite in when_touching:
-                self.when_touching(sprite)(callback)
-            for callback in when_touching_wall:
-                self.when_touching_wall(callback)
-            for callback, sprite in when_stopped_touching:
-                self.when_stopped_touching(sprite)(callback)
-            for callback in when_stopped_touching_wall:
-                self.when_stopped_touching_wall(callback)
+        # Remove existing physics if it exists
+        if self.physics:
+            self.physics._remove()
+
+        # Create new physics
+        self.physics = _Physics(
+            self,
+            can_move,
+            stable,
+            x_speed,
+            y_speed,
+            obeys_gravity,
+            bounciness,
+            mass,
+            friction,
+        )
+
+        # Re-register all callbacks with the new physics object
+        for callback, sprite in when_touching:
+            self.when_touching(sprite)(callback)
+        for callback in when_touching_wall:
+            self.when_touching_wall(callback)
+        for callback, sprite in when_stopped_touching:
+            self.when_stopped_touching(sprite)(callback)
+        for callback in when_stopped_touching_wall:
+            self.when_stopped_touching_wall(callback)
 
     def stop_physics(self):
         """Stop the physics simulation for this sprite."""
-        self.physics._remove()
-        self.physics = None
+        if self.physics:
+            self.physics._remove()
+            self.physics = None

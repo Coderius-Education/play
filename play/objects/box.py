@@ -35,6 +35,7 @@ class Box(Sprite):
         self._size = size
         self._angle = angle
         self.rect = pygame.Rect(0, 0, 0, 0)
+        self.start_physics(can_move=False)
         self.update()
 
     def update(self):
@@ -71,12 +72,9 @@ class Box(Sprite):
             self.rect.x = pos[0] - self._width // 2
             self.rect.y = pos[1] - self._height // 2
 
-            if self.physics:
-                angle_deg = -_math.degrees(self.physics._pymunk_body.angle)
-                self.image = pygame.transform.rotate(draw_image, angle_deg)
-                self.rect = self.image.get_rect(center=self.rect.center)
-            else:
-                self.image = draw_image
+            angle_deg = -_math.degrees(self.physics._pymunk_body.angle)
+            self.image = pygame.transform.rotate(draw_image, angle_deg)
+            self.rect = self.image.get_rect(center=self.rect.center)
         super().update()
 
     ##### width #####

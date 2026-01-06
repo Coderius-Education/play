@@ -114,7 +114,7 @@ class CallbackManager:
             if hasattr(cb, "is_running") and cb.is_running:
                 return False
             return True
-
+        
         if callback_discriminator is not None:
             if callback_discriminator not in self.callbacks[callback_type]:
                 return

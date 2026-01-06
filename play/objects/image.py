@@ -28,6 +28,7 @@ class Image(Sprite):
         self._size = size
         self._transparency = transparency
         self.rect = self._source_image.get_rect()
+        self.start_physics(can_move=False)
         self.update()
 
     def update(self):
