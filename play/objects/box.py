@@ -35,7 +35,7 @@ class Box(Sprite):
         self._size = size
         self._angle = angle
         self.rect = pygame.Rect(0, 0, 0, 0)
-        self.start_physics(can_move=False)
+        self.start_physics()
         self.update()
 
     def update(self):

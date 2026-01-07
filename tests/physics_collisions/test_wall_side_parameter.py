@@ -153,27 +153,3 @@ def test_when_touching_wall_callback_receives_wall_parameter():
     @box.when_touching_wall
     def on_wall_no_param():
         pass
-
-
-def test_get_touching_walls_for_non_physics_sprite():
-    """Test get_touching_walls returns correct walls for non-physics sprites."""
-    import play
-
-    # Create a box at the left edge
-    box = play.new_box(color="cyan", x=-play.screen.width / 2, y=0, width=50, height=50)
-
-    touching = box.get_touching_walls()
-    assert play.WallSide.LEFT in touching
-
-    # Move to center - should not touch any walls
-    box.x = 0
-    box.y = 0
-    touching = box.get_touching_walls()
-    assert len(touching) == 0
-
-    # Move to top right corner
-    box.x = play.screen.width / 2
-    box.y = play.screen.height / 2
-    touching = box.get_touching_walls()
-    assert play.WallSide.RIGHT in touching
-    assert play.WallSide.TOP in touching

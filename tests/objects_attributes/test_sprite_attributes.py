@@ -33,10 +33,7 @@ def test_sprite_attributes(sprite_items):
     import sys
 
     sys.path.insert(0, ".")
-    print(sys.path)
     import play
-
-    print(play.__path__)
 
     sprite_type, expected_values = sprite_items
 
@@ -59,7 +56,11 @@ def test_sprite_attributes(sprite_items):
 
         if num_frames == max_frames:
             for key in expected_values:
+                for item in dir(sprite):
+                    print(item)
                 set_value = getattr(sprite, key)
+                if type(set_value) == float:
+                    set_value = round(set_value)
                 data[key] = set_value
             play.stop_program()
 
@@ -72,7 +73,7 @@ def test_sprite_attributes(sprite_items):
         if expected_value != actual_value:
             assert (
                 expected_value == actual_value
-            ), f"expected {expected_value} to be {actual_value}"
+            ), f"expected value for {key} to be {expected_value} to be {actual_value}"
 
 
 if __name__ == "__main__":

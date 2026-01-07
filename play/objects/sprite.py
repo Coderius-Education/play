@@ -675,10 +675,10 @@ You might want to look in your code where you're setting transparency and make s
     def start_physics(
         self,
         can_move=True,
-        stable=False,
+        stable=True,
         x_speed=0,
         y_speed=0,
-        obeys_gravity=True,
+        obeys_gravity=False,
         bounciness=1.0,
         mass=10,
         friction=0,

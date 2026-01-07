@@ -43,7 +43,7 @@ class Text(Sprite):
         self._when_clicked_callbacks = []
 
         self.rect = pygame.Rect(0, 0, 0, 0)
-        self.start_physics(can_move=False)
+        self.start_physics()
         self.update()
 
     def update(self):
