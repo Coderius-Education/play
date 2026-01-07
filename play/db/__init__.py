@@ -20,14 +20,22 @@ class Database:
         with open(db_filename, "r", encoding="utf-8") as read_file:
             self.data = json.loads(read_file.read())
 
-    def get_data(self, key):
+    def get_data(self, key, fallback=None):
         """Get a value from the database.
         :param key: The key to get the value from, for which the : is a delimiter for nested values.
         """
         keys = key.split(":")
         value = self.data
         for k in keys:
-            value = value.get(k, None)
+            if isinstance(value, dict):
+                if k in value:
+                    value = value[k]
+                else:
+                    value = fallback
+                    break
+            else:
+                value = fallback
+                break
         return value
 
     def set_data(self, key, value):
