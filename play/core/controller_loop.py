@@ -1,5 +1,6 @@
 """This module contains the controller loop, which handles controller events in the game loop."""
 
+from collections import defaultdict
 import pygame
 
 from ..callback import callback_manager, CallbackType
@@ -9,13 +10,15 @@ class ControllerState:
     """Class to manage the state of the controller."""
 
     def __init__(self):
-        self.buttons_pressed = {}
-        self.buttons_released = {}
-        self.axes_moved = {}
+        self.buttons_pressed = defaultdict(set)
+        self.buttons_released = defaultdict(set)
+        self.axes_moved = defaultdict(list)
 
     def clear(self):
         """Clear the controller state for the next frame."""
-        self.buttons_pressed.clear()
+        # on purpose: buttons pressed is not cleared to be able
+        # to have event each time that button is held
+        # self.buttons_pressed.clear()
         self.buttons_released.clear()
         self.axes_moved.clear()
 
@@ -31,19 +34,15 @@ def handle_controller_events(event):
     """Handle controller events in the game loop.
     :param event: The event to handle."""
     if event.type == pygame.JOYAXISMOTION:  # pylint: disable=no-member
-        if event.instance_id not in controller_state.axes_moved:
-            controller_state.axes_moved[event.instance_id] = []
         controller_state.axes_moved[event.instance_id].append(
             {"axis": event.axis, "value": round(event.value)}
         )
     if event.type == pygame.JOYBUTTONDOWN:  # pylint: disable=no-member
-        if event.instance_id not in controller_state.buttons_pressed:
-            controller_state.buttons_pressed[event.instance_id] = []
-        controller_state.buttons_pressed[event.instance_id].append(event.button)
+        controller_state.buttons_pressed[event.instance_id].add(event.button)
     if event.type == pygame.JOYBUTTONUP:
-        if event.instance_id not in controller_state.buttons_released:
-            controller_state.buttons_released[event.instance_id] = []
-        controller_state.buttons_released[event.instance_id].append(event.button)
+        controller_state.buttons_released[event.instance_id].add(event.button)
+        if event.button in controller_state.buttons_pressed:
+            controller_state.buttons_pressed[event.instance_id].remove(event.button)
 
 
 async def handle_controller():  # pylint: disable=too-many-branches
@@ -59,7 +58,6 @@ async def handle_controller():  # pylint: disable=too-many-branches
                 required_args=["button"],
                 property_filter={"controller": controller_id},
             )
-        controller_state.buttons_pressed.clear()
 
     ############################################################
     # @controller.when_button_released
