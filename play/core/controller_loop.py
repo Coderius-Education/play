@@ -16,9 +16,6 @@ class ControllerState:
 
     def clear(self):
         """Clear the controller state for the next frame."""
-        # on purpose: buttons pressed is not cleared to be able
-        # to have event each time that button is held
-        # self.buttons_pressed.clear()
         self.buttons_released.clear()
         self.axes_moved.clear()
 
