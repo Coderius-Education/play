@@ -42,22 +42,10 @@ def _handle_pygame_events():
             # quitting by clicking window's close button or pressing ctrl+q / command+q
             _loop.stop()
             return False
-        if event.type == pygame.VIDEORESIZE:
-            screen.width, screen.height = event.size
 
         _handle_keyboard_events(event)
         _handle_mouse_events(event)
         _handle_controller_events(event)
-
-        if event.type == pygame.WINDOWRESIZED:
-            screen.width, screen.height = event.w, event.h
-            globals_list.display = pygame.display.set_mode(
-                (screen.width, screen.height), pygame.RESIZABLE
-            )
-            globals_list.backdrop = pygame.transform.smoothscale(
-                globals_list.backdrop, (screen.width, screen.height)
-            )
-            callback_manager.run_callbacks(CallbackType.WHEN_RESIZED)
 
     return True
 

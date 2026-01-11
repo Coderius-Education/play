@@ -1,16 +1,6 @@
 """This module provides a wrapper around the Pygame display module to create a screen object"""
 
-from sys import platform
-
 import pygame
-from pygame import (  # pylint: disable=no-name-in-module
-    Window,
-    SCALED,
-    NOFRAME,
-    FULLSCREEN,
-)
-from screeninfo import get_monitors
-
 import pymunk as _pymunk
 
 from ..callback import run_callback, CallbackType, callback_manager
@@ -40,7 +30,7 @@ class Screen:
 
         self._resizable = False
         self._fullscreen = False
-        self._caption = "Python Play"
+        self._caption = "coderius-play"
 
         self.update_display()
         pygame.display.set_caption(self._caption)
@@ -82,12 +72,6 @@ class Screen:
         :param _width: The new width of the screen."""
         self._width = _width
 
-        remove_walls()
-        create_walls()
-
-        if self._fullscreen:
-            self.enable_fullscreen()
-
     @property
     def height(self):
         """Get the height of the screen.
@@ -99,12 +83,6 @@ class Screen:
         """Set the height of the screen.
         :param _height: The new height of the screen."""
         self._height = _height
-
-        remove_walls()
-        create_walls()
-
-        if self._fullscreen:
-            self.enable_fullscreen()
 
     @property
     def top(self):
@@ -154,37 +132,28 @@ class Screen:
         )
         return wrapper
 
-    def enable_fullscreen(self):
-        """Enable fullscreen mode."""
-        if self._fullscreen:
-            return
-        self._fullscreen = True
+    def resize(self, new_width, new_height):
+        """Resize the screen to new dimensions.
 
-        width = get_monitors()[0].width
-        height = get_monitors()[0].height
-
-        self._width = width
-        self._height = height
-
-        remove_walls()
-        create_walls()
-
-        if platform != "linux":
-            self.update_display(pygame.FULLSCREEN)
-            window = Window.from_display_module()
-            window.position = (0, 0)
-        else:
-            self.update_display(
-                SCALED + NOFRAME + FULLSCREEN,
+        :param new_width: The new width of the screen
+        :param new_height: The new height of the screen
+        :raises RuntimeError: If sprites have already been created
+        """
+        # Check if any sprites exist
+        if len(globals_list.sprites_group) > 0:
+            sprite_count = len(globals_list.sprites_group)
+            sprite_word = "sprite" if sprite_count == 1 else "sprites"
+            raise RuntimeError(
+                f"Screen must be resized before creating sprites.\n\n"
+                f"Problem: You called play.screen.resize() after creating {sprite_count} {sprite_word}.\n"
+                f"Solution: Move play.screen.resize() to the beginning of your script:\n\n"
+                f"    import play\n"
+                f"    play.screen.resize({new_width}, {new_height})  # ← Move this here\n"
+                f"    cirkel = play.new_circle()     # ← Before creating sprites\n"
             )
 
-    def disable_fullscreen(self):
-        """Disable fullscreen mode."""
-        if not self._fullscreen:
-            return
-        self._fullscreen = False
-        pygame.display.quit()
-        pygame.display.init()
+        self.width = new_width
+        self.height = new_height
         self.update_display()
 
 
