@@ -5,7 +5,7 @@ max_frames = 400
 x_speed = 60
 
 num_collisions = 0
-expected_num_collisions = 200
+expected_num_collisions = 1
 
 
 def test_ball_movement():

@@ -49,7 +49,7 @@ class Line(Sprite):
         self._size = size
 
         self.rect = pygame.Rect(0, 0, 0, 0)
-        self.start_physics()
+        self.start_physics(stable=True, obeys_gravity=False)
         self.update()
 
     def update(self):

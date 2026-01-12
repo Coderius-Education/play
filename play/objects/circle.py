@@ -38,7 +38,7 @@ class Circle(Sprite):
         self._when_clicked_callbacks = []
 
         self.rect = pygame.Rect(0, 0, 0, 0)
-        self.start_physics()
+        self.start_physics(stable=True, obeys_gravity=False)
         self.update()
 
     def clone(self):
