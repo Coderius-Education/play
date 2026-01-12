@@ -7,7 +7,9 @@ from ..callback import callback_manager, CallbackType
 from ..callback.callback_helpers import run_any_async_callback
 from ..globals import globals_list
 from ..io.mouse import mouse
+from ..io.screen import convert_pos
 from ..objects.line import Line
+from ..objects.sprite import point_touching_sprite
 
 
 async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-branches
@@ -59,7 +61,7 @@ async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-br
         #################################
         if (
             mouse.is_clicked
-            and mouse.is_touching(sprite)
+            and point_touching_sprite(convert_pos(mouse.x, mouse.y), sprite)
             and mouse_state.click_happened
         ):
             sprite._is_clicked = True
