@@ -42,6 +42,9 @@ def _handle_pygame_events():
             # quitting by clicking window's close button or pressing ctrl+q / command+q
             _loop.stop()
             return False
+
+        globals_list.ui_manager.process_events(event)
+
         if event.type == pygame.VIDEORESIZE:
             screen.width, screen.height = event.size
 
@@ -103,6 +106,12 @@ async def game_loop():
         globals_list.display.fill((255, 255, 255))
 
     await _update_sprites()
+
+    # Update and draw pygame_gui UI elements after sprites
+    if globals_list.ui_manager:
+        time_delta = _clock.get_time() / 1000.0
+        globals_list.ui_manager.update(time_delta)
+        globals_list.ui_manager.draw_ui(globals_list.display)
 
     pygame.display.flip()
     _loop.create_task(game_loop())

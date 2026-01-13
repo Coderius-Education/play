@@ -1,75 +1,64 @@
 """This module contains the Text class, which is a text string in the game."""
 
-import os
 import pygame
-from .sprite import Sprite
+import pygame_gui
+from ..globals import globals_list
+
 from ..io.screen import convert_pos
-from ..utils import color_name_to_rgb as _color_name_to_rgb
-from ..io.logging import play_logger
 
 
-class Text(Sprite):
+class Text:
     def __init__(
         self,
         words="",
         x=0,
         y=0,
-        font="default",
         font_size=50,
         color="black",
-        angle=0,
-        transparency=100,
-        size=100,
     ):
-        super().__init__()
-        self._font = font
         self._font_size = font_size
 
-        self._load_font(font, font_size)
         self._words = words
         self._color = color
 
         self._x = x
         self._y = y
 
-        self._size = size
-        self._angle = angle
-        self.transparency = transparency / 100
+        self.text = None  # Will be created after update()
 
-        self._is_clicked = False
-        self._is_hidden = False
-        self.physics = None
+        # Create pygame_gui label
+        self._create_gui_label()
 
-        self._when_clicked_callbacks = []
+    def _create_gui_label(self):
+        """Create or update the pygame_gui label based on current position and text."""
+        if not globals_list.ui_manager:
+            return
 
-        self.rect = pygame.Rect(0, 0, 0, 0)
-        self.start_physics()
-        self.update()
+        # Convert play coordinates to pygame coordinates
+        pygame_x, pygame_y = convert_pos(self._x, self._y)
 
-    def update(self):
-        """Update the text object."""
-        if self._should_recompute:
-            pos = convert_pos(self.x, self.y)
-            self._image = self._pygame_font.render(
-                self._words, True, _color_name_to_rgb(self._color)
+        # Estimate size based on text length and font size
+        estimated_width = max(len(self._words) * self._font_size * 0.6, 50)
+        estimated_height = self._font_size * 1.5
+
+        # Calculate top-left position to center the label
+        left = int(pygame_x - estimated_width / 2)
+        top = int(pygame_y - estimated_height / 2)
+
+        # Create or update the label
+        if self.text is None:
+            self.text = pygame_gui.elements.UILabel(
+                relative_rect=pygame.Rect(
+                    left, top, int(estimated_width), int(estimated_height)
+                ),
+                text=self._words,
+                manager=globals_list.ui_manager,
             )
-            # Apply transparency
-            self._image.set_alpha(int(self.transparency * 255))
-            self.rect = self._image.get_rect()
-            self.rect.topleft = (
-                pos[0] - self.rect.width // 2,
-                pos[1] - self.rect.height // 2,
-            )
-            super().update()
-
-    def clone(self):
-        return self.__class__(
-            words=self.words,
-            font=self.font,
-            font_size=self.font_size,
-            color=self.color,
-            **self._common_properties(),
-        )
+        else:
+            # Update existing label position and text
+            self.text.set_relative_position((left, top))
+            self.text.set_dimensions((int(estimated_width), int(estimated_height)))
+            self.text.set_text(self._words)
 
     @property
     def words(self):
@@ -80,28 +69,7 @@ class Text(Sprite):
     def words(self, string):
         """Set the words of the text object."""
         self._words = str(string)
-
-    @property
-    def font(self):
-        """Get the font of the text object."""
-        return self._font
-
-    @font.setter
-    def font(self, font_name):
-        """Set the font of the text object. This will load the font dynamically."""
-        self._font = font_name
-        self._load_font(font_name, self._font_size)
-
-    @property
-    def font_size(self):
-        """Get the font size of the text object."""
-        return self._font_size
-
-    @font_size.setter
-    def font_size(self, size):
-        """Set the font size of the text object."""
-        self._font_size = size
-        self._load_font(self._font, size)
+        self._create_gui_label()  # Update pygame_gui label
 
     @property
     def color(self):
@@ -113,18 +81,24 @@ class Text(Sprite):
         """Set the color of the text object."""
         self._color = color_
 
-    def _load_font(self, font_name, font_size):
-        """Helper method to load a font, either from a file or system."""
-        if font_name == "default":
-            self._pygame_font = pygame.font.Font(
-                pygame.font.get_default_font(), font_size
-            )
-        elif os.path.isfile(font_name):
-            self._pygame_font = pygame.font.Font(font_name, font_size)
-        else:
-            play_logger.warning(
-                "File to font doesnt exist, Using default font", exc_info=True
-            )
-            self._pygame_font = pygame.font.Font(
-                pygame.font.get_default_font(), font_size
-            )
+    @property
+    def x(self):
+        """Get the x-coordinate of the text object."""
+        return self._x
+
+    @x.setter
+    def x(self, value):
+        """Set the x-coordinate of the text object."""
+        self._x = value
+        self._create_gui_label()  # Update pygame_gui label position
+
+    @property
+    def y(self):
+        """Get the y-coordinate of the text object."""
+        return self._y
+
+    @y.setter
+    def y(self, value):
+        """Set the y-coordinate of the text object."""
+        self._y = value
+        self._create_gui_label()  # Update pygame_gui label position

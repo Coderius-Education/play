@@ -15,39 +15,21 @@ def new_text(
     words: str = "",
     x: int = 0,
     y: int = 0,
-    font: str = "default",
     font_size: int = 50,
     color: str = "black",
-    angle: int = 0,
-    transparency: int = 100,
-    size: int = 100,
 ) -> _Text:
     """Make a new text object.
     :param words: The text to display.
     :param x: The x-coordinate of the text.
     :param y: The y-coordinate of the text.
-    :param font: The font to use.
     :param font_size: The size of the font.
     :param color: The color of the text.
-    :param angle: The angle of the text.
-    :param transparency: The transparency of the text.
-    :param size: The size of the text.
     :return: A new text object.
     """
     if not isinstance(words, str):
         raise TypeError("words for a text object must be a string")
 
-    return _Text(
-        words=words,
-        x=x,
-        y=y,
-        font=font,
-        font_size=font_size,
-        color=color,
-        angle=angle,
-        transparency=transparency,
-        size=size,
-    )
+    return _Text(words=words, x=x, y=y, font_size=font_size, color=color).text
 
 
 def new_box(

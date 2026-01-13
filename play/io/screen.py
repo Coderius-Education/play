@@ -3,6 +3,7 @@
 from sys import platform
 
 import pygame
+import pygame_gui
 from pygame import (  # pylint: disable=no-name-in-module
     Window,
     SCALED,
@@ -42,6 +43,7 @@ class Screen:
         self._fullscreen = False
         self._caption = "Python Play"
 
+        globals_list.ui_manager = pygame_gui.UIManager((self._width, self._height))
         self.update_display()
         pygame.display.set_caption(self._caption)
 
