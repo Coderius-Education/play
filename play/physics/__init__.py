@@ -125,7 +125,7 @@ class Physics:
                     self._pymunk_body, (self.sprite.width, self.sprite.height)
                 )
 
-        self._pymunk_shape.elasticity = _clamp(self.bounciness, 0, 0.99)
+        self._pymunk_shape.elasticity = _clamp(self.bounciness, 0, 0.9999)
         self._pymunk_shape.friction = self._friction
         physics_space.add(self._pymunk_body, self._pymunk_shape)
 
@@ -208,7 +208,7 @@ class Physics:
     @bounciness.setter
     def bounciness(self, _bounciness):
         self._bounciness = _bounciness
-        self._pymunk_shape.elasticity = _clamp(self._bounciness, 0, 0.99)
+        self._pymunk_shape.elasticity = _clamp(self._bounciness, 0, 0.9999)
 
     @property
     def stable(self):
