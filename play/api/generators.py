@@ -4,7 +4,6 @@ from ..db import Database
 from ..objects import (
     Box as _Box,
     Circle as _Circle,
-    Line as _Line,
     Text as _Text,
     Image as _Image,
     Sound as _Sound,
@@ -125,45 +124,6 @@ def new_circle(
         transparency=transparency,
         size=size,
         angle=angle,
-    )
-
-
-def new_line(
-    color: str = "black",
-    x: int = 0,
-    y: int = 0,
-    length=None,
-    angle=None,
-    thickness: int = 1,
-    x1=None,
-    y1=None,
-    transparency: int = 100,
-    size: int = 100,
-) -> _Line:
-    """Make a new line object.
-    :param color: The color of the line.
-    :param x: The x-coordinate of the line.
-    :param y: The y-coordinate of the line.
-    :param length: The length of the line.
-    :param angle: The angle of the line.
-    :param thickness: The thickness of the line.
-    :param x1: The x-coordinate of the second point of the line.
-    :param y1: The y-coordinate of the second point of the line.
-    :param transparency: The transparency of the line.
-    :param size: The size of the line.
-    :return: A new line object.
-    """
-    return _Line(
-        color=color,
-        x=x,
-        y=y,
-        length=length,
-        angle=angle,
-        thickness=thickness,
-        x1=x1,
-        y1=y1,
-        transparency=transparency,
-        size=size,
     )
 
 

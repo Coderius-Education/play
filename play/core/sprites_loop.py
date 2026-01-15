@@ -7,7 +7,6 @@ from ..callback import callback_manager, CallbackType
 from ..callback.callback_helpers import run_any_async_callback
 from ..globals import globals_list
 from ..io.mouse import mouse
-from ..objects.line import Line
 
 
 async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-branches
@@ -23,18 +22,12 @@ async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-br
         if sprite.physics and sprite.physics.can_move:
             body = sprite.physics._pymunk_body
             angle = _math.degrees(body.angle)
-            if isinstance(sprite, Line):
-                sprite._x = body.position.x - (sprite.length / 2) * _math.cos(angle)
-                sprite._y = body.position.y - (sprite.length / 2) * _math.sin(angle)
-                sprite._x1 = body.position.x + (sprite.length / 2) * _math.cos(angle)
-                sprite._y1 = body.position.y + (sprite.length / 2) * _math.sin(angle)
-            else:
-                if (
-                    str(body.position.x) != "nan"
-                ):  # this condition can happen when changing sprite.physics.can_move
-                    sprite._x = body.position.x
-                if str(body.position.y) != "nan":
-                    sprite._y = body.position.y
+            if (
+                str(body.position.x) != "nan"
+            ):  # this condition can happen when changing sprite.physics.can_move
+                sprite._x = body.position.x
+            if str(body.position.y) != "nan":
+                sprite._y = body.position.y
 
             sprite.angle = angle
             sprite.physics._x_speed, sprite.physics._y_speed = body.velocity

@@ -6,7 +6,6 @@ from .generators import (
     new_text,
     new_box,
     new_circle,
-    new_line,
     new_image,
     new_sound,
     new_database,

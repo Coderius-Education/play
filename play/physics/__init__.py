@@ -57,73 +57,43 @@ class Physics:
     def _make_pymunk(self):  # pylint: disable=too-many-branches
         mass = self.mass if self.can_move else 0
 
-        # non-moving line shapes are platforms, and it's easier to take care of them less-generically
-        if not self.can_move and self.sprite.__class__.__name__ == "Line":
-            self._pymunk_body: _pymunk.Body = physics_space.static_body.copy()
-            self._pymunk_shape: _pymunk.Segment = _pymunk.Segment(
-                self._pymunk_body,
-                (self.sprite.x, self.sprite.y),
-                (self.sprite.x1, self.sprite.y1),
-                self.sprite.thickness,
+        if self.stable:
+            moment = float("inf")
+        elif self.sprite.__class__.__name__ == "Circle":
+            moment = _pymunk.moment_for_circle(mass, 0, self.sprite.radius, (0, 0))
+        else:
+            moment = _pymunk.moment_for_box(
+                mass, (self.sprite.width, self.sprite.height)
+            )
+        if self.can_move and not self.stable:
+            body_type = _pymunk.Body.DYNAMIC
+        elif self.can_move and self.stable:
+            if self.obeys_gravity or physics_space.gravity == 0:
+                body_type = _pymunk.Body.DYNAMIC
+            else:
+                body_type = _pymunk.Body.KINEMATIC
+        else:
+            body_type = _pymunk.Body.STATIC
+        self._pymunk_body = _pymunk.Body(mass, moment, body_type=body_type)
+
+        self._pymunk_body.position = self.sprite.x, self.sprite.y
+
+        self._pymunk_body.angle = _math.radians(self.sprite.angle)
+
+        if self.can_move:
+            self._pymunk_body.velocity = (self._x_speed, self._y_speed)
+
+        if not self.obeys_gravity:
+            self._pymunk_body.velocity_func = lambda body, gravity, damping, dt: None
+
+        if self.sprite.__class__.__name__ == "Circle":
+            self._pymunk_shape = _pymunk.Circle(
+                self._pymunk_body, self.sprite.radius, (0, 0)
             )
         else:
-            if self.stable:
-                moment = float("inf")
-            elif self.sprite.__class__.__name__ == "Circle":
-                moment = _pymunk.moment_for_circle(mass, 0, self.sprite.radius, (0, 0))
-            elif self.sprite.__class__.__name__ == "Line":
-                moment = _pymunk.moment_for_box(
-                    mass, (self.sprite.length, self.sprite.thickness)
-                )
-            else:
-                moment = _pymunk.moment_for_box(
-                    mass, (self.sprite.width, self.sprite.height)
-                )
-
-            if self.can_move and not self.stable:
-                body_type = _pymunk.Body.DYNAMIC
-            elif self.can_move and self.stable:
-                if self.obeys_gravity or physics_space.gravity == 0:
-                    body_type = _pymunk.Body.DYNAMIC
-                else:
-                    body_type = _pymunk.Body.KINEMATIC
-            else:
-                body_type = _pymunk.Body.STATIC
-            self._pymunk_body = _pymunk.Body(mass, moment, body_type=body_type)
-
-            if self.sprite.__class__.__name__ == "Line":
-                self._pymunk_body.position = (
-                    self.sprite.x + (self.sprite.x1 - self.sprite.x) / 2,
-                    self.sprite.y + (self.sprite.y1 - self.sprite.y) / 2,
-                )
-            else:
-                self._pymunk_body.position = self.sprite.x, self.sprite.y
-
-            self._pymunk_body.angle = _math.radians(self.sprite.angle)
-
-            if self.can_move:
-                self._pymunk_body.velocity = (self._x_speed, self._y_speed)
-
-            if not self.obeys_gravity:
-                self._pymunk_body.velocity_func = (
-                    lambda body, gravity, damping, dt: None
-                )
-
-            if self.sprite.__class__.__name__ == "Circle":
-                self._pymunk_shape = _pymunk.Circle(
-                    self._pymunk_body, self.sprite.radius, (0, 0)
-                )
-            elif self.sprite.__class__.__name__ == "Line":
-                self._pymunk_shape = _pymunk.Segment(
-                    self._pymunk_body,
-                    (self.sprite.x, self.sprite.y),
-                    (self.sprite.x1, self.sprite.y1),
-                    self.sprite.thickness,
-                )
-            else:
-                self._pymunk_shape = _pymunk.Poly.create_box(
-                    self._pymunk_body, (self.sprite.width, self.sprite.height)
-                )
+            self._pymunk_shape = _pymunk.Poly.create_box(
+                self._pymunk_body, (self.sprite.width, self.sprite.height)
+            )
 
         self._pymunk_shape.elasticity = _clamp(self.bounciness, 0, 0.99)
         self._pymunk_shape.friction = self._friction
