@@ -54,7 +54,7 @@ class Text(Sprite):
                 self._words, True, _color_name_to_rgb(self._color)
             )
             # Apply transparency
-            self._image.set_alpha(int(self.transparency * 255))
+            self._image.set_alpha(round(self._transparency * 255 / 100))
             self.rect = self._image.get_rect()
             self.rect.topleft = (
                 pos[0] - self.rect.width // 2,

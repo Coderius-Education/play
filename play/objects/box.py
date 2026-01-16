@@ -64,7 +64,7 @@ class Box(Sprite):
                 border_radius=max(self._border_radius - self._border_width, 0),
             )
 
-            draw_image.set_alpha(int(self._transparency * 2.55))
+            draw_image.set_alpha(round(self._transparency * 255 / 100))
             draw_image = pygame.transform.rotate(draw_image, self._angle)
 
             self.rect = draw_image.get_rect()

@@ -7,13 +7,13 @@ HERE = pathlib.Path(__file__).parent
 # The text of the README file
 README = (HERE / "README.md").read_text()
 
-with open(HERE / "requirements.txt") as f:
+with open(HERE / "requirements.txt", "r", encoding="utf-8") as f:
     required = f.read().splitlines()
 
 # This call to setup() does all the work
 setup(
     name="coderius-play",
-    version="3.2.0",
+    version="3.2.1",
     description="The easiest way to make games and media projects in Python.",
     long_description=README,
     long_description_content_type="text/markdown",

@@ -43,8 +43,7 @@ class Image(Sprite):
                 ),
             )
             draw_image = pygame.transform.rotate(draw_image, self.angle)
-            alpha_value = round(self.transparency * 2.55)
-            draw_image.set_alpha(alpha_value)
+            draw_image.set_alpha(round(self._transparency * 255 / 100))
 
             # Set the generated image as the sprite's current image
             self.image = draw_image
