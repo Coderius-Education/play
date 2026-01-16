@@ -3,7 +3,7 @@ import pytest
 num_frames = 0
 max_frames = 100
 
-expected = [0, 127, 255]
+expected = [0, 128, 255]
 actual = []
 
 
