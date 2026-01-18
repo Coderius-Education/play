@@ -740,7 +740,5 @@ You might want to look in your code where you're setting transparency and make s
             self.when_stopped_touching_wall(callback)
 
     def stop_physics(self):
-        """Stop the physics simulation for this sprite."""
-        if self.physics:
-            self.physics._remove()
-            self.physics = None
+        """Resets the physics to the starting situation"""
+        self.start_physics(stable=True, obeys_gravity=False)
