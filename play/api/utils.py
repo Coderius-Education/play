@@ -1,5 +1,6 @@
 """Game functions and utilities."""
 
+import atexit as _atexit
 import asyncio as _asyncio
 import logging as _logging
 
@@ -13,6 +14,17 @@ from ..loop import loop as _loop
 from ..physics import set_physics_simulation_steps as _set_physics_simulation_steps
 from ..utils import color_name_to_rgb as _color_name_to_rgb
 
+_program_started = False  # pylint: disable=invalid-name
+
+
+def _auto_start_program():
+    """Automatically start the program if it hasn't been started yet."""
+    if not _program_started:
+        start_program()
+
+
+_atexit.register(_auto_start_program)
+
 
 def start_program():
     """
@@ -20,6 +32,8 @@ def start_program():
 
     play.start_program() should almost certainly go at the very end of your program.
     """
+    global _program_started
+    _program_started = True
     callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
 
     _loop.create_task(_game_loop())
