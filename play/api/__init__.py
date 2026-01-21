@@ -14,6 +14,7 @@ from .events import (
     when_program_starts,
     repeat_forever,
     when_sprite_clicked,
+    when_sprite_click_released,
     when_any_key_pressed,
     when_key_pressed,
     when_any_key_released,

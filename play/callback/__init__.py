@@ -23,6 +23,7 @@ class CallbackType(Enum):
     WHEN_CONTROLLER_BUTTON_RELEASED = 12
     WHEN_CONTROLLER_AXIS_MOVED = 13
     WHEN_RESIZED = 14
+    WHEN_CLICK_RELEASED_SPRITE = 15
 
 
 class CallbackManager:

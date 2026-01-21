@@ -60,5 +60,14 @@ async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-br
                 CallbackType.WHEN_CLICKED_SPRITE, callback_discriminator=id(sprite)
             )
 
+        #######################################
+        # @sprite.when_click_released events
+        #######################################
+        if mouse_state.click_release_happened and mouse.is_touching(sprite):
+            callback_manager.run_callbacks(
+                CallbackType.WHEN_CLICK_RELEASED_SPRITE,
+                callback_discriminator=id(sprite),
+            )
+
     globals_list.sprites_group.update()
     globals_list.sprites_group.draw(globals_list.display)
