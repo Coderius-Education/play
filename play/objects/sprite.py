@@ -457,6 +457,37 @@ You might want to look in your code where you're setting transparency and make s
         )
         return wrapper
 
+    # @decorator
+    def when_click_released(self, callback, call_with_sprite=False):
+        """Run a function when the sprite click is released.
+        :param callback: The function to run.
+        :param call_with_sprite: Whether to call the function with the sprite as an argument.
+        """
+        async_callback = make_async(callback)
+
+        async def wrapper():
+            wrapper.is_running = True
+            if call_with_sprite:
+                await run_async_callback(
+                    async_callback,
+                    ["sprite"],
+                    [],
+                    self,
+                )
+            else:
+                await run_async_callback(
+                    async_callback,
+                    [],
+                    [],
+                )
+            wrapper.is_running = False
+
+        wrapper.is_running = False
+        callback_manager.add_callback(
+            CallbackType.WHEN_CLICK_RELEASED_SPRITE, wrapper, id(self)
+        )
+        return wrapper
+
     def when_touching(self, *sprites):
         """Run a function when the sprite is touching another sprite.
         :param sprites: The sprites to check if they're touching.

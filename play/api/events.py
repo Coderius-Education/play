@@ -97,6 +97,30 @@ def when_sprite_clicked(*sprites):
 
 
 # @decorator
+def when_sprite_click_released(*sprites):
+    """A decorator that runs a function when a sprite click is released.
+
+    Example:
+
+        text = play.new_text(words='hi there!')
+
+        @play.when_sprite_click_released(text)
+        def show(sprite):
+            text.words = 'released!'
+
+    :param sprites: The sprites to run the function on.
+    :return: The function to run.
+    """
+
+    def wrapper(func):
+        for sprite in sprites:
+            sprite.when_click_released(func, call_with_sprite=True)
+        return func
+
+    return wrapper
+
+
+# @decorator
 def when_any_key_pressed(func):
     """
     Calls the given function when any key is pressed.
