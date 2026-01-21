@@ -175,7 +175,9 @@ def test_sprite_when_click_released_method():
     from play.callback import callback_manager, CallbackType
 
     callbacks = list(
-        callback_manager.get_callback([CallbackType.WHEN_CLICK_RELEASED_SPRITE], id(sprite))
+        callback_manager.get_callback(
+            [CallbackType.WHEN_CLICK_RELEASED_SPRITE], id(sprite)
+        )
     )
     assert len(callbacks) > 0
 
@@ -195,7 +197,9 @@ def test_when_sprite_click_released_decorator():
     from play.callback import callback_manager, CallbackType
 
     callbacks = list(
-        callback_manager.get_callback([CallbackType.WHEN_CLICK_RELEASED_SPRITE], id(sprite))
+        callback_manager.get_callback(
+            [CallbackType.WHEN_CLICK_RELEASED_SPRITE], id(sprite)
+        )
     )
     assert len(callbacks) > 0
 
@@ -216,10 +220,14 @@ def test_when_sprite_click_released_multiple_sprites():
     from play.callback import callback_manager, CallbackType
 
     callbacks1 = list(
-        callback_manager.get_callback([CallbackType.WHEN_CLICK_RELEASED_SPRITE], id(sprite1))
+        callback_manager.get_callback(
+            [CallbackType.WHEN_CLICK_RELEASED_SPRITE], id(sprite1)
+        )
     )
     callbacks2 = list(
-        callback_manager.get_callback([CallbackType.WHEN_CLICK_RELEASED_SPRITE], id(sprite2))
+        callback_manager.get_callback(
+            [CallbackType.WHEN_CLICK_RELEASED_SPRITE], id(sprite2)
+        )
     )
 
     assert len(callbacks1) > 0
@@ -236,7 +244,9 @@ def test_sprite_when_click_released_call_with_sprite_false():
         pass
 
     # Test with call_with_sprite=False
-    wrapper = sprite.when_click_released(callback_without_sprite, call_with_sprite=False)
+    wrapper = sprite.when_click_released(
+        callback_without_sprite, call_with_sprite=False
+    )
 
     # Verify the wrapper was created
     assert callable(wrapper)
