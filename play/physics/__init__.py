@@ -54,7 +54,7 @@ class Physics:
 
         self._make_pymunk()
 
-    def _make_pymunk(self):  # pylint: disable=too-many-branches
+    def _make_pymunk(self):
         mass = self.mass if self.can_move else 0
 
         if self.stable:
