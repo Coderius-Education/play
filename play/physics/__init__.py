@@ -65,29 +65,14 @@ class Physics:
             moment = _pymunk.moment_for_box(
                 mass, (self.sprite.width, self.sprite.height)
             )
-        # Key: (can_move, stable, obeys_gravity, has_gravity)
-        has_gravity = physics_space.gravity != (0, 0)
-        body_type_map = {
-            (False, False, False, False): _pymunk.Body.STATIC,
-            (False, False, False, True): _pymunk.Body.STATIC,
-            (False, False, True, False): _pymunk.Body.STATIC,
-            (False, False, True, True): _pymunk.Body.STATIC,
-            (False, True, False, False): _pymunk.Body.STATIC,
-            (False, True, False, True): _pymunk.Body.STATIC,
-            (False, True, True, False): _pymunk.Body.STATIC,
-            (False, True, True, True): _pymunk.Body.STATIC,
-            (True, False, False, False): _pymunk.Body.DYNAMIC,
-            (True, False, False, True): _pymunk.Body.DYNAMIC,
-            (True, False, True, False): _pymunk.Body.DYNAMIC,
-            (True, False, True, True): _pymunk.Body.DYNAMIC,
-            (True, True, False, False): _pymunk.Body.DYNAMIC,
-            (True, True, False, True): _pymunk.Body.KINEMATIC,
-            (True, True, True, False): _pymunk.Body.DYNAMIC,
-            (True, True, True, True): _pymunk.Body.DYNAMIC,
-        }
-        body_type = body_type_map[
-            (self.can_move, self.stable, self.obeys_gravity, has_gravity)
-        ]
+        # Determine body type based on movement and stability properties
+        if not self.can_move:
+            body_type = _pymunk.Body.STATIC
+        elif self.stable and not self.obeys_gravity and physics_space.gravity != (0, 0):
+            # Special case: moving platforms that don't obey gravity in a gravity world
+            body_type = _pymunk.Body.KINEMATIC
+        else:
+            body_type = _pymunk.Body.DYNAMIC
 
         self._pymunk_body = _pymunk.Body(mass, moment, body_type=body_type)
         self._pymunk_body.position = self.sprite.x, self.sprite.y
