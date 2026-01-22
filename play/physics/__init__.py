@@ -54,7 +54,7 @@ class Physics:
 
         self._make_pymunk()
 
-    def _make_pymunk(self):  # pylint: disable=too-many-branches
+    def _make_pymunk(self):
         mass = self.mass if self.can_move else 0
 
         if self.stable:
@@ -65,19 +65,17 @@ class Physics:
             moment = _pymunk.moment_for_box(
                 mass, (self.sprite.width, self.sprite.height)
             )
-        if self.can_move and not self.stable:
-            body_type = _pymunk.Body.DYNAMIC
-        elif self.can_move and self.stable:
-            if self.obeys_gravity or physics_space.gravity == 0:
-                body_type = _pymunk.Body.DYNAMIC
-            else:
-                body_type = _pymunk.Body.KINEMATIC
-        else:
+        # Determine body type based on movement and stability properties
+        if not self.can_move:
             body_type = _pymunk.Body.STATIC
+        elif self.stable and not self.obeys_gravity and physics_space.gravity != (0, 0):
+            # Special case: moving platforms that don't obey gravity in a gravity world
+            body_type = _pymunk.Body.KINEMATIC
+        else:
+            body_type = _pymunk.Body.DYNAMIC
+
         self._pymunk_body = _pymunk.Body(mass, moment, body_type=body_type)
-
         self._pymunk_body.position = self.sprite.x, self.sprite.y
-
         self._pymunk_body.angle = _math.radians(self.sprite.angle)
 
         if self.can_move:
