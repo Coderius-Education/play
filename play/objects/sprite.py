@@ -318,6 +318,66 @@ You might want to look in your code where you're setting transparency and make s
 
         return _math.sqrt(dx**2 + dy**2)
 
+    def info(self):
+        """Print a short summary of this sprite."""
+        sprite_type = self.__class__.__name__
+        color = getattr(self, "_color", "unknown")
+
+        # Get size info based on sprite type
+        if sprite_type == "Circle":
+            size_info = f"radius={getattr(self, 'radius', 0)}"
+        elif hasattr(self, "width") and hasattr(self, "height"):
+            size_info = f"width={self.width}, height={self.height}"
+        else:
+            size_info = ""
+
+        hidden = " (hidden)" if self._is_hidden else ""
+
+        print(f"Hi, I'm a {sprite_type}!")
+        print(f"  Color: {color}")
+        print(f"  Position: x={self.x}, y={self.y}")
+        if size_info:
+            print(f"  Size: {size_info}")
+        print(f"  Angle: {self.angle}°{hidden}")
+
+    def physics_info(self):
+        """Print a summary of this sprite's physics properties."""
+        if not self.physics:
+            print("This sprite has no physics enabled.")
+            return
+
+        body_type = self.physics._pymunk_body.body_type
+
+        # Dutch names for body types
+        type_names = {
+            _pymunk.Body.DYNAMIC: ("DYNAMIC", "VRIJ"),
+            _pymunk.Body.KINEMATIC: ("KINEMATIC", "GESTUURD"),
+            _pymunk.Body.STATIC: ("STATIC", "VAST"),
+        }
+        eng_name, nl_name = type_names.get(body_type, ("UNKNOWN", "ONBEKEND"))
+
+        print(f"Physics: {eng_name} ({nl_name})")
+        print(
+            f"can_move={self.physics.can_move},stable={self.physics.stable},obeys_gravity={self.physics.obeys_gravity}"
+        )
+        print(f"  Speed: x={self.physics.x_speed}, y={self.physics.y_speed}")
+        print(f"  Mass: {self.physics.mass}, Bounciness: {self.physics.bounciness}")
+
+        # Collision info
+        print("\nCollision behavior:")
+        if body_type == _pymunk.Body.DYNAMIC:
+            print("  ✓ Collides with DYNAMIC (VRIJ)")
+            print("  ✓ Collides with KINEMATIC (GESTUURD)")
+            print("  ✓ Collides with STATIC (VAST)")
+        elif body_type == _pymunk.Body.KINEMATIC:
+            print("  ✓ Collides with DYNAMIC (VRIJ)")
+            print("  ✗ Passes through KINEMATIC (GESTUURD)")
+            print("  ✗ Passes through STATIC (VAST)")
+        else:  # STATIC
+            print("  ✓ Collides with DYNAMIC (VRIJ)")
+            print("  ✗ Passes through KINEMATIC (GESTUURD)")
+            print("  ✗ Passes through STATIC (VAST)")
+
     def remove(self):
         """Remove the sprite from the screen."""
         if not self.alive():
