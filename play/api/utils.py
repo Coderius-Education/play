@@ -99,7 +99,7 @@ def key_is_pressed(*keys):
                 print('up or w pressed')
     """
     for key in keys:
-        if key in keyboard_state.pressed.values():
+        if key in keyboard_state.pressed:
             return True
     return False
 
