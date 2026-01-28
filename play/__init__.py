@@ -1,6 +1,5 @@
 """The library to make pygame easier to use."""
 
-import atexit
 import pygame
 
 from .api import *
