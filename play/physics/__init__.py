@@ -55,6 +55,15 @@ class Physics:
         self._make_pymunk()
 
     def _make_pymunk(self):
+        # Save collision attributes from old shape so the collision registry stays valid
+        old_shape = getattr(self, "_pymunk_shape", None)
+        old_collision_type = (
+            getattr(old_shape, "collision_type", None) if old_shape else None
+        )
+        old_collision_id = (
+            getattr(old_shape, "collision_id", None) if old_shape else None
+        )
+
         mass = self.mass if self.can_move else 0
 
         if self.stable:
@@ -95,6 +104,13 @@ class Physics:
 
         self._pymunk_shape.elasticity = _clamp(self.bounciness, 0, 0.9999)
         self._pymunk_shape.friction = self._friction
+
+        # Restore collision attributes so collision callbacks keep working
+        if old_collision_type is not None:
+            self._pymunk_shape.collision_type = old_collision_type
+        if old_collision_id is not None:
+            self._pymunk_shape.collision_id = old_collision_id
+
         physics_space.add(self._pymunk_body, self._pymunk_shape)
 
     def clone(self, sprite):

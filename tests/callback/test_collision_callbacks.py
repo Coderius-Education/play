@@ -196,5 +196,77 @@ def test_collision_registry_register():
     assert result[1] is True
 
 
+def test_collision_attributes_preserved_after_can_move_change():
+    """Test that collision attributes survive when can_move recreates the physics shape."""
+    import play
+
+    box1 = play.new_box(x=-100)
+    box1.start_physics()
+
+    box2 = play.new_box(x=100)
+    box2.start_physics()
+
+    @box1.when_touching(box2)
+    def on_touch():
+        pass
+
+    old_collision_type = box1.physics._pymunk_shape.collision_type
+    old_collision_id = box1.physics._pymunk_shape.collision_id
+
+    # Changing can_move recreates the shape
+    box1.physics.can_move = False
+
+    assert box1.physics._pymunk_shape.collision_type == old_collision_type
+    assert box1.physics._pymunk_shape.collision_id == old_collision_id
+
+
+def test_collision_attributes_preserved_after_stable_change():
+    """Test that collision attributes survive when stable recreates the physics shape."""
+    import play
+
+    box1 = play.new_box(x=-100)
+    box1.start_physics()
+
+    box2 = play.new_box(x=100)
+    box2.start_physics()
+
+    @box1.when_touching(box2)
+    def on_touch():
+        pass
+
+    old_collision_type = box1.physics._pymunk_shape.collision_type
+    old_collision_id = box1.physics._pymunk_shape.collision_id
+
+    # Changing stable recreates the shape
+    box1.physics.stable = True
+
+    assert box1.physics._pymunk_shape.collision_type == old_collision_type
+    assert box1.physics._pymunk_shape.collision_id == old_collision_id
+
+
+def test_collision_registry_valid_after_can_move_change():
+    """Test that the collision registry can still find the callback after can_move change."""
+    import play
+    from play.callback.collision_callbacks import collision_registry
+
+    box1 = play.new_box(x=-100)
+    box1.start_physics()
+
+    box2 = play.new_box(x=100)
+    box2.start_physics()
+
+    @box1.when_touching(box2)
+    def on_touch():
+        pass
+
+    # Changing can_move recreates the shape
+    box1.physics.can_move = False
+
+    # The registry should still map the collision_type to the sprite
+    ct = box1.physics._pymunk_shape.collision_type
+    assert ct in collision_registry.shape_registry
+    assert ct in collision_registry.callbacks[True]
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
