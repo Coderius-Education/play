@@ -65,7 +65,6 @@ class Box(Sprite):
             )
 
             draw_image.set_alpha(round(self._transparency * 255 / 100))
-            draw_image = pygame.transform.rotate(draw_image, self._angle)
 
             self.rect = draw_image.get_rect()
             pos = convert_pos(self.x, self.y)
