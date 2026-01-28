@@ -51,6 +51,7 @@ class Physics:
         self._bounciness = bounciness
         self._mass = mass
         self._friction = friction
+        self._is_paused = False
 
         self._make_pymunk()
 
@@ -95,7 +96,8 @@ class Physics:
 
         self._pymunk_shape.elasticity = _clamp(self.bounciness, 0, 0.9999)
         self._pymunk_shape.friction = self._friction
-        physics_space.add(self._pymunk_body, self._pymunk_shape)
+        if not self._is_paused:
+            physics_space.add(self._pymunk_body, self._pymunk_shape)
 
     def clone(self, sprite):
         """
@@ -116,16 +118,24 @@ class Physics:
 
     def pause(self):
         """Pause the object."""
-        self._remove()
+        if self._is_paused:
+            return
+        self._remove()  # Remove first, before setting flag
+        self._is_paused = True
 
     def unpause(self):
         """Unpause the object."""
+        if not self._is_paused:
+            return
+        self._is_paused = False
         if self._pymunk_body and self._pymunk_shape:
             physics_space.add(self._pymunk_body, self._pymunk_shape)
         else:
             play_logger.error("Cannot unpause object, it has not been created yet.")
 
     def _remove(self):
+        if self._is_paused:
+            return  # Already removed from space
         if self._pymunk_body:
             physics_space.remove(self._pymunk_body)
         if self._pymunk_shape:
