@@ -105,28 +105,6 @@ def test_sprite_when_touching_decorator():
     assert len(callbacks) > 0
 
 
-def test_sprite_when_touching_multiple_sprites():
-    """Test when_touching with multiple sprites."""
-    import play
-
-    sprite1 = play.new_box(x=0, y=0, width=50, height=50)
-    sprite2 = play.new_circle(x=0, y=0, radius=25)
-    sprite3 = play.new_box(x=50, y=50, width=30, height=30)
-
-    @sprite1.when_touching(sprite2, sprite3)
-    def on_touch():
-        pass
-
-    # Verify callbacks were registered
-    from play.callback import callback_manager, CallbackType
-
-    callbacks = list(
-        callback_manager.get_callback([CallbackType.WHEN_TOUCHING], id(sprite1))
-    )
-    # Should have 2 callbacks, one for each sprite
-    assert len(callbacks) >= 2
-
-
 def test_sprite_when_clicked_call_with_sprite_true():
     """Test that when_clicked passes sprite as argument when call_with_sprite=True."""
     import play

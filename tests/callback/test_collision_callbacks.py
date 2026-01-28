@@ -196,5 +196,82 @@ def test_collision_registry_register():
     assert result[1] is True
 
 
+def test_duplicate_when_touching_raises_error():
+    """Test that registering two when_touching callbacks for same sprite pair raises ValueError."""
+    import play
+
+    box1 = play.new_box(x=-100)
+    box1.start_physics()
+
+    box2 = play.new_box(x=100)
+    box2.start_physics()
+
+    @box1.when_touching(box2)
+    def first_callback():
+        pass
+
+    with pytest.raises(ValueError) as exc_info:
+
+        @box1.when_touching(box2)
+        def second_callback():
+            pass
+
+    assert "when_touching" in str(exc_info.value)
+    assert "already" in str(exc_info.value).lower()
+
+
+def test_duplicate_when_stopped_touching_raises_error():
+    """Test that registering two when_stopped_touching callbacks for same sprite pair raises ValueError."""
+    import play
+
+    box1 = play.new_box(x=-100)
+    box1.start_physics()
+
+    box2 = play.new_box(x=100)
+    box2.start_physics()
+
+    @box1.when_stopped_touching(box2)
+    def first_callback():
+        pass
+
+    with pytest.raises(ValueError) as exc_info:
+
+        @box1.when_stopped_touching(box2)
+        def second_callback():
+            pass
+
+    assert "when_stopped_touching" in str(exc_info.value)
+    assert "already" in str(exc_info.value).lower()
+
+
+def test_duplicate_callback_error_message_is_user_friendly():
+    """Test that duplicate callback error message is clear for beginners."""
+    import play
+
+    circle = play.new_circle(x=-50)
+    circle.start_physics()
+
+    box = play.new_box(x=50)
+    box.start_physics()
+
+    @circle.when_touching(box)
+    def first():
+        pass
+
+    with pytest.raises(ValueError) as exc_info:
+
+        @circle.when_touching(box)
+        def second():
+            pass
+
+    error_message = str(exc_info.value)
+    # Check that message explains the issue and solution
+    assert (
+        "two sprites" in error_message.lower()
+        or "these two sprites" in error_message.lower()
+    )
+    assert "single function" in error_message.lower()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
