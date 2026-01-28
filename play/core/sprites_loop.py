@@ -51,7 +51,8 @@ async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-br
         # @sprite.when_clicked events
         #################################
         if (
-            mouse.is_clicked
+            do_events
+            and mouse.is_clicked
             and mouse.is_touching(sprite)
             and mouse_state.click_happened
         ):
@@ -63,7 +64,11 @@ async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-br
         #######################################
         # @sprite.when_click_released events
         #######################################
-        if mouse_state.click_release_happened and mouse.is_touching(sprite):
+        if (
+            do_events
+            and mouse_state.click_release_happened
+            and mouse.is_touching(sprite)
+        ):
             callback_manager.run_callbacks(
                 CallbackType.WHEN_CLICK_RELEASED_SPRITE,
                 callback_discriminator=id(sprite),
