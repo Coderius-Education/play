@@ -148,6 +148,18 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         if not hasattr(other_shape, "collision_type"):
             other_shape.collision_type = id(other_shape)
 
+        # Check if a callback already exists for this collision pair (sprites only)
+        if (
+            collision_type != CollisionType.WALL
+            and other_shape.collision_type
+            in self.callbacks[begin][shape.collision_type]
+        ):
+            event_type = "when_touching" if begin else "when_stopped_touching"
+            raise ValueError(
+                f"You already have a @sprite.{event_type}() for these two sprites. "
+                f"You can only use one. Put all your code in a single function instead."
+            )
+
         self.callbacks[begin][shape.collision_type][
             other_shape.collision_type
         ] = callback
