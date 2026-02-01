@@ -1,12 +1,40 @@
 """This handles the physics of the game."""
 
 import math as _math
+from collections import deque as _deque
+from typing import Callable as _Callable
 
 import pymunk as _pymunk
 
 from ..globals import globals_list
 from ..io.logging import play_logger
 from ..utils import clamp as _clamp
+
+
+# Global state for deferred physics modifications
+_physics_simulation_active = False
+_deferred_modifications = _deque()
+
+
+def _apply_deferred_modification(func: _Callable):
+    """
+    Queue a modification to be applied after physics simulation completes.
+    If not in simulation, apply immediately.
+    """
+    if _physics_simulation_active:
+        _deferred_modifications.append(func)
+    else:
+        func()
+
+
+def _process_deferred_modifications():
+    """
+    Process all queued physics modifications.
+    Called after physics simulation steps complete.
+    """
+    while _deferred_modifications:
+        modification = _deferred_modifications.popleft()
+        modification()
 
 
 class Physics:
@@ -163,8 +191,10 @@ class Physics:
 
     @x_speed.setter
     def x_speed(self, _x_speed):
-        self._x_speed = _x_speed
-        self._pymunk_body.velocity = self._x_speed, self._pymunk_body.velocity[1]
+        def _apply():
+            self._x_speed = _x_speed
+            self._pymunk_body.velocity = self._x_speed, self._pymunk_body.velocity[1]
+        _apply_deferred_modification(_apply)
 
     @property
     def y_speed(self):
@@ -174,8 +204,10 @@ class Physics:
 
     @y_speed.setter
     def y_speed(self, _y_speed):
-        self._y_speed = _y_speed
-        self._pymunk_body.velocity = self._pymunk_body.velocity[0], self._y_speed
+        def _apply():
+            self._y_speed = _y_speed
+            self._pymunk_body.velocity = self._pymunk_body.velocity[0], self._y_speed
+        _apply_deferred_modification(_apply)
 
     @property
     def bounciness(self):
@@ -185,8 +217,10 @@ class Physics:
 
     @bounciness.setter
     def bounciness(self, _bounciness):
-        self._bounciness = _bounciness
-        self._pymunk_shape.elasticity = _clamp(self._bounciness, 0, 0.9999)
+        def _apply():
+            self._bounciness = _bounciness
+            self._pymunk_shape.elasticity = _clamp(self._bounciness, 0, 0.9999)
+        _apply_deferred_modification(_apply)
 
     @property
     def stable(self):
@@ -212,8 +246,10 @@ class Physics:
     def mass(self, _mass):
         """Set the mass of the object.
         :param _mass: The mass of the object."""
-        self._mass = _mass
-        self._pymunk_body.mass = _mass
+        def _apply():
+            self._mass = _mass
+            self._pymunk_body.mass = _mass
+        _apply_deferred_modification(_apply)
 
     @property
     def obeys_gravity(self):
@@ -223,11 +259,13 @@ class Physics:
 
     @obeys_gravity.setter
     def obeys_gravity(self, _obeys_gravity):
-        self._obeys_gravity = _obeys_gravity
-        if _obeys_gravity:
-            self._pymunk_body.velocity_func = _pymunk.Body.update_velocity
-        else:
-            self._pymunk_body.velocity_func = lambda body, gravity, damping, dt: None
+        def _apply():
+            self._obeys_gravity = _obeys_gravity
+            if _obeys_gravity:
+                self._pymunk_body.velocity_func = _pymunk.Body.update_velocity
+            else:
+                self._pymunk_body.velocity_func = lambda body, gravity, damping, dt: None
+        _apply_deferred_modification(_apply)
 
 
 class _Gravity:  # pylint: disable=too-few-public-methods
