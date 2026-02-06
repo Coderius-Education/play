@@ -267,7 +267,10 @@ You might want to look in your code where you're setting transparency and make s
     def is_hidden(self, hide):
         """Set whether the sprite is hidden.
         :param hide: Whether the sprite is hidden."""
-        self._is_hidden = hide
+        if hide:
+            self.hide()
+        else:
+            self.show()
 
     @property
     def is_shown(self):
@@ -279,7 +282,10 @@ You might want to look in your code where you're setting transparency and make s
     def is_shown(self, show):
         """Set whether the sprite is shown.
         :param show: Whether the sprite is shown."""
-        self._is_hidden = not show
+        if show:
+            self.show()
+        else:
+            self.hide()
 
     def is_touching(self, sprite_or_point):
         """Check if the sprite is touching another sprite or a point.
@@ -784,24 +790,33 @@ You might want to look in your code where you're setting transparency and make s
         :param mass: The mass of the object.
         :param friction: The friction of the object.
         """
-        # Get all the current callbacks before potentially removing physics
-        when_touching = (
+        # Get copies of all current callbacks before potentially removing physics
+        when_touching = list(
             callback_manager.get_callback(CallbackType.WHEN_TOUCHING, id(self)) or []
         )
-        when_touching_wall = (
+        when_touching_wall = list(
             callback_manager.get_callback(CallbackType.WHEN_TOUCHING_WALL, id(self))
             or []
         )
-        when_stopped_touching = (
+        when_stopped_touching = list(
             callback_manager.get_callback(CallbackType.WHEN_STOPPED_TOUCHING, id(self))
             or []
         )
-        when_stopped_touching_wall = (
+        when_stopped_touching_wall = list(
             callback_manager.get_callback(
                 CallbackType.WHEN_STOPPED_TOUCHING_WALL, id(self)
             )
             or []
         )
+
+        # Clear old callback entries to prevent duplicates
+        for ctype in [
+            CallbackType.WHEN_TOUCHING,
+            CallbackType.WHEN_TOUCHING_WALL,
+            CallbackType.WHEN_STOPPED_TOUCHING,
+            CallbackType.WHEN_STOPPED_TOUCHING_WALL,
+        ]:
+            callback_manager.remove_callbacks(ctype, id(self))
 
         # Remove existing physics if it exists
         if self.physics:

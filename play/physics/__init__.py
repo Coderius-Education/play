@@ -64,11 +64,17 @@ class Physics:
         collision_id = getattr(prev_shape, "collision_id", None) if prev_shape else None
 
         mass = self.mass if self.can_move else 0
+        size_factor = (self.sprite._size or 100) / 100
 
         if self.stable:
             moment = float("inf")
         elif self.sprite.__class__.__name__ == "Circle":
-            moment = _pymunk.moment_for_circle(mass, 0, self.sprite.radius, (0, 0))
+            effective_radius = self.sprite._radius * size_factor
+            moment = _pymunk.moment_for_circle(mass, 0, effective_radius, (0, 0))
+        elif self.sprite.__class__.__name__ == "Box":
+            effective_w = self.sprite._width * size_factor
+            effective_h = self.sprite._height * size_factor
+            moment = _pymunk.moment_for_box(mass, (effective_w, effective_h))
         else:
             moment = _pymunk.moment_for_box(
                 mass, (self.sprite.width, self.sprite.height)
@@ -93,8 +99,15 @@ class Physics:
             self._pymunk_body.velocity_func = lambda body, gravity, damping, dt: None
 
         if self.sprite.__class__.__name__ == "Circle":
+            effective_radius = self.sprite._radius * size_factor
             self._pymunk_shape = _pymunk.Circle(
-                self._pymunk_body, self.sprite.radius, (0, 0)
+                self._pymunk_body, effective_radius, (0, 0)
+            )
+        elif self.sprite.__class__.__name__ == "Box":
+            effective_w = self.sprite._width * size_factor
+            effective_h = self.sprite._height * size_factor
+            self._pymunk_shape = _pymunk.Poly.create_box(
+                self._pymunk_body, (effective_w, effective_h)
             )
         else:
             self._pymunk_shape = _pymunk.Poly.create_box(

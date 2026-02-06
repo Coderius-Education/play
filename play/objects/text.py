@@ -34,7 +34,7 @@ class Text(Sprite):
 
         self._size = size
         self._angle = angle
-        self._transparency = transparency / 100
+        self._transparency = transparency
 
         self._is_clicked = False
         self._is_hidden = False
@@ -53,7 +53,11 @@ class Text(Sprite):
             self._image = self._pygame_font.render(
                 self._words, True, _color_name_to_rgb(self._color)
             )
-            self._image.set_alpha(round(self._transparency * 255))
+            if self._size != 100:
+                new_w = max(round(self._image.get_width() * self._size / 100), 1)
+                new_h = max(round(self._image.get_height() * self._size / 100), 1)
+                self._image = pygame.transform.scale(self._image, (new_w, new_h))
+            self._image.set_alpha(round(self._transparency * 255 / 100))
             self.rect = self._image.get_rect()
             self.rect.topleft = (
                 pos[0] - self.rect.width // 2,
