@@ -791,31 +791,21 @@ You might want to look in your code where you're setting transparency and make s
         :param friction: The friction of the object.
         """
         # Get copies of all current callbacks before potentially removing physics
-        when_touching = list(
-            callback_manager.get_callback(CallbackType.WHEN_TOUCHING, id(self)) or []
-        )
-        when_touching_wall = list(
-            callback_manager.get_callback(CallbackType.WHEN_TOUCHING_WALL, id(self))
-            or []
-        )
-        when_stopped_touching = list(
-            callback_manager.get_callback(CallbackType.WHEN_STOPPED_TOUCHING, id(self))
-            or []
-        )
-        when_stopped_touching_wall = list(
-            callback_manager.get_callback(
-                CallbackType.WHEN_STOPPED_TOUCHING_WALL, id(self)
-            )
-            or []
-        )
-
-        # Clear old callback entries to prevent duplicates
-        for ctype in [
+        callback_types = [
             CallbackType.WHEN_TOUCHING,
             CallbackType.WHEN_TOUCHING_WALL,
             CallbackType.WHEN_STOPPED_TOUCHING,
             CallbackType.WHEN_STOPPED_TOUCHING_WALL,
-        ]:
+        ]
+        saved_callbacks = {
+            ctype: list(
+                callback_manager.get_callback(ctype, id(self)) or []
+            )
+            for ctype in callback_types
+        }
+
+        # Clear old callback entries to prevent duplicates
+        for ctype in callback_types:
             callback_manager.remove_callbacks(ctype, id(self))
 
         # Remove existing physics if it exists
@@ -836,13 +826,13 @@ You might want to look in your code where you're setting transparency and make s
         )
 
         # Re-register all callbacks with the new physics object
-        for callback, sprite in when_touching:
+        for callback, sprite in saved_callbacks[CallbackType.WHEN_TOUCHING]:
             self.when_touching(sprite)(callback)
-        for callback in when_touching_wall:
+        for callback in saved_callbacks[CallbackType.WHEN_TOUCHING_WALL]:
             self.when_touching_wall(callback)
-        for callback, sprite in when_stopped_touching:
+        for callback, sprite in saved_callbacks[CallbackType.WHEN_STOPPED_TOUCHING]:
             self.when_stopped_touching(sprite)(callback)
-        for callback in when_stopped_touching_wall:
+        for callback in saved_callbacks[CallbackType.WHEN_STOPPED_TOUCHING_WALL]:
             self.when_stopped_touching_wall(callback)
 
     def stop_physics(self):
