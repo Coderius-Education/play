@@ -73,8 +73,10 @@ class CallbackManager:
         if callback_discriminator is None:
             existing = self.callbacks[callback_type]
             self.callbacks[callback_type] = [] if isinstance(existing, list) else {}
-        elif (isinstance(self.callbacks[callback_type], dict)
-              and callback_discriminator in self.callbacks[callback_type]):
+        elif (
+            isinstance(self.callbacks[callback_type], dict)
+            and callback_discriminator in self.callbacks[callback_type]
+        ):
             self.callbacks[callback_type][callback_discriminator] = []
 
     def get_callbacks(self, callback_type) -> dict:

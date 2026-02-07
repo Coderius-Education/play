@@ -798,9 +798,7 @@ You might want to look in your code where you're setting transparency and make s
             CallbackType.WHEN_STOPPED_TOUCHING_WALL,
         ]
         saved_callbacks = {
-            ctype: list(
-                callback_manager.get_callback(ctype, id(self)) or []
-            )
+            ctype: list(callback_manager.get_callback(ctype, id(self)) or [])
             for ctype in callback_types
         }
 
