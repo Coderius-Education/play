@@ -769,7 +769,7 @@ You might want to look in your code where you're setting transparency and make s
         :return: The cloned sprite."""
         return self.__class__(image=self.image)
 
-    def start_physics( # # pylint: disable=too-many-locals, too-many-branches
+    def start_physics(  # # pylint: disable=too-many-locals, too-many-branches
         self,
         can_move=True,
         stable=False,
