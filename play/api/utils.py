@@ -68,6 +68,7 @@ def set_backdrop(color):
     :param color: The color or image to set as the backdrop.
     """
     globals_list.backdrop = _color_name_to_rgb(color)
+    globals_list.backdrop_type = "color"
 
 
 def set_backdrop_image(image):

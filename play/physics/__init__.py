@@ -55,7 +55,7 @@ class Physics:
 
         self._make_pymunk()
 
-    def _make_pymunk(self):
+    def _make_pymunk(self):  # pylint: disable=too-many-branches
         # Save collision attributes so the collision registry stays valid
         prev_shape = getattr(self, "_pymunk_shape", None)
         collision_type = (
@@ -64,15 +64,26 @@ class Physics:
         collision_id = getattr(prev_shape, "collision_id", None) if prev_shape else None
 
         mass = self.mass if self.can_move else 0
+        size_factor = (self.sprite._size or 100) / 100
+        is_circle = self.sprite.__class__.__name__ == "Circle"
+
+        # Compute effective dimensions with size scaling for Box and Circle
+        if is_circle:
+            effective_radius = self.sprite._radius * size_factor
+        elif self.sprite.__class__.__name__ == "Box":
+            effective_w = self.sprite._width * size_factor
+            effective_h = self.sprite._height * size_factor
+        else:
+            effective_w = self.sprite.width
+            effective_h = self.sprite.height
 
         if self.stable:
             moment = float("inf")
-        elif self.sprite.__class__.__name__ == "Circle":
-            moment = _pymunk.moment_for_circle(mass, 0, self.sprite.radius, (0, 0))
+        elif is_circle:
+            moment = _pymunk.moment_for_circle(mass, 0, effective_radius, (0, 0))
         else:
-            moment = _pymunk.moment_for_box(
-                mass, (self.sprite.width, self.sprite.height)
-            )
+            moment = _pymunk.moment_for_box(mass, (effective_w, effective_h))
+
         # Determine body type based on movement and stability properties
         if not self.can_move:
             body_type = _pymunk.Body.STATIC
@@ -92,13 +103,13 @@ class Physics:
         if not self.obeys_gravity:
             self._pymunk_body.velocity_func = lambda body, gravity, damping, dt: None
 
-        if self.sprite.__class__.__name__ == "Circle":
+        if is_circle:
             self._pymunk_shape = _pymunk.Circle(
-                self._pymunk_body, self.sprite.radius, (0, 0)
+                self._pymunk_body, effective_radius, (0, 0)
             )
         else:
             self._pymunk_shape = _pymunk.Poly.create_box(
-                self._pymunk_body, (self.sprite.width, self.sprite.height)
+                self._pymunk_body, (effective_w, effective_h)
             )
 
         self._pymunk_shape.elasticity = _clamp(self.bounciness, 0, 0.9999)

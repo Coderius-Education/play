@@ -181,11 +181,11 @@ def test_sprite_transparency_setter():
 
     sprite = play.new_box()
 
-    sprite.transparency = 0.5
-    assert sprite.transparency == 0.5
+    sprite.transparency = 50
+    assert sprite.transparency == 50
 
-    sprite.transparency = 1.0
-    assert sprite.transparency == 1.0
+    sprite.transparency = 100
+    assert sprite.transparency == 100
 
 
 def test_sprite_transparency_invalid():

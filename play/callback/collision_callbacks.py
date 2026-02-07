@@ -4,14 +4,6 @@ from enum import Enum
 
 from pymunk import Shape, Arbiter
 
-
-try:
-    from enum import EnumType
-except ImportError:
-    from enum import (
-        EnumMeta as EnumType,
-    )  # In Python 3.10 the alias for EnumMeta doesn't yet exist
-
 from play.physics import physics_space
 
 
@@ -24,7 +16,7 @@ class WallSide(Enum):
     RIGHT = "right"
 
 
-class CollisionType(EnumType):
+class CollisionType(Enum):
     SPRITE = 0
     WALL = 1
 
@@ -103,9 +95,9 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         if shape_a.collision_type in self.shape_registry and self.shape_registry[
             shape_a.collision_type
         ]._touching_callback.get(shape_b.collision_id):
-            self.shape_registry[shape_a.collision_type]._touching_callback[
+            del self.shape_registry[shape_a.collision_type]._touching_callback[
                 shape_b.collision_id
-            ] = None
+            ]
         if (
             shape_a.collision_type in self.callbacks[False]
             and shape_b.collision_type in self.callbacks[False][shape_a.collision_type]

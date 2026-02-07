@@ -22,7 +22,7 @@ class Box(Sprite):
         size=100,
         angle=0,
     ):
-        super().__init__(self)
+        super().__init__()
         self._color = color
         self._x = x
         self._y = y
@@ -64,12 +64,17 @@ class Box(Sprite):
                 border_radius=max(self._border_radius - self._border_width, 0),
             )
 
+            if self._size != 100:
+                new_w = max(round(self._width * self._size / 100), 1)
+                new_h = max(round(self._height * self._size / 100), 1)
+                draw_image = pygame.transform.scale(draw_image, (new_w, new_h))
+
             draw_image.set_alpha(round(self._transparency * 255 / 100))
 
             self.rect = draw_image.get_rect()
             pos = convert_pos(self.x, self.y)
-            self.rect.x = pos[0] - self._width // 2
-            self.rect.y = pos[1] - self._height // 2
+            self.rect.x = pos[0] - self.rect.width // 2
+            self.rect.y = pos[1] - self.rect.height // 2
 
             angle_deg = -_math.degrees(self.physics._pymunk_body.angle)
             self.image = pygame.transform.rotate(draw_image, angle_deg)
