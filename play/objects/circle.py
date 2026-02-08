@@ -118,7 +118,9 @@ class Circle(Sprite):
         """Set the radius of the circle.
         :param _radius: The radius of the circle."""
         self._radius = _radius
-        self.physics._pymunk_shape.unsafe_set_radius(self._radius)
+        # Account for size scaling when updating physics shape
+        size_factor = (self._size or 100) / 100
+        self.physics._pymunk_shape.unsafe_set_radius(self._radius * size_factor)
 
     ##### border_color #####
     @property
