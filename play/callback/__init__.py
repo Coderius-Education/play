@@ -61,6 +61,24 @@ class CallbackManager:
                 self.callbacks[callback_type][callback_discriminator] = []
             self.callbacks[callback_type][callback_discriminator].append(callback)
 
+    def remove_callbacks(self, callback_type, callback_discriminator=None) -> None:
+        """
+        Remove all callbacks of a certain type.
+        :param callback_type: The type of callback.
+        :param callback_discriminator: The discriminator for the callback.
+        :return: None
+        """
+        if callback_type not in self.callbacks:
+            return
+        if callback_discriminator is None:
+            existing = self.callbacks[callback_type]
+            self.callbacks[callback_type] = [] if isinstance(existing, list) else {}
+        elif (
+            isinstance(self.callbacks[callback_type], dict)
+            and callback_discriminator in self.callbacks[callback_type]
+        ):
+            self.callbacks[callback_type][callback_discriminator] = []
+
     def get_callbacks(self, callback_type) -> dict:
         """
         Get the callbacks of a certain type.
@@ -122,11 +140,11 @@ class CallbackManager:
 
             for callback in self.callbacks[callback_type][callback_discriminator]:
                 if is_valid_callback(callback):
-                    run_callback(callback, args, kwargs)
+                    run_callback(callback, [], [], *args, **kwargs)
         else:
             for callback in self.callbacks[callback_type]:
                 if is_valid_callback(callback):
-                    run_callback(callback, args, kwargs)
+                    run_callback(callback, [], [], *args, **kwargs)
 
     async def run_callbacks_with_filter(  # pylint: disable=keyword-arg-before-vararg,dangerous-default-value,too-many-branches
         self,

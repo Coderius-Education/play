@@ -371,12 +371,12 @@ def test_text_transparency():
         # Transparency is stored as 0-1, so 100 becomes 1.0
         test_results["initial"] = text.transparency
 
-        text.transparency = 0.5
+        text.transparency = 50
         test_results["updated"] = text.transparency
 
         play.stop_program()
 
     play.start_program()
 
-    assert test_results["initial"] == 1.0
-    assert test_results["updated"] == 0.5
+    assert test_results["initial"] == 100
+    assert test_results["updated"] == 50

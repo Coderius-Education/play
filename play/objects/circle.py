@@ -74,12 +74,18 @@ class Circle(Sprite):
                 max(self._radius - self._border_width, 0),
             )
 
+            if self._size != 100:
+                scaled_r = max(round(self._radius * self._size / 100), 1)
+                draw_image = pygame.transform.scale(
+                    draw_image, (scaled_r * 2, scaled_r * 2)
+                )
+
             draw_image.set_alpha(round(self._transparency * 255 / 100))
 
             self.rect = draw_image.get_rect()
             pos = convert_pos(self.x, self.y)
-            self.rect.x = pos[0] - self._radius
-            self.rect.y = pos[1] - self._radius
+            self.rect.x = pos[0] - self.rect.width // 2
+            self.rect.y = pos[1] - self.rect.height // 2
 
             angle_deg = -_math.degrees(self.physics._pymunk_body.angle)
             self._image = pygame.transform.rotate(draw_image, angle_deg)
@@ -112,7 +118,9 @@ class Circle(Sprite):
         """Set the radius of the circle.
         :param _radius: The radius of the circle."""
         self._radius = _radius
-        self.physics._pymunk_shape.unsafe_set_radius(self._radius)
+        # Account for size scaling when updating physics shape
+        size_factor = (self._size or 100) / 100
+        self.physics._pymunk_shape.unsafe_set_radius(self._radius * size_factor)
 
     ##### border_color #####
     @property
