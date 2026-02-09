@@ -53,7 +53,7 @@ class Text(Sprite):
             # Render text at scaled font size for better quality
             if self._size != 100:
                 scaled_font_size = max(round(self._font_size * self._size / 100), 1)
-                scaled_font = pygame.font.Font(self._pygame_font, scaled_font_size)
+                scaled_font = pygame.font.Font(self._font_path, scaled_font_size)
                 self._image = scaled_font.render(
                     self._words, True, _color_name_to_rgb(self._color)
                 )
@@ -123,15 +123,12 @@ class Text(Sprite):
     def _load_font(self, font_name, font_size):
         """Helper method to load a font, either from a file or system."""
         if font_name == "default":
-            self._pygame_font = pygame.font.Font(
-                pygame.font.get_default_font(), font_size
-            )
+            self._font_path = pygame.font.get_default_font()
         elif os.path.isfile(font_name):
-            self._pygame_font = pygame.font.Font(font_name, font_size)
+            self._font_path = font_name
         else:
             play_logger.warning(
                 "File to font doesnt exist, Using default font", exc_info=True
             )
-            self._pygame_font = pygame.font.Font(
-                pygame.font.get_default_font(), font_size
-            )
+            self._font_path = pygame.font.get_default_font()
+        self._pygame_font = pygame.font.Font(self._font_path, font_size)

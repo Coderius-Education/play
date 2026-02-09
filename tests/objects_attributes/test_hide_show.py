@@ -323,6 +323,16 @@ def test_hide_in_when_clicked_callback():
         num_frames[0] += 1
 
         # Post a real pygame click event at frame 10
+        if num_frames[0] == 9:
+            # First move the mouse to the box's center so mouse.is_touching works
+            screen_x = int(screen.width / 2)
+            screen_y = int(screen.height / 2)
+            motion_event = pygame.event.Event(
+                pygame.MOUSEMOTION,
+                {"pos": (screen_x, screen_y), "rel": (0, 0), "buttons": (0, 0, 0)},
+            )
+            pygame.event.post(motion_event)
+
         if num_frames[0] == 10:
             # Convert play coordinates (0, 0) to pygame screen coordinates
             screen_x = int(screen.width / 2)
