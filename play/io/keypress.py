@@ -12,8 +12,10 @@ pygame.key.set_repeat(200, 16)
 class KeyboardState:  # pylint: disable=too-few-public-methods
     """Class to manage the state of the keyboard."""
 
-    pressed = []
-    released = []
+    def __init__(self):
+        """Initialize the keyboard state."""
+        self.pressed = []
+        self.released = []
 
     def clear(self):
         """Clear the state of the keyboard."""
