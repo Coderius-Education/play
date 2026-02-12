@@ -327,7 +327,8 @@ def test_hide_in_when_clicked_callback():
             screen_x = int(screen.width / 2)
             screen_y = int(screen.height / 2)
             motion_event = pygame.event.Event(
-                pygame.MOUSEMOTION, {"pos": (screen_x, screen_y), "rel": (0, 0), "buttons": (0, 0, 0)}
+                pygame.MOUSEMOTION,
+                {"pos": (screen_x, screen_y), "rel": (0, 0), "buttons": (0, 0, 0)},
             )
             pygame.event.post(motion_event)
 
