@@ -16,7 +16,7 @@ def test_image_rotation_from_physics():
 
     # Verify physics is initialized
     assert image.physics is not None
-    assert hasattr(image.physics, '_pymunk_body')
+    assert hasattr(image.physics, "_pymunk_body")
 
     # Set a specific angle on the physics body
     image.physics._pymunk_body.angle = math.radians(45)
@@ -57,12 +57,12 @@ def test_keyboard_state_instance_isolation():
     kb2 = KeyboardState()
 
     # Modify one instance
-    kb1.pressed.append('a')
-    kb1.released.append('b')
+    kb1.pressed.append("a")
+    kb1.released.append("b")
 
     # Verify the other instance is not affected
-    assert 'a' not in kb2.pressed
-    assert 'b' not in kb2.released
+    assert "a" not in kb2.pressed
+    assert "b" not in kb2.released
 
     # Verify they have separate lists
     assert kb1.pressed is not kb2.pressed
@@ -100,7 +100,7 @@ def test_nan_validation_uses_isnan():
     assert sprite.physics is not None
 
     # Set position to NaN
-    sprite.physics._pymunk_body.position = (float('nan'), 100)
+    sprite.physics._pymunk_body.position = (float("nan"), 100)
 
     # The sprites_loop should handle NaN gracefully using math.isnan()
     # This should not raise an exception

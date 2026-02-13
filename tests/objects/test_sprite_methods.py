@@ -120,7 +120,9 @@ def test_box_clone():
     """Test cloning a box sprite."""
     import play
 
-    box1 = play.new_box(x=100, y=200, width=150, height=200, color="red", angle=45, border_radius=10)
+    box1 = play.new_box(
+        x=100, y=200, width=150, height=200, color="red", angle=45, border_radius=10
+    )
 
     box2 = box1.clone()
 
