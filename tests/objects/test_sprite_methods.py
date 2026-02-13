@@ -120,7 +120,7 @@ def test_box_clone():
     """Test cloning a box sprite."""
     import play
 
-    box1 = play.new_box(x=100, y=200, width=150, height=200, color="red", angle=45)
+    box1 = play.new_box(x=100, y=200, width=150, height=200, color="red", angle=45, border_radius=10)
 
     box2 = box1.clone()
 
@@ -130,6 +130,7 @@ def test_box_clone():
     assert box2.height == box1.height
     assert box2.color == box1.color
     assert box2.angle == box1.angle
+    assert box2.border_radius == box1.border_radius
 
     # Verify they are different objects
     assert box1 is not box2
