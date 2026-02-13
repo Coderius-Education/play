@@ -10,6 +10,7 @@ sys.path.insert(0, ".")
 def test_image_rotation_from_physics():
     """Test that Image rotation reads from physics body angle like Box/Circle do."""
     import play
+    import pygame
 
     # Create an image sprite with physics using an actual test image
     image = play.new_image(image="tests/objects_attributes/yellow.jpg", x=100, y=100)
@@ -18,15 +19,26 @@ def test_image_rotation_from_physics():
     assert image.physics is not None
     assert hasattr(image.physics, "_pymunk_body")
 
-    # Set a specific angle on the physics body
-    image.physics._pymunk_body.angle = math.radians(45)
+    # Store original image dimensions to compare after rotation
+    original_image = image.image.copy()
+    original_width = image.image.get_width()
+    original_height = image.image.get_height()
 
-    # Update should read from physics body
+    # Set a specific angle on the physics body (90 degrees for clear visual difference)
+    image.physics._pymunk_body.angle = math.radians(90)
+
+    # Update should read from physics body and rotate the visual
     image.update()
 
-    # Verify angle is read from physics (converted from radians to degrees, negated)
-    expected_angle = -45  # Negated as per the conversion
-    assert abs(image.angle - expected_angle) < 1.0
+    # After rotation by 90 degrees, dimensions should be swapped
+    # (this verifies the rotation was actually applied from physics body)
+    rotated_width = image.image.get_width()
+    rotated_height = image.image.get_height()
+
+    # With 90 degree rotation, width and height should be swapped
+    # Allow some tolerance for rounding
+    assert abs(rotated_width - original_height) < 5
+    assert abs(rotated_height - original_width) < 5
 
 
 def test_image_sizing_with_round():
@@ -77,8 +89,8 @@ def test_callback_validation_hasattr_check():
     """Test that callback validation checks hasattr before accessing is_running."""
     from play.callback import callback_manager, CallbackType
 
-    # Create a simple callable without is_running attribute
-    def simple_callback():
+    # Create a simple async callable without is_running attribute
+    async def simple_callback():
         pass
 
     # This should not raise AttributeError when checking is_running
@@ -87,7 +99,9 @@ def test_callback_validation_hasattr_check():
 
     # Run callbacks should work without errors
     try:
-        callback_manager.run_callbacks(CallbackType.REPEAT_FOREVER)
+        import asyncio
+
+        asyncio.run(callback_manager.run_callbacks(CallbackType.REPEAT_FOREVER))
         success = True
     except AttributeError:
         success = False
