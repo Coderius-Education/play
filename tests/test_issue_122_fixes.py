@@ -34,14 +34,18 @@ def test_image_sizing_with_round():
     import play
 
     # Create a small image that would truncate to 0 with //
-    image = play.new_image(image="tests/objects_attributes/yellow.jpg", x=100, y=100, size=5)
+    image = play.new_image(
+        image="tests/objects_attributes/yellow.jpg", x=100, y=100, size=5
+    )
 
     # With round() and max(1), dimensions should be at least 1
     assert image.width >= 1
     assert image.height >= 1
 
     # Test with larger size to verify rounding works correctly
-    image2 = play.new_image(image="tests/objects_attributes/yellow.jpg", x=100, y=100, size=50)
+    image2 = play.new_image(
+        image="tests/objects_attributes/yellow.jpg", x=100, y=100, size=50
+    )
 
     # Should have reasonable dimensions
     assert image2.width > 0
@@ -111,6 +115,7 @@ def test_nan_validation_uses_isnan():
     # The update_sprites function should handle NaN gracefully using math.isnan()
     # This should not raise an exception and should skip updating the x position
     import asyncio
+
     try:
         asyncio.run(update_sprites(do_events=False))
         success = True
