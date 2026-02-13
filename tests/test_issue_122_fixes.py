@@ -11,8 +11,8 @@ def test_image_rotation_from_physics():
     """Test that Image rotation reads from physics body angle like Box/Circle do."""
     import play
 
-    # Create an image sprite with physics
-    image = play.new_image(image="example.png", x=100, y=100)
+    # Create an image sprite with physics using an actual test image
+    image = play.new_image(image="tests/objects_attributes/yellow.jpg", x=100, y=100)
 
     # Verify physics is initialized
     assert image.physics is not None
@@ -34,14 +34,14 @@ def test_image_sizing_with_round():
     import play
 
     # Create a small image that would truncate to 0 with //
-    image = play.new_image(image="example.png", x=100, y=100, size=5)
+    image = play.new_image(image="tests/objects_attributes/yellow.jpg", x=100, y=100, size=5)
 
     # With round() and max(1), dimensions should be at least 1
     assert image.width >= 1
     assert image.height >= 1
 
     # Test with larger size to verify rounding works correctly
-    image2 = play.new_image(image="example.png", x=100, y=100, size=50)
+    image2 = play.new_image(image="tests/objects_attributes/yellow.jpg", x=100, y=100, size=50)
 
     # Should have reasonable dimensions
     assert image2.width > 0
@@ -71,27 +71,33 @@ def test_keyboard_state_instance_isolation():
 
 def test_callback_validation_hasattr_check():
     """Test that callback validation checks hasattr before accessing is_running."""
-    from play.callback import is_valid_callback
+    from play.callback import callback_manager, CallbackType
 
     # Create a simple callable without is_running attribute
     def simple_callback():
         pass
 
-    # Should not raise AttributeError
-    result = is_valid_callback(simple_callback)
+    # This should not raise AttributeError when checking is_running
+    # The fix adds hasattr check before accessing is_running
+    callback_manager.add_callback(CallbackType.REPEAT_FOREVER, simple_callback)
 
-    # Should return True for a valid callable
-    assert result is True
+    # Run callbacks should work without errors
+    try:
+        callback_manager.run_callbacks(CallbackType.REPEAT_FOREVER)
+        success = True
+    except AttributeError:
+        success = False
 
-    # Test with a non-callable
-    result = is_valid_callback("not a function")
-    assert result is False
+    assert success, "Callback validation should not raise AttributeError"
+
+    # Clean up
+    callback_manager.remove_callbacks(CallbackType.REPEAT_FOREVER)
 
 
 def test_nan_validation_uses_isnan():
     """Test that NaN validation uses math.isnan() instead of string comparison."""
     import play
-    from play.core.sprites_loop import run_sprites_loop
+    from play.core.sprites_loop import update_sprites
 
     # Create a sprite with physics
     sprite = play.new_box(x=100, y=100)
@@ -102,13 +108,17 @@ def test_nan_validation_uses_isnan():
     # Set position to NaN
     sprite.physics._pymunk_body.position = (float("nan"), 100)
 
-    # The sprites_loop should handle NaN gracefully using math.isnan()
-    # This should not raise an exception
+    # The update_sprites function should handle NaN gracefully using math.isnan()
+    # This should not raise an exception and should skip updating the x position
+    import asyncio
     try:
-        run_sprites_loop()
+        asyncio.run(update_sprites(do_events=False))
+        success = True
     except Exception as e:
         # If it raises, it shouldn't be due to string comparison
-        assert "nan" not in str(e).lower() or "isnan" in str(e).lower()
+        success = "nan" not in str(e).lower() or "isnan" in str(e).lower()
+
+    assert success, "NaN validation should use math.isnan() not string comparison"
 
 
 def test_box_border_radius_in_clone():
