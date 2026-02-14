@@ -170,7 +170,9 @@ class CallbackManager:
             optional_args = []
 
         def is_valid_callback(cb):
-            if not callable(cb) or cb.is_running:
+            if not callable(cb):
+                return False
+            if hasattr(cb, "is_running") and cb.is_running:
                 return False
 
             if property_filter:

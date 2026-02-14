@@ -1,5 +1,6 @@
 """This module contains the Image class, which is a subclass of the Sprite class."""
 
+import math as _math
 import os
 import pygame
 
@@ -38,11 +39,12 @@ class Image(Sprite):
             draw_image = pygame.transform.scale(
                 self._source_image,
                 (
-                    self._original_width * self._size // 100,
-                    self._original_height * self._size // 100,
+                    max(round(self._original_width * self._size / 100), 1),
+                    max(round(self._original_height * self._size / 100), 1),
                 ),
             )
-            draw_image = pygame.transform.rotate(draw_image, self.angle)
+            angle_deg = -_math.degrees(self.physics._pymunk_body.angle)
+            draw_image = pygame.transform.rotate(draw_image, angle_deg)
             draw_image.set_alpha(round(self._transparency * 255 / 100))
 
             # Set the generated image as the sprite's current image
