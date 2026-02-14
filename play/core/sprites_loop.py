@@ -22,11 +22,11 @@ async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-br
         if sprite.physics and sprite.physics.can_move:
             body = sprite.physics._pymunk_body
             angle = _math.degrees(body.angle)
-            if (
-                str(body.position.x) != "nan"
+            if not _math.isnan(
+                body.position.x
             ):  # this condition can happen when changing sprite.physics.can_move
                 sprite._x = body.position.x
-            if str(body.position.y) != "nan":
+            if not _math.isnan(body.position.y):
                 sprite._y = body.position.y
 
             sprite.angle = angle

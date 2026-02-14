@@ -120,7 +120,7 @@ class Screen:
         async_callback = make_async(func)
 
         async def wrapper():
-            run_callback(
+            await run_callback(
                 async_callback,
                 [],
                 [],

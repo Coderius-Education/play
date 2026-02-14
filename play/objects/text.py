@@ -50,17 +50,13 @@ class Text(Sprite):
         """Update the text object."""
         if self._should_recompute:
             pos = convert_pos(self.x, self.y)
-            # Render text at scaled font size for better quality
+            self._image = self._pygame_font.render(
+                self._words, True, _color_name_to_rgb(self._color)
+            )
             if self._size != 100:
-                scaled_font_size = max(round(self._font_size * self._size / 100), 1)
-                scaled_font = pygame.font.Font(self._pygame_font, scaled_font_size)
-                self._image = scaled_font.render(
-                    self._words, True, _color_name_to_rgb(self._color)
-                )
-            else:
-                self._image = self._pygame_font.render(
-                    self._words, True, _color_name_to_rgb(self._color)
-                )
+                new_w = max(round(self._image.get_width() * self._size / 100), 1)
+                new_h = max(round(self._image.get_height() * self._size / 100), 1)
+                self._image = pygame.transform.scale(self._image, (new_w, new_h))
             self._image.set_alpha(round(self._transparency * 255 / 100))
             self.rect = self._image.get_rect()
             self.rect.topleft = (

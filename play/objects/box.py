@@ -176,5 +176,6 @@ class Box(Sprite):
             height=self.height,
             border_color=self.border_color,
             border_width=self.border_width,
+            border_radius=self.border_radius,
             **self._common_properties()
         )
