@@ -8,11 +8,16 @@ from ..callback.callback_helpers import run_any_async_callback
 from ..globals import globals_list
 from ..io.mouse import mouse
 
+# Track which sprite was clicked for when_click_released events
+_clicked_sprite_id = None
+
 
 async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-branches
     """Update all sprites in the game loop.
     :param do_events: If True, run events for sprites. If False, only update positions.
     """
+    global _clicked_sprite_id
+
     globals_list.sprites_group.update()
 
     for sprite in globals_list.sprites_group.sprites():
@@ -48,6 +53,17 @@ async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-br
         sprite._stopped_callback = {}
 
         #################################
+        # Track sprite clicks for when_click_released
+        #################################
+        if (
+            do_events
+            and mouse.is_touching(sprite)
+            and mouse_state.click_happened
+        ):
+            # Track which sprite was clicked for when_click_released
+            _clicked_sprite_id = id(sprite)
+
+        #################################
         # @sprite.when_clicked events
         #################################
         if (
@@ -68,11 +84,17 @@ async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-br
             do_events
             and mouse_state.click_release_happened
             and mouse.is_touching(sprite)
+            and _clicked_sprite_id == id(sprite)
         ):
             callback_manager.run_callbacks(
                 CallbackType.WHEN_CLICK_RELEASED_SPRITE,
                 callback_discriminator=id(sprite),
             )
+
+    # Clear the clicked sprite tracking after any release event
+    # Only clear when we're processing events (do_events=True), not in physics loop
+    if do_events and mouse_state.click_release_happened:
+        _clicked_sprite_id = None
 
     globals_list.sprites_group.update()
     globals_list.sprites_group.draw(globals_list.display)
