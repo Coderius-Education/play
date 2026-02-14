@@ -9,7 +9,7 @@ from ..globals import globals_list
 from ..io.mouse import mouse
 
 # Track which sprite was clicked for when_click_released events
-_clicked_sprite_id = None
+_clicked_sprite_id = None  # pylint: disable=invalid-name
 
 
 async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-branches
@@ -55,11 +55,7 @@ async def update_sprites(do_events: bool = True):  # pylint: disable=too-many-br
         #################################
         # Track sprite clicks for when_click_released
         #################################
-        if (
-            do_events
-            and mouse.is_touching(sprite)
-            and mouse_state.click_happened
-        ):
+        if do_events and mouse.is_touching(sprite) and mouse_state.click_happened:
             # Track which sprite was clicked for when_click_released
             _clicked_sprite_id = id(sprite)
 
