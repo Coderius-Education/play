@@ -315,12 +315,12 @@ You might want to look in your code where you're setting transparency and make s
             # x can either be a number or a sprite. If it's a sprite:
             x1 = x.x
             y1 = x.y
-        except AttributeError:
+        except AttributeError as exc:
             if y is None:
                 raise ValueError(
                     "distance_to() requires a y argument when x is a number, "
                     "or pass a sprite object as x."
-                )
+                ) from exc
             x1 = x
             y1 = y
 
