@@ -63,7 +63,7 @@ class Text(Sprite):
                 pos[0] - self.rect.width // 2,
                 pos[1] - self.rect.height // 2,
             )
-            super().update()
+        super().update()
 
     def clone(self):
         return self.__class__(

@@ -15,13 +15,12 @@ PYGAME_DISPLAY = None
 class Screen:
     def update_display(self, extra_flags=0):
         """Update the display with the current width and height."""
+        flags = pygame.DOUBLEBUF | extra_flags
+        if self._resizable:
+            flags |= pygame.RESIZABLE
         globals_list.display = pygame.display.set_mode(
             (self._width, self._height),
-            (
-                pygame.RESIZABLE
-                if self._resizable
-                else 0 | pygame.DOUBLEBUF | extra_flags
-            ),
+            flags,
         )
 
     def __init__(self, width=globals_list.WIDTH, height=globals_list.HEIGHT):
