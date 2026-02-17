@@ -11,19 +11,17 @@ class ControllerState:
 
     def __init__(self):
         self.buttons_pressed = defaultdict(set)
-        self.buttons_newly_pressed = defaultdict(set)
         self.buttons_released = defaultdict(set)
         self.axes_moved = defaultdict(list)
 
     def clear(self):
         """Clear the per-frame controller events for the next frame."""
-        self.buttons_newly_pressed.clear()
         self.buttons_released.clear()
         self.axes_moved.clear()
 
     def any(self):
         """Check if any controller event has occurred this frame."""
-        return self.buttons_newly_pressed or self.buttons_released or self.axes_moved
+        return self.buttons_pressed or self.buttons_released or self.axes_moved
 
 
 controller_state = ControllerState()
@@ -32,25 +30,24 @@ controller_state = ControllerState()
 def handle_controller_events(event):
     """Handle controller events in the game loop.
     :param event: The event to handle."""
-    if event.type == pygame.JOYAXISMOTION:  # pylint: disable=no-member
+    if event.type == pygame.JOYAXISMOTION:
         controller_state.axes_moved[event.instance_id].append(
             {"axis": event.axis, "value": round(event.value)}
         )
     if event.type == pygame.JOYBUTTONDOWN:  # pylint: disable=no-member
         controller_state.buttons_pressed[event.instance_id].add(event.button)
-        controller_state.buttons_newly_pressed[event.instance_id].add(event.button)
     if event.type == pygame.JOYBUTTONUP:
         controller_state.buttons_released[event.instance_id].add(event.button)
         controller_state.buttons_pressed[event.instance_id].discard(event.button)
 
 
-async def handle_controller():  # pylint: disable=too-many-branches
+async def handle_controller():
     """Handle controller events in the game loop."""
     ############################################################
     # @controller.when_button_pressed and @controller.when_any_button_pressed
     ############################################################
-    if controller_state.buttons_newly_pressed:
-        for controller_id, buttons in controller_state.buttons_newly_pressed.items():
+    if controller_state.buttons_pressed:
+        for controller_id, buttons in controller_state.buttons_pressed.items():
             await callback_manager.run_callbacks_with_filter(
                 callback_type=CallbackType.WHEN_CONTROLLER_BUTTON_PRESSED,
                 activated_states=buttons,

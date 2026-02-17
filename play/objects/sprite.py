@@ -85,8 +85,8 @@ class Sprite(
 
     def update(self):  # pylint: disable=too-many-branches
         """Update the sprite."""
-        if not self._should_recompute:
-            return
+        # Collision checks must run every frame, even if no properties changed,
+        # because another sprite may have moved into or away from this one.
 
         # Check if we are touching any other sprites
         for callback, shape_b in callback_manager.get_callback(
@@ -137,6 +137,9 @@ class Sprite(
                 del self._touching_callback[collision_key]
                 if callback.type == CallbackType.WHEN_STOPPED_TOUCHING_WALL:
                     self._stopped_callback[collision_key] = callback
+
+        if not self._should_recompute:
+            return
 
         if self._is_hidden:
             self._image = pygame.Surface((0, 0), pygame.SRCALPHA)

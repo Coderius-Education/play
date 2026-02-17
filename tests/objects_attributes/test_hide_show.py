@@ -1,8 +1,6 @@
 """Tests for hide() and show() methods, both inside and outside callbacks."""
 
 import pytest
-import pygame
-import pygame.surfarray as surfarray
 import sys
 
 sys.path.insert(0, ".")
@@ -10,6 +8,8 @@ sys.path.insert(0, ".")
 
 def get_pixel_at(x, y):
     """Get the RGB value at screen coordinates (x, y)."""
+    import pygame
+    import pygame.surfarray as surfarray
     from play.io.screen import screen
 
     the_surface = pygame.display.get_surface()
@@ -24,6 +24,8 @@ def get_pixel_at(x, y):
 
 def has_non_white_pixels_in_region(x, y, width, height):
     """Check if there are any non-white pixels in a region around (x, y)."""
+    import pygame
+    import pygame.surfarray as surfarray
     from play.io.screen import screen
 
     the_surface = pygame.display.get_surface()
@@ -304,6 +306,7 @@ def test_text_hide_show():
 
 def test_hide_in_when_clicked_callback():
     """Test hide() called inside a when_clicked callback using pygame events."""
+    import pygame
     import play
     from play.io.screen import screen
 
