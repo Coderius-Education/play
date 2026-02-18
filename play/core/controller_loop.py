@@ -15,12 +15,12 @@ class ControllerState:
         self.axes_moved = defaultdict(list)
 
     def clear(self):
-        """Clear the controller state for the next frame."""
+        """Clear the per-frame controller events for the next frame."""
         self.buttons_released.clear()
         self.axes_moved.clear()
 
     def any(self):
-        """Check if any controller event has occurred."""
+        """Check if any controller event has occurred this frame."""
         return self.buttons_pressed or self.buttons_released or self.axes_moved
 
 
@@ -30,7 +30,7 @@ controller_state = ControllerState()
 def handle_controller_events(event):
     """Handle controller events in the game loop.
     :param event: The event to handle."""
-    if event.type == pygame.JOYAXISMOTION:  # pylint: disable=no-member
+    if event.type == pygame.JOYAXISMOTION:
         controller_state.axes_moved[event.instance_id].append(
             {"axis": event.axis, "value": round(event.value)}
         )
@@ -38,11 +38,10 @@ def handle_controller_events(event):
         controller_state.buttons_pressed[event.instance_id].add(event.button)
     if event.type == pygame.JOYBUTTONUP:
         controller_state.buttons_released[event.instance_id].add(event.button)
-        if event.button in controller_state.buttons_pressed:
-            controller_state.buttons_pressed[event.instance_id].remove(event.button)
+        controller_state.buttons_pressed[event.instance_id].discard(event.button)
 
 
-async def handle_controller():  # pylint: disable=too-many-branches
+async def handle_controller():
     """Handle controller events in the game loop."""
     ############################################################
     # @controller.when_button_pressed and @controller.when_any_button_pressed

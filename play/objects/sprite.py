@@ -61,7 +61,7 @@ class Sprite(
         # ignore if it's in the ignored list or if the variable doesn't change
         if name not in _should_ignore_update and getattr(self, name, value) != value:
             self._should_recompute = True
-            for sprite in self._dependent_sprites:
+            for sprite in getattr(self, "_dependent_sprites", []):
                 sprite._should_recompute = True
         super().__setattr__(name, value)
 
@@ -85,8 +85,8 @@ class Sprite(
 
     def update(self):  # pylint: disable=too-many-branches
         """Update the sprite."""
-        if not self._should_recompute:
-            return
+        # Collision checks must run every frame, even if no properties changed,
+        # because another sprite may have moved into or away from this one.
 
         # Check if we are touching any other sprites
         for callback, shape_b in callback_manager.get_callback(
@@ -137,6 +137,9 @@ class Sprite(
                 del self._touching_callback[collision_key]
                 if callback.type == CallbackType.WHEN_STOPPED_TOUCHING_WALL:
                     self._stopped_callback[collision_key] = callback
+
+        if not self._should_recompute:
+            return
 
         if self._is_hidden:
             self._image = pygame.Surface((0, 0), pygame.SRCALPHA)
@@ -306,16 +309,21 @@ You might want to look in your code where you're setting transparency and make s
 
     def distance_to(self, x, y=None):
         """Calculate the distance to a point or sprite.
-        :param x: The x-coordinate of the point.
-        :param y: The y-coordinate of the point.
+        :param x: The x-coordinate of the point, or a sprite object.
+        :param y: The y-coordinate of the point (required when x is a number).
         :return: The distance to the point or sprite."""
-        assert not x is None
+        assert x is not None
 
         try:
             # x can either be a number or a sprite. If it's a sprite:
             x1 = x.x
             y1 = x.y
-        except AttributeError:
+        except AttributeError as exc:
+            if y is None:
+                raise ValueError(
+                    "distance_to() requires a y argument when x is a number, "
+                    "or pass a sprite object as x."
+                ) from exc
             x1 = x
             y1 = y
 
@@ -581,13 +589,9 @@ You might want to look in your code where you're setting transparency and make s
                 )
 
             for sprite in sprites:
-
-                async def wrapper_func():
-                    await wrapper()
-
                 sprite._dependent_sprites.append(self)
                 callback_manager.add_callback(
-                    CallbackType.WHEN_TOUCHING, (wrapper_func, sprite), id(self)
+                    CallbackType.WHEN_TOUCHING, (wrapper, sprite), id(self)
                 )
             return wrapper
 
@@ -620,13 +624,9 @@ You might want to look in your code where you're setting transparency and make s
                 )
 
             for sprite in sprites:
-
-                async def wrapper_func():
-                    await wrapper()
-
                 sprite._dependent_sprites.append(self)
                 callback_manager.add_callback(
-                    CallbackType.WHEN_STOPPED_TOUCHING, (wrapper_func, sprite), id(self)
+                    CallbackType.WHEN_STOPPED_TOUCHING, (wrapper, sprite), id(self)
                 )
             return wrapper
 

@@ -2,7 +2,6 @@
 
 import pytest
 import sys
-import pygame
 
 sys.path.insert(0, ".")
 
@@ -199,6 +198,7 @@ def test_keyboard_state_clear():
 
 def test_key_num_to_name():
     """Test converting pygame key event to name."""
+    import pygame
     from play.io.keypress import key_num_to_name
 
     # Create a fake key event
@@ -214,6 +214,7 @@ def test_key_num_to_name():
 
 def test_key_num_to_name_special_keys():
     """Test converting special keys to names."""
+    import pygame
     from play.io.keypress import key_num_to_name
 
     class FakeKeyEvent:

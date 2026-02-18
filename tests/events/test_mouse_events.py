@@ -2,7 +2,6 @@
 
 import pytest
 import sys
-import pygame
 
 sys.path.insert(0, ".")
 
@@ -120,6 +119,7 @@ def test_mouse_position_can_be_set():
 
 def test_mouse_event_simulation_click():
     """Test simulating mouse click event."""
+    import pygame
     import play
     from play.core.mouse_loop import handle_mouse_events, mouse_state
 
@@ -136,6 +136,7 @@ def test_mouse_event_simulation_click():
 
 def test_mouse_event_simulation_release():
     """Test simulating mouse click release event."""
+    import pygame
     import play
     from play.core.mouse_loop import handle_mouse_events, mouse_state
 
@@ -158,6 +159,7 @@ def test_mouse_event_simulation_release():
 
 def test_mouse_event_simulation_motion():
     """Test simulating mouse motion event."""
+    import pygame
     import play
     from play.core.mouse_loop import handle_mouse_events
     from play.io.screen import screen

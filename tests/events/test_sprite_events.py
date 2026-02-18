@@ -2,7 +2,6 @@
 
 import pytest
 import sys
-import pygame
 
 sys.path.insert(0, ".")
 
@@ -232,6 +231,8 @@ def test_sprite_when_click_released_call_with_sprite_false():
 
 def _post_mouse_motion(screen_x, screen_y):
     """Post a MOUSEMOTION event to position the mouse."""
+    import pygame
+
     motion = pygame.event.Event(
         pygame.MOUSEMOTION,
         {"pos": (screen_x, screen_y), "rel": (0, 0), "buttons": (0, 0, 0)},
@@ -241,6 +242,8 @@ def _post_mouse_motion(screen_x, screen_y):
 
 def _post_mouse_down(screen_x, screen_y):
     """Post a MOUSEBUTTONDOWN event."""
+    import pygame
+
     click = pygame.event.Event(
         pygame.MOUSEBUTTONDOWN, {"pos": (screen_x, screen_y), "button": 1}
     )
@@ -249,6 +252,8 @@ def _post_mouse_down(screen_x, screen_y):
 
 def _post_mouse_up(screen_x, screen_y):
     """Post a MOUSEBUTTONUP event."""
+    import pygame
+
     release = pygame.event.Event(
         pygame.MOUSEBUTTONUP, {"pos": (screen_x, screen_y), "button": 1}
     )
