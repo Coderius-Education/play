@@ -24,13 +24,13 @@ mouse_state = MouseState()
 
 def handle_mouse_events(event):
     """Handle mouse events and update the mouse state."""
-    if event.type == pygame.MOUSEBUTTONDOWN:  # pylint: disable=no-member
+    if event.type == pygame.MOUSEBUTTONDOWN:
         mouse_state.click_happened = True
         mouse._is_clicked = True
-    if event.type == pygame.MOUSEBUTTONUP:  # pylint: disable=no-member
+    if event.type == pygame.MOUSEBUTTONUP:
         mouse_state.click_release_happened = True
         mouse._is_clicked = False
-    if event.type == pygame.MOUSEMOTION:  # pylint: disable=no-member
+    if event.type == pygame.MOUSEMOTION:
         mouse.x, mouse.y = (event.pos[0] - screen.width / 2.0), (
             screen.height / 2.0 - event.pos[1]
         )

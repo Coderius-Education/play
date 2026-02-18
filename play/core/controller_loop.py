@@ -34,7 +34,7 @@ def handle_controller_events(event):
         controller_state.axes_moved[event.instance_id].append(
             {"axis": event.axis, "value": round(event.value)}
         )
-    if event.type == pygame.JOYBUTTONDOWN:  # pylint: disable=no-member
+    if event.type == pygame.JOYBUTTONDOWN:
         controller_state.buttons_pressed[event.instance_id].add(event.button)
     if event.type == pygame.JOYBUTTONUP:
         controller_state.buttons_released[event.instance_id].add(event.button)
