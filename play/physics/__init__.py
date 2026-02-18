@@ -1,6 +1,7 @@
 """This handles the physics of the game."""
 
 import math as _math
+from dataclasses import dataclass
 
 import pymunk as _pymunk
 
@@ -11,7 +12,7 @@ from ..utils import clamp as _clamp
 
 class Physics:
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(
         self,
         sprite,
         can_move,
@@ -55,7 +56,28 @@ class Physics:
 
         self._make_pymunk()
 
-    def _make_pymunk(self):  # pylint: disable=too-many-branches
+    def _compute_effective_dims(self, is_circle, size_factor):
+        """Return (effective_radius, effective_w, effective_h) for the sprite."""
+        if is_circle:
+            return self.sprite._radius * size_factor, 0.0, 0.0
+        if self.sprite.__class__.__name__ == "Box":
+            return (
+                0.0,
+                self.sprite._width * size_factor,
+                self.sprite._height * size_factor,
+            )
+        return 0.0, self.sprite.width, self.sprite.height
+
+    def _compute_body_type(self):
+        """Determine the pymunk body type based on movement and stability properties."""
+        if not self.can_move:
+            return _pymunk.Body.STATIC
+        # Special case: moving platforms that don't obey gravity in a gravity world
+        if self.stable and not self.obeys_gravity and physics_space.gravity != (0, 0):
+            return _pymunk.Body.KINEMATIC
+        return _pymunk.Body.DYNAMIC
+
+    def _make_pymunk(self):
         # Save collision attributes so the collision registry stays valid
         prev_shape = getattr(self, "_pymunk_shape", None)
         collision_type = (
@@ -68,14 +90,9 @@ class Physics:
         is_circle = self.sprite.__class__.__name__ == "Circle"
 
         # Compute effective dimensions with size scaling for Box and Circle
-        if is_circle:
-            effective_radius = self.sprite._radius * size_factor
-        elif self.sprite.__class__.__name__ == "Box":
-            effective_w = self.sprite._width * size_factor
-            effective_h = self.sprite._height * size_factor
-        else:
-            effective_w = self.sprite.width
-            effective_h = self.sprite.height
+        effective_radius, effective_w, effective_h = self._compute_effective_dims(
+            is_circle, size_factor
+        )
 
         if self.stable:
             moment = float("inf")
@@ -84,14 +101,7 @@ class Physics:
         else:
             moment = _pymunk.moment_for_box(mass, (effective_w, effective_h))
 
-        # Determine body type based on movement and stability properties
-        if not self.can_move:
-            body_type = _pymunk.Body.STATIC
-        elif self.stable and not self.obeys_gravity and physics_space.gravity != (0, 0):
-            # Special case: moving platforms that don't obey gravity in a gravity world
-            body_type = _pymunk.Body.KINEMATIC
-        else:
-            body_type = _pymunk.Body.DYNAMIC
+        body_type = self._compute_body_type()
 
         self._pymunk_body = _pymunk.Body(mass, moment, body_type=body_type)
         self._pymunk_body.position = self.sprite.x, self.sprite.y
@@ -254,13 +264,12 @@ class Physics:
             self._pymunk_body.velocity_func = lambda body, gravity, damping, dt: None
 
 
-class _Gravity:  # pylint: disable=too-few-public-methods
-    """
-    The gravity of the game.
-    """
+@dataclass
+class _Gravity:
+    """The gravity of the game."""
 
-    vertical = -100
-    horizontal = 0
+    vertical: int = -100
+    horizontal: int = 0
 
 
 globals_list.gravity = _Gravity()

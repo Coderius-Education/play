@@ -1,26 +1,29 @@
 """Global variables for the game"""
 
+from dataclasses import dataclass, field
+
 import pygame
 
 
-class Globals:  # pylint: disable=too-few-public-methods
-    all_sprites = []
-    sprites_group = pygame.sprite.Group()
+@dataclass
+class Globals:
+    all_sprites: list = field(default_factory=list)
+    sprites_group: pygame.sprite.Group = field(default_factory=pygame.sprite.Group)
 
-    walls = []
+    walls: list = field(default_factory=list)
 
-    backdrop_type = "color"  # color or image
-    backdrop = (255, 255, 255)
+    backdrop_type: str = "color"  # color or image
+    backdrop: tuple = (255, 255, 255)
 
-    FRAME_RATE = 60
-    WIDTH = 800
-    HEIGHT = 600
+    frame_rate: int = 60
+    width: int = 800
+    height: int = 600
 
-    gravity = None
-    num_sim_steps = 10
+    gravity: object = None
+    num_sim_steps: int = 10
 
-    display = None  # This will be set in the screen module
-    controllers = []
+    display: object = None  # This will be set in the screen module
+    controllers: list = field(default_factory=list)
 
 
 globals_list = Globals()

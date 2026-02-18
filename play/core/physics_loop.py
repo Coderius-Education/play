@@ -11,6 +11,6 @@ async def simulate_physics():
     """
     # more steps means more accurate simulation but more processing time
     for _ in range(globals_list.num_sim_steps):
-        physics_space.step(1 / (globals_list.FRAME_RATE * globals_list.num_sim_steps))
+        physics_space.step(1 / (globals_list.frame_rate * globals_list.num_sim_steps))
         if not _ == globals_list.num_sim_steps - 1:
             await update_sprites(False)
