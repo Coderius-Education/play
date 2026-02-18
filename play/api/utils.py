@@ -4,7 +4,7 @@ import atexit as _atexit
 import asyncio as _asyncio
 import logging as _logging
 
-import pygame  # pylint: disable=import-error
+import pygame
 
 from ..callback import callback_manager, CallbackType
 from ..core import game_loop as _game_loop
@@ -42,7 +42,7 @@ def start_program():
     finally:
         logger = _logging.getLogger("asyncio")
         logger.setLevel(_logging.CRITICAL)
-        pygame.quit()  # pylint: disable=no-member
+        pygame.quit()
 
 
 def stop_program():
@@ -53,7 +53,7 @@ def stop_program():
     """
     _loop.stop()
     pygame.display.quit()
-    pygame.quit()  # pylint: disable=no-member
+    pygame.quit()
 
 
 async def animate():

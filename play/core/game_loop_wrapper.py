@@ -21,9 +21,7 @@ def listen_to_failure():
                 return result
             except Exception as e:
                 _loop.stop()
-                play_logger.critical(  # pylint: disable=logging-fstring-interpolation
-                    f"Error in {f.__name__}: {e}"
-                )
+                play_logger.critical("Error in %s: %s", f.__name__, e)
                 raise e
 
         return applicator
