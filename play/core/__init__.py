@@ -57,7 +57,7 @@ async def game_loop():
     mouse_state.clear()
     controller_state.clear()
 
-    _clock.tick(globals_list.FRAME_RATE)
+    _clock.tick(globals_list.frame_rate)
 
     if not _handle_pygame_events():
         return

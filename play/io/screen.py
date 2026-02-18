@@ -23,7 +23,7 @@ class Screen:
             flags,
         )
 
-    def __init__(self, width=globals_list.WIDTH, height=globals_list.HEIGHT):
+    def __init__(self, width=globals_list.width, height=globals_list.height):
         self._width = width
         self._height = height
 

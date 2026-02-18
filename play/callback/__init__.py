@@ -146,14 +146,14 @@ class CallbackManager:
                 if is_valid_callback(callback):
                     run_callback(callback, [], [], *args, **kwargs)
 
-    async def run_callbacks_with_filter(  # pylint: disable=keyword-arg-before-vararg,dangerous-default-value,too-many-branches
+    async def run_callbacks_with_filter(
         self,
         callback_type,
         activated_states,
         *args,
         required_args=None,
         optional_args=None,
-        property_filter={},
+        property_filter=None,
     ):
         """
         Run callbacks of a certain type with a specific discriminator.
@@ -168,6 +168,8 @@ class CallbackManager:
             required_args = []
         if optional_args is None:
             optional_args = []
+        if property_filter is None:
+            property_filter = {}
 
         def is_valid_callback(cb):
             if not callable(cb):
@@ -187,28 +189,19 @@ class CallbackManager:
 
         subscriptions = self.get_callbacks(callback_type)
         for state in activated_states:
-            if state in subscriptions:
-                for callback in subscriptions[state]:
-                    if not is_valid_callback(callback):
-                        continue
-
+            for callback in subscriptions.get(state, []):
+                if is_valid_callback(callback):
                     await run_async_callback(
                         callback, required_args, optional_args, state, *args
                     )
-            if "any" in subscriptions:
-                for callback in subscriptions["any"]:
-                    if not is_valid_callback(callback):
-                        continue
-
+            for callback in subscriptions.get("any", []):
+                if is_valid_callback(callback):
                     await run_async_callback(
                         callback, required_args, optional_args, state, *args
                     )
         all_hash = hash(frozenset(activated_states))
-        if all_hash in subscriptions:
-            for callback in subscriptions[all_hash]:
-                if not is_valid_callback(callback):
-                    continue
-
+        for callback in subscriptions.get(all_hash, []):
+            if is_valid_callback(callback):
                 await run_async_callback(
                     callback,
                     required_args,

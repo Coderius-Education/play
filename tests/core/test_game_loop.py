@@ -190,7 +190,7 @@ def test_frame_rate_setting():
 
     @play.when_program_starts
     def check():
-        result.append(globals_list.FRAME_RATE)
+        result.append(globals_list.frame_rate)
         play.stop_program()
 
     play.start_program()
