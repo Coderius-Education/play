@@ -242,9 +242,7 @@ class TestHandleSpriteClickReleased:
     @patch("play.core.sprites_loop.callback_manager")
     @patch("play.core.sprites_loop.mouse_state")
     @patch("play.core.sprites_loop.mouse")
-    def test_no_release_when_no_release_happened(
-        self, mock_mouse, mock_state, mock_cb
-    ):
+    def test_no_release_when_no_release_happened(self, mock_mouse, mock_state, mock_cb):
         sprites_loop, _, _, _, handle_sprite_click_released, _ = _import_sprites_loop()
         sprite = MagicMock()
         sprites_loop._clicked_sprite_id = id(sprite)
