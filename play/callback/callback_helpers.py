@@ -5,7 +5,7 @@ This module contains helper functions for running callback functions.
 import asyncio as _asyncio
 import inspect
 
-from ..loop import loop as _loop
+from ..loop import get_loop as _get_loop
 
 
 def run_callback(callback, required_args, optional_args, *args, **kwargs):
@@ -28,7 +28,7 @@ def run_callback(callback, required_args, optional_args, *args, **kwargs):
         <= len(required_args) + len(optional_args)
     ):
         callback_args = args[: len(actual_args)]
-        _loop.create_task(callback(*callback_args, **kwargs))
+        _get_loop().create_task(callback(*callback_args, **kwargs))
     else:
         if len(required_args) == 0:
             raise ValueError(
