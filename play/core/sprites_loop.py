@@ -26,7 +26,8 @@ def update_sprite_physics(sprite):
     if not _math.isnan(body.position.y):
         sprite._y = body.position.y
 
-    sprite.angle = angle
+    if not _math.isnan(angle):
+        sprite.angle = angle
     sprite.physics._x_speed, sprite.physics._y_speed = body.velocity
 
 
