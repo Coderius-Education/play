@@ -5,7 +5,7 @@ This module contains a decorator that listens to exceptions in the game loop.
 import asyncio
 
 from ..io.logging import play_logger
-from ..loop import loop as _loop
+from ..loop import get_loop as _get_loop
 
 
 # @decorator
@@ -20,7 +20,7 @@ def listen_to_failure():
                     return await result
                 return result
             except Exception as e:
-                _loop.stop()
+                _get_loop().stop()
                 play_logger.critical("Error in %s: %s", f.__name__, e)
                 raise e
 

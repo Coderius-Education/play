@@ -22,7 +22,7 @@ from .sprites_loop import update_sprites as _update_sprites
 from ..callback import callback_manager, CallbackType
 from ..globals import globals_list
 from ..io.screen import screen
-from ..loop import loop as _loop
+from ..loop import get_loop as _get_loop
 from ..io.keypress import keyboard_state
 
 _clock = pygame.time.Clock()
@@ -40,7 +40,7 @@ def _handle_pygame_events():
             )
         ):
             # quitting by clicking window's close button or pressing ctrl+q / command+q
-            _loop.stop()
+            _get_loop().stop()
             return False
 
         _handle_keyboard_events(event)
@@ -93,4 +93,4 @@ async def game_loop():
     await _update_sprites()
 
     pygame.display.flip()
-    _loop.create_task(game_loop())
+    _get_loop().create_task(game_loop())

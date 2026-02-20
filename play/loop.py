@@ -1,9 +1,13 @@
 """This module is used to create a global event loop for the application."""
 
+import os
 import sys
 import asyncio
 import traceback
 from .io.logging import play_logger
+
+_loop = None  # pylint: disable=invalid-name
+_creator_pid = None  # pylint: disable=invalid-name
 
 
 def _handle_exception(the_loop, context):
@@ -25,14 +29,23 @@ def _handle_exception(the_loop, context):
     the_loop.stop()
 
 
-# Python 3.14+ changed asyncio.get_event_loop() behavior
-# It no longer automatically creates a new event loop if one doesn't exist
-if sys.version_info >= (3, 14):
-    asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-else:
-    loop = asyncio.get_event_loop()
+def get_loop():
+    """Get or create the global event loop.
 
-loop.set_debug(False)
-loop.set_exception_handler(_handle_exception)
+    Creates a new loop on first call and after a fork (detected via pid change).
+    This ensures module-level imports of play don't break forked processes
+    (e.g. pytest --forked).
+    """
+    global _loop, _creator_pid
+
+    pid = os.getpid()
+    if _loop is None or _creator_pid != pid:
+        if sys.version_info >= (3, 14):
+            asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+        _loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_loop)
+        _loop.set_debug(False)
+        _loop.set_exception_handler(_handle_exception)
+        _creator_pid = pid
+
+    return _loop

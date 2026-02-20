@@ -2,9 +2,6 @@
 
 import asyncio
 import pytest
-import sys
-
-sys.path.insert(0, ".")
 
 
 def test_listen_to_failure_sync_function_returns_value():
@@ -68,7 +65,9 @@ def test_listen_to_failure_async_exception_is_raised():
 def test_listen_to_failure_stops_loop_on_exception():
     """Test that the event loop is stopped when an exception occurs."""
     from play.core.game_loop_wrapper import listen_to_failure
-    from play.loop import loop as _loop
+    from play.loop import get_loop
+
+    _loop = get_loop()
 
     stopped = [False]
     original_stop = _loop.stop

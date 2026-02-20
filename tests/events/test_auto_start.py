@@ -1,9 +1,6 @@
 """Tests for automatic start_program() when user forgets to call it."""
 
 import pytest
-import sys
-
-sys.path.insert(0, ".")
 
 
 def test_program_started_flag_initially_false():
@@ -58,17 +55,25 @@ def test_auto_start_does_nothing_when_already_started():
 
 
 def test_auto_start_calls_start_program_when_not_started():
-    """Test that _auto_start_program calls start_program if not started."""
+    """Test that _auto_start_program calls start_program if not started and callbacks exist."""
     from play.api import utils
+    from play.callback import callback_manager, CallbackType
     from unittest.mock import patch
 
     # Ensure flag is False
     utils._program_started = False
+
+    # Register a dummy callback so _auto_start_program will trigger
+    async def dummy():
+        pass
+
+    callback_manager.add_callback(CallbackType.WHEN_PROGRAM_START, dummy)
 
     # Mock start_program to verify it's called
     with patch.object(utils, "start_program") as mock_start:
         utils._auto_start_program()
         mock_start.assert_called_once()
 
-    # Reset for other tests
+    # Cleanup
+    callback_manager.remove_callbacks(CallbackType.WHEN_PROGRAM_START)
     utils._program_started = False

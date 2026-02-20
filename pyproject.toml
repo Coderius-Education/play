@@ -1,3 +1,6 @@
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
 [tool.pylint.MASTER]
 max-line-length = 120
 disable = ["too-many-arguments", "too-many-positional-arguments","c-extension-no-member", "no-member", "import-error", "missing-class-docstring", "duplicate-code", "protected-access", "global-statement","too-many-instance-attributes", "fixme"]
