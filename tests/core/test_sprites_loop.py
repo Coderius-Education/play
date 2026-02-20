@@ -65,6 +65,12 @@ class TestUpdateSpritePhysics:
         assert sprite._x == 10.0
         assert sprite._y == 99.0  # unchanged
 
+    def test_ignores_nan_angle(self):
+        sprite = _make_sprite(angle=float("nan"))
+        sprite.angle = 99.0
+        update_sprite_physics(sprite)
+        assert sprite.angle == 99.0  # unchanged
+
 
 class TestRunSpriteCallbacks:
     def test_runs_touching_and_stopped_callbacks(self):

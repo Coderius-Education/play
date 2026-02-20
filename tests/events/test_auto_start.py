@@ -1,9 +1,6 @@
 """Tests for automatic start_program() when user forgets to call it."""
 
 import pytest
-import sys
-
-sys.path.insert(0, ".")
 
 
 def test_program_started_flag_initially_false():

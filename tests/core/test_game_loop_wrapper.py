@@ -2,9 +2,6 @@
 
 import asyncio
 import pytest
-import sys
-
-sys.path.insert(0, ".")
 
 
 def test_listen_to_failure_sync_function_returns_value():
