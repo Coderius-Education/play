@@ -86,10 +86,12 @@ class TestRunSpriteCallbacks:
         ) as mock_run:
             asyncio.run(run_sprite_callbacks(sprite))
             assert mock_run.call_count == 2
-            mock_run.assert_has_calls([
-                call([touching_cb], [], []),
-                call([stopped_cb], [], []),
-            ])
+            mock_run.assert_has_calls(
+                [
+                    call([touching_cb], [], []),
+                    call([stopped_cb], [], []),
+                ]
+            )
 
     def test_clears_stopped_callbacks(self):
         sprite = MagicMock()
