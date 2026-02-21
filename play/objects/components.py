@@ -66,6 +66,7 @@ class EventComponent:
     def when_touching(self, *sprites_to_check):
         """Register a callback for when the sprite is touching another sprite.
         :param sprites_to_check: Sprites to check for collision."""
+
         def decorator(func):
             async_callback = make_async(func)
 
@@ -88,11 +89,13 @@ class EventComponent:
                     CallbackType.WHEN_TOUCHING, (wrapper, target), id(self._sprite)
                 )
             return wrapper
+
         return decorator
 
     def when_stopped_touching(self, *sprites_to_check):
         """Register a callback for when the sprite is no longer touching another sprite.
         :param sprites_to_check: Sprites to check for collision separation."""
+
         def decorator(func):
             async_callback = make_async(func)
 
@@ -113,24 +116,32 @@ class EventComponent:
             for target in sprites_to_check:
                 target.events._dependent_sprites.append(self._sprite)
                 callback_manager.add_callback(
-                    CallbackType.WHEN_STOPPED_TOUCHING, (wrapper, target), id(self._sprite)
+                    CallbackType.WHEN_STOPPED_TOUCHING,
+                    (wrapper, target),
+                    id(self._sprite),
                 )
             return wrapper
+
         return decorator
 
     def when_touching_wall(self, callback=None, *, wall=None):
         """Register a callback for when the sprite touches a wall scenario.
         :param callback: Callback to run.
         :param wall: Optional specific wall or list of walls to check."""
+
         def decorator(func):
             async_callback = make_async(func)
 
             if wall is None:
                 walls_to_register = globals_list.walls
             elif isinstance(wall, WallSide):
-                walls_to_register = [w for w in globals_list.walls if w.wall_side == wall]
+                walls_to_register = [
+                    w for w in globals_list.walls if w.wall_side == wall
+                ]
             else:
-                walls_to_register = [w for w in globals_list.walls if w.wall_side in wall]
+                walls_to_register = [
+                    w for w in globals_list.walls if w.wall_side in wall
+                ]
 
             for wall_segment in walls_to_register:
                 wall_side = wall_segment.wall_side
@@ -138,6 +149,7 @@ class EventComponent:
                 def make_wrapper(ws):
                     async def wrapper():
                         await run_async_callback(async_callback, [], ["wall"], ws)
+
                     return wrapper
 
                 wrapper = make_wrapper(wall_side)
@@ -153,7 +165,9 @@ class EventComponent:
 
                 wrapper.wall_filter = wall
                 callback_manager.add_callback(
-                    CallbackType.WHEN_TOUCHING_WALL, (wrapper, wall_side), id(self._sprite)
+                    CallbackType.WHEN_TOUCHING_WALL,
+                    (wrapper, wall_side),
+                    id(self._sprite),
                 )
             return func
 
@@ -165,15 +179,20 @@ class EventComponent:
         """Register a callback for when the sprite is no longer touching a wall.
         :param callback: Callback to run.
         :param wall: Optional specific wall or list of walls to check."""
+
         def decorator(func):
             async_callback = make_async(func)
 
             if wall is None:
                 walls_to_register = globals_list.walls
             elif isinstance(wall, WallSide):
-                walls_to_register = [w for w in globals_list.walls if w.wall_side == wall]
+                walls_to_register = [
+                    w for w in globals_list.walls if w.wall_side == wall
+                ]
             else:
-                walls_to_register = [w for w in globals_list.walls if w.wall_side in wall]
+                walls_to_register = [
+                    w for w in globals_list.walls if w.wall_side in wall
+                ]
 
             for wall_segment in walls_to_register:
                 wall_side = wall_segment.wall_side
@@ -181,6 +200,7 @@ class EventComponent:
                 def make_wrapper(ws):
                     async def wrapper():
                         await run_async_callback(async_callback, [], ["wall"], ws)
+
                     return wrapper
 
                 wrapper = make_wrapper(wall_side)
@@ -197,7 +217,9 @@ class EventComponent:
 
                 wrapper.wall_filter = wall
                 callback_manager.add_callback(
-                    CallbackType.WHEN_STOPPED_TOUCHING_WALL, (wrapper, wall_side), id(self._sprite)
+                    CallbackType.WHEN_STOPPED_TOUCHING_WALL,
+                    (wrapper, wall_side),
+                    id(self._sprite),
                 )
             return func
 
@@ -237,7 +259,8 @@ class EventComponent:
         touching_walls = sprite.get_touching_walls()
 
         for callback_data in callback_manager.get_callback(
-            [CallbackType.WHEN_TOUCHING_WALL, CallbackType.WHEN_STOPPED_TOUCHING_WALL], id(sprite)
+            [CallbackType.WHEN_TOUCHING_WALL, CallbackType.WHEN_STOPPED_TOUCHING_WALL],
+            id(sprite),
         ):
             callback, wall_side = callback_data
             collision_key = (CollisionType.WALL, wall_side)
