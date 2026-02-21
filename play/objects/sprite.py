@@ -792,20 +792,20 @@ You might want to look in your code where you're setting transparency and make s
         return saved_callbacks
 
     @staticmethod
-    def _cleanup_collision_registry(collision_type_id):
+    def _cleanup_collision_registry(collision_type):
         """Remove all collision_registry entries for a given collision type.
 
         Cleans up both begin/separate callback dicts and the shape_registry.
         """
-        if collision_type_id is None:
+        if collision_type is None:
             return
         for begin in [True, False]:
-            collision_registry.callbacks[begin].pop(collision_type_id, None)
+            collision_registry.callbacks[begin].pop(collision_type, None)
             for shape_ct in list(collision_registry.callbacks[begin]):
                 collision_registry.callbacks[begin][shape_ct].pop(
-                    collision_type_id, None
+                    collision_type, None
                 )
-        collision_registry.shape_registry.pop(collision_type_id, None)
+        collision_registry.shape_registry.pop(collision_type, None)
 
     def _reregister_own_callbacks(self, saved_callbacks):
         """Re-register this sprite's own callbacks after physics recreation."""
@@ -845,10 +845,10 @@ You might want to look in your code where you're setting transparency and make s
                 continue
             for callback_type in sprite_callback_types:
                 callback_manager.remove_callbacks(callback_type, dep_id)
-            dep_shape_ct = getattr(
+            dep_collision_type = getattr(
                 dependent.physics._pymunk_shape, "collision_type", None
             )
-            self._cleanup_collision_registry(dep_shape_ct)
+            self._cleanup_collision_registry(dep_collision_type)
             for cb, sprite in dep_saved[CallbackType.WHEN_TOUCHING]:
                 dependent.when_touching(sprite)(cb)
             for cb, sprite in dep_saved[CallbackType.WHEN_STOPPED_TOUCHING]:
