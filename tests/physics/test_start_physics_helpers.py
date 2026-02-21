@@ -72,8 +72,8 @@ def test_save_and_clear_callbacks_empty_when_no_callbacks():
 
     saved = ball._save_and_clear_callbacks()
 
-    for ctype in saved:
-        assert len(saved[ctype]) == 0
+    for callback_type in saved:
+        assert len(saved[callback_type]) == 0
 
     play.stop_program()
 

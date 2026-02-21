@@ -782,11 +782,13 @@ You might want to look in your code where you're setting transparency and make s
             CallbackType.WHEN_STOPPED_TOUCHING_WALL,
         ]
         saved_callbacks = {
-            ctype: list(callback_manager.get_callback(ctype, sprite_id) or [])
-            for ctype in callback_types
+            callback_type: list(
+                callback_manager.get_callback(callback_type, sprite_id) or []
+            )
+            for callback_type in callback_types
         }
-        for ctype in callback_types:
-            callback_manager.remove_callbacks(ctype, sprite_id)
+        for callback_type in callback_types:
+            callback_manager.remove_callbacks(callback_type, sprite_id)
         return saved_callbacks
 
     @staticmethod
@@ -833,14 +835,16 @@ You might want to look in your code where you're setting transparency and make s
                 continue
             dep_id = id(dependent)
             dep_saved = {
-                ctype: list(callback_manager.get_callback(ctype, dep_id) or [])
-                for ctype in sprite_callback_types
+                callback_type: list(
+                    callback_manager.get_callback(callback_type, dep_id) or []
+                )
+                for callback_type in sprite_callback_types
             }
             has_refs = any(s is self for cbs in dep_saved.values() for _, s in cbs)
             if not has_refs:
                 continue
-            for ctype in sprite_callback_types:
-                callback_manager.remove_callbacks(ctype, dep_id)
+            for callback_type in sprite_callback_types:
+                callback_manager.remove_callbacks(callback_type, dep_id)
             dep_shape_ct = getattr(
                 dependent.physics._pymunk_shape, "collision_type", None
             )
