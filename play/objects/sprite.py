@@ -31,9 +31,7 @@ _should_ignore_update = [
 ]
 
 
-class Sprite(
-    pygame.sprite.Sprite
-):  # pylint: disable=attribute-defined-outside-init, too-many-public-methods
+class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def __init__(self, image=None):
         self._size = None
         self._x = None
