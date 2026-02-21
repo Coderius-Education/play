@@ -769,12 +769,12 @@ You might want to look in your code where you're setting transparency and make s
         :return: The cloned sprite."""
         return self.__class__(image=self.image)
 
-    @staticmethod
-    def _save_and_clear_callbacks(sprite_id):
+    def _save_and_clear_callbacks(self):
         """Save all physics-related callbacks for a sprite and clear them.
 
         Returns a dict mapping each CallbackType to a list of saved callbacks.
         """
+        sprite_id = id(self)
         callback_types = [
             CallbackType.WHEN_TOUCHING,
             CallbackType.WHEN_TOUCHING_WALL,
@@ -871,7 +871,7 @@ You might want to look in your code where you're setting transparency and make s
         :param mass: The mass of the object.
         :param friction: The friction of the object.
         """
-        saved_callbacks = self._save_and_clear_callbacks(id(self))
+        saved_callbacks = self._save_and_clear_callbacks()
 
         old_shape_ct = None
         if self.physics and hasattr(self.physics._pymunk_shape, "collision_type"):
