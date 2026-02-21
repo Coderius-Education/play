@@ -279,14 +279,16 @@ def test_reregister_dependent_callbacks_refreshes_when_stopped_touching():
         pass
 
     count_before = len(
-        callback_manager.get_callback(CallbackType.WHEN_STOPPED_TOUCHING, id(ball)) or []
+        callback_manager.get_callback(CallbackType.WHEN_STOPPED_TOUCHING, id(ball))
+        or []
     )
 
     # Call start_physics on the target sprite to trigger _reregister_dependent_callbacks
     target.start_physics(obeys_gravity=False, can_move=False)
 
     count_after = len(
-        callback_manager.get_callback(CallbackType.WHEN_STOPPED_TOUCHING, id(ball)) or []
+        callback_manager.get_callback(CallbackType.WHEN_STOPPED_TOUCHING, id(ball))
+        or []
     )
 
     assert count_before == count_after
