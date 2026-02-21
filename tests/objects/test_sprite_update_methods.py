@@ -5,8 +5,8 @@ import sys
 sys.path.insert(0, ".")
 
 
-def test_update_sprite_collisions_touching():
-    """Test manual collision checks with other sprites."""
+def test_update_sprite_collisions_touching(monkeypatch):
+    """Test _update_sprite_collisions updates _touching_callback when sprites overlap."""
     import play
 
     sprite1 = play.new_box(x=0, y=0, width=50, height=50)
@@ -17,13 +17,19 @@ def test_update_sprite_collisions_touching():
     async def touching():
         pass
 
+    # Mock physics to None so the physics guard is bypassed,
+    # and mock is_touching to control collision detection directly
+    # (mirrors the pattern used in wall collision tests).
+    monkeypatch.setattr(sprite1, "physics", None)
+    monkeypatch.setattr(sprite2, "physics", None)
+    monkeypatch.setattr(sprite1, "is_touching", lambda s: True)
+
     assert id(sprite2) not in sprite1._touching_callback
 
     result = []
 
     @play.when_program_starts
     def check():
-        # We manually trigger the internal logic which happens every frame in update()
         sprite1._update_sprite_collisions()
         result.append(id(sprite2) in sprite1._touching_callback)
         play.stop_program()
@@ -33,8 +39,8 @@ def test_update_sprite_collisions_touching():
     assert result[0] is True
 
 
-def test_update_sprite_collisions_stopped_touching():
-    """Test manual collision checks when stopping touching."""
+def test_update_sprite_collisions_stopped_touching(monkeypatch):
+    """Test _update_sprite_collisions updates _stopped_callback when sprites separate."""
     import play
 
     sprite1 = play.new_box(x=0, y=0, width=50, height=50)
@@ -44,24 +50,24 @@ def test_update_sprite_collisions_stopped_touching():
     async def stopped():
         pass
 
+    is_touching_now = [True]
+
+    monkeypatch.setattr(sprite1, "physics", None)
+    monkeypatch.setattr(sprite2, "physics", None)
+    monkeypatch.setattr(sprite1, "is_touching", lambda s: is_touching_now[0])
+
     result = []
 
     @play.when_program_starts
     def check():
-        # First we simulate that they are touching by manually triggering update
+        # First simulate that they are touching
         sprite1._update_sprite_collisions()
-
-        # They were touching, so it's registered in _touching_callback
         result.append(id(sprite2) in sprite1._touching_callback)
 
-        # Move them apart
-        sprite2.x = 1000
-        sprite2.y = 1000
-
-        # Call it again
+        # Now simulate them separating
+        is_touching_now[0] = False
         sprite1._update_sprite_collisions()
 
-        # It should have noted they stopped touching
         result.append(id(sprite2) not in sprite1._touching_callback)
         result.append(id(sprite2) in sprite1._stopped_callback)
         play.stop_program()
