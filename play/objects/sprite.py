@@ -14,6 +14,7 @@ from ..io.screen import screen
 from ..physics import physics_space, Physics as _Physics
 from ..utils import clamp as _clamp, is_called_from_pygame
 from ..utils.async_helpers import make_async
+from .components import EventComponent
 
 
 def point_touching_sprite(point, sprite):
@@ -42,9 +43,7 @@ class Sprite(
         self._angle = None
         self._transparency = None
 
-        self._dependent_sprites = []
-        self._touching_callback = {}
-        self._stopped_callback = {}
+        self.events = EventComponent(self)
 
         self._image = image
         self.physics = None
@@ -61,8 +60,9 @@ class Sprite(
         # ignore if it's in the ignored list or if the variable doesn't change
         if name not in _should_ignore_update and getattr(self, name, value) != value:
             self._should_recompute = True
-            for sprite in getattr(self, "_dependent_sprites", []):
-                sprite._should_recompute = True
+            if hasattr(self, 'events'):
+                for sprite in self.events._dependent_sprites:
+                    sprite._should_recompute = True
         super().__setattr__(name, value)
 
     def is_touching_wall(self) -> bool:
@@ -88,55 +88,7 @@ class Sprite(
         # Collision checks must run every frame, even if no properties changed,
         # because another sprite may have moved into or away from this one.
 
-        # Check if we are touching any other sprites
-        for callback, shape_b in callback_manager.get_callback(
-            [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING],
-            id(self),
-        ):
-            # Pymunk collision registry handles physics-enabled sprite collisions
-            # This manual check is only a backup
-            if self.physics and shape_b.physics:
-                continue
-
-            if self.is_hidden or shape_b.is_hidden:
-                continue
-
-            collision_key = id(shape_b)
-
-            if self.is_touching(shape_b):
-                if collision_key not in self._touching_callback:
-                    if callback.type == CallbackType.WHEN_TOUCHING:
-                        self._touching_callback[collision_key] = callback
-                    else:
-                        self._touching_callback[collision_key] = True
-                continue
-            if collision_key in self._touching_callback:
-                del self._touching_callback[collision_key]
-                if callback.type == CallbackType.WHEN_STOPPED_TOUCHING:
-                    self._stopped_callback[collision_key] = callback
-
-        # Get which walls are currently being touched
-        touching_walls = self.get_touching_walls()
-
-        for callback_data in callback_manager.get_callback(
-            [CallbackType.WHEN_TOUCHING_WALL, CallbackType.WHEN_STOPPED_TOUCHING_WALL],
-            id(self),
-        ):
-            # callback_data is now a tuple (wrapper, wall_side)
-            callback, wall_side = callback_data
-            collision_key = (CollisionType.WALL, wall_side)
-
-            if wall_side in touching_walls:
-                if collision_key not in self._touching_callback:
-                    if callback.type == CallbackType.WHEN_TOUCHING_WALL:
-                        self._touching_callback[collision_key] = callback
-                    else:
-                        self._touching_callback[collision_key] = True
-                continue
-            if collision_key in self._touching_callback:
-                del self._touching_callback[collision_key]
-                if callback.type == CallbackType.WHEN_STOPPED_TOUCHING_WALL:
-                    self._stopped_callback[collision_key] = callback
+        self.events.update_collisions()
 
         if not self._should_recompute:
             return
@@ -149,7 +101,7 @@ class Sprite(
     def is_clicked(self):
         """Get whether the sprite is clicked.
         :return: Whether the sprite is clicked."""
-        return self._is_clicked
+        return self.events.is_clicked
 
     @property
     def x(self):
@@ -506,30 +458,7 @@ You might want to look in your code where you're setting transparency and make s
         :param callback: The function to run.
         :param call_with_sprite: Whether to call the function with the sprite as an argument.
         """
-        async_callback = make_async(callback)
-
-        async def wrapper():
-            wrapper.is_running = True
-            if call_with_sprite:
-                await run_async_callback(
-                    async_callback,
-                    ["sprite"],
-                    [],
-                    self,
-                )
-            else:
-                await run_async_callback(
-                    async_callback,
-                    [],
-                    [],
-                )
-            wrapper.is_running = False
-
-        wrapper.is_running = False
-        callback_manager.add_callback(
-            CallbackType.WHEN_CLICKED_SPRITE, wrapper, id(self)
-        )
-        return wrapper
+        return self.events.when_clicked(callback, call_with_sprite)
 
     # @decorator
     def when_click_released(self, callback, call_with_sprite=False):
@@ -537,100 +466,20 @@ You might want to look in your code where you're setting transparency and make s
         :param callback: The function to run.
         :param call_with_sprite: Whether to call the function with the sprite as an argument.
         """
-        async_callback = make_async(callback)
-
-        async def wrapper():
-            wrapper.is_running = True
-            if call_with_sprite:
-                await run_async_callback(
-                    async_callback,
-                    ["sprite"],
-                    [],
-                    self,
-                )
-            else:
-                await run_async_callback(
-                    async_callback,
-                    [],
-                    [],
-                )
-            wrapper.is_running = False
-
-        wrapper.is_running = False
-        callback_manager.add_callback(
-            CallbackType.WHEN_CLICK_RELEASED_SPRITE, wrapper, id(self)
-        )
-        return wrapper
+        return self.events.when_click_released(callback, call_with_sprite)
 
     def when_touching(self, *sprites):
         """Run a function when the sprite is touching another sprite.
         :param sprites: The sprites to check if they're touching.
         BEWARE: This function will yield the game loop until the given function returns.
         """
-
-        def decorator(func):
-            async_callback = make_async(func)
-
-            for sprite in sprites:
-                collision_registry.register(
-                    self,
-                    sprite,
-                    self.physics._pymunk_shape,
-                    sprite.physics._pymunk_shape,
-                    async_callback,
-                    CollisionType.SPRITE,
-                )
-
-            async def wrapper():
-                await run_async_callback(
-                    async_callback,
-                    [],
-                    [],
-                )
-
-            for sprite in sprites:
-                sprite._dependent_sprites.append(self)
-                callback_manager.add_callback(
-                    CallbackType.WHEN_TOUCHING, (wrapper, sprite), id(self)
-                )
-            return wrapper
-
-        return decorator
+        return self.events.when_touching(*sprites)
 
     def when_stopped_touching(self, *sprites):
         """Run a function when the sprite is no longer touching another sprite.
         :param sprites: The sprites to check if they're touching.
         """
-
-        def decorator(func):
-            async_callback = make_async(func)
-
-            for sprite in sprites:
-                collision_registry.register(
-                    self,
-                    sprite,
-                    self.physics._pymunk_shape,
-                    sprite.physics._pymunk_shape,
-                    async_callback,
-                    CollisionType.SPRITE,
-                    begin=False,
-                )
-
-            async def wrapper():
-                await run_async_callback(
-                    async_callback,
-                    [],
-                    [],
-                )
-
-            for sprite in sprites:
-                sprite._dependent_sprites.append(self)
-                callback_manager.add_callback(
-                    CallbackType.WHEN_STOPPED_TOUCHING, (wrapper, sprite), id(self)
-                )
-            return wrapper
-
-        return decorator
+        return self.events.when_stopped_touching(*sprites)
 
     def when_touching_wall(self, callback=None, *, wall=None):
         """Run a function when the sprite is touching the edge of the screen.
@@ -638,121 +487,14 @@ You might want to look in your code where you're setting transparency and make s
         :param wall: Optional WallSide or list of WallSides to filter which walls trigger the callback.
         BEWARE: This function will yield the game loop until the given function returns.
         """
-
-        def decorator(func):
-            async_callback = make_async(func)
-
-            # Determine which walls to register for
-            if wall is None:
-                walls_to_register = globals_list.walls
-            elif isinstance(wall, WallSide):
-                walls_to_register = [
-                    w for w in globals_list.walls if w.wall_side == wall
-                ]
-            else:
-                # Assume it's a list of WallSides
-                walls_to_register = [
-                    w for w in globals_list.walls if w.wall_side in wall
-                ]
-
-            # Create per-wall wrappers that pass the wall_side to the callback
-            for wall_segment in walls_to_register:
-                wall_side = wall_segment.wall_side
-
-                def make_wrapper(ws):
-                    async def wrapper():
-                        await run_async_callback(
-                            async_callback,
-                            [],
-                            ["wall"],
-                            ws,
-                        )
-
-                    return wrapper
-
-                wrapper = make_wrapper(wall_side)
-
-                collision_registry.register(
-                    self,
-                    None,
-                    self.physics._pymunk_shape,
-                    wall_segment,
-                    wrapper,
-                    CollisionType.WALL,
-                )
-
-                wrapper.wall_filter = wall
-                callback_manager.add_callback(
-                    CallbackType.WHEN_TOUCHING_WALL, (wrapper, wall_side), id(self)
-                )
-            return func
-
-        # Handle both @sprite.when_touching_wall and @sprite.when_touching_wall(wall=...)
-        if callback is not None:
-            return decorator(callback)
-        return decorator
+        return self.events.when_touching_wall(callback, wall=wall)
 
     def when_stopped_touching_wall(self, callback=None, *, wall=None):
         """Run a function when the sprite is no longer touching the edge of the screen.
         :param callback: The function to run.
         :param wall: Optional WallSide or list of WallSides to filter which walls trigger the callback.
         """
-
-        def decorator(func):
-            async_callback = make_async(func)
-
-            # Determine which walls to register for
-            if wall is None:
-                walls_to_register = globals_list.walls
-            elif isinstance(wall, WallSide):
-                walls_to_register = [
-                    w for w in globals_list.walls if w.wall_side == wall
-                ]
-            else:
-                # Assume it's a list of WallSides
-                walls_to_register = [
-                    w for w in globals_list.walls if w.wall_side in wall
-                ]
-
-            # Create per-wall wrappers that pass the wall_side to the callback
-            for wall_segment in walls_to_register:
-                wall_side = wall_segment.wall_side
-
-                def make_wrapper(ws):
-                    async def wrapper():
-                        await run_async_callback(
-                            async_callback,
-                            [],
-                            ["wall"],
-                            ws,
-                        )
-
-                    return wrapper
-
-                wrapper = make_wrapper(wall_side)
-
-                collision_registry.register(
-                    self,
-                    None,
-                    self.physics._pymunk_shape,
-                    wall_segment,
-                    wrapper,
-                    CollisionType.WALL,
-                    begin=False,
-                )
-
-                wrapper.wall_filter = wall
-                callback_manager.add_callback(
-                    CallbackType.WHEN_STOPPED_TOUCHING_WALL,
-                    (wrapper, wall_side),
-                    id(self),
-                )
-            return func
-
-        # Handle both @sprite.when_stopped_touching_wall and @sprite.when_stopped_touching_wall(wall=...)
-        if callback is not None:
-            return decorator(callback)
-        return decorator
+        return self.events.when_stopped_touching_wall(callback, wall=wall)
 
     def _common_properties(self):
         # used with inheritance to clone
@@ -828,7 +570,7 @@ You might want to look in your code where you're setting transparency and make s
             CallbackType.WHEN_TOUCHING,
             CallbackType.WHEN_STOPPED_TOUCHING,
         ]
-        for dependent in list(self._dependent_sprites):
+        for dependent in list(self.events._dependent_sprites):
             if not dependent.physics:
                 continue
             dep_id = id(dependent)
