@@ -1,8 +1,5 @@
 """Components for the component-based Sprite design."""
 
-import pygame
-import pymunk
-
 from ..callback import callback_manager, CallbackType
 from ..callback.collision_callbacks import collision_registry, CollisionType, WallSide
 from ..globals import globals_list
@@ -21,9 +18,14 @@ class EventComponent:
         
     @property
     def is_clicked(self):
+        """Get whether the sprite is currently clicked.
+        :return: Whether the sprite is clicked."""
         return self._is_clicked
         
     def when_clicked(self, callback, call_with_sprite=False):
+        """Register a callback for when the sprite is clicked.
+        :param callback: The async callback function.
+        :param call_with_sprite: Pass the sprite into the callback if True."""
         async_callback = make_async(callback)
 
         async def wrapper():
@@ -41,6 +43,9 @@ class EventComponent:
         return wrapper
 
     def when_click_released(self, callback, call_with_sprite=False):
+        """Register a callback for when a click on the sprite is released.
+        :param callback: The async callback function.
+        :param call_with_sprite: Pass the sprite into the callback if True."""
         async_callback = make_async(callback)
 
         async def wrapper():
@@ -58,6 +63,8 @@ class EventComponent:
         return wrapper
 
     def when_touching(self, *sprites_to_check):
+        """Register a callback for when the sprite is touching another sprite.
+        :param sprites_to_check: Sprites to check for collision."""
         def decorator(func):
             async_callback = make_async(func)
 
@@ -83,6 +90,8 @@ class EventComponent:
         return decorator
 
     def when_stopped_touching(self, *sprites_to_check):
+        """Register a callback for when the sprite is no longer touching another sprite.
+        :param sprites_to_check: Sprites to check for collision separation."""
         def decorator(func):
             async_callback = make_async(func)
 
@@ -109,6 +118,9 @@ class EventComponent:
         return decorator
 
     def when_touching_wall(self, callback=None, *, wall=None):
+        """Register a callback for when the sprite touches a wall scenario.
+        :param callback: Callback to run.
+        :param wall: Optional specific wall or list of walls to check."""
         def decorator(func):
             async_callback = make_async(func)
 
@@ -149,6 +161,9 @@ class EventComponent:
         return decorator
 
     def when_stopped_touching_wall(self, callback=None, *, wall=None):
+        """Register a callback for when the sprite is no longer touching a wall.
+        :param callback: Callback to run.
+        :param wall: Optional specific wall or list of walls to check."""
         def decorator(func):
             async_callback = make_async(func)
 
@@ -189,10 +204,9 @@ class EventComponent:
             return decorator(callback)
         return decorator
 
-    def update_collisions(self):
-        """Update sprite and wall collisions manually."""
+    def _update_sprite_collisions(self):
+        """Update sprite collisions manually."""
         sprite = self._sprite
-        # Sprite Collisions
         for callback, shape_b in callback_manager.get_callback(
             [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING], id(sprite)
         ):
@@ -216,7 +230,9 @@ class EventComponent:
                 if callback.type == CallbackType.WHEN_STOPPED_TOUCHING:
                     self._stopped_callback[collision_key] = callback
 
-        # Wall Collisions
+    def _update_wall_collisions(self):
+        """Update wall collisions manually."""
+        sprite = self._sprite
         touching_walls = sprite.get_touching_walls()
 
         for callback_data in callback_manager.get_callback(
@@ -236,3 +252,8 @@ class EventComponent:
                 del self._touching_callback[collision_key]
                 if callback.type == CallbackType.WHEN_STOPPED_TOUCHING_WALL:
                     self._stopped_callback[collision_key] = callback
+
+    def update_collisions(self):
+        """Update sprite and wall collisions manually."""
+        self._update_sprite_collisions()
+        self._update_wall_collisions()

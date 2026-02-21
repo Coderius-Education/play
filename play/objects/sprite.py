@@ -7,13 +7,11 @@ import pygame
 import pymunk as _pymunk
 
 from ..callback import callback_manager, CallbackType
-from ..callback.callback_helpers import run_async_callback
-from ..callback.collision_callbacks import collision_registry, CollisionType, WallSide
+from ..callback.collision_callbacks import collision_registry
 from ..globals import globals_list
 from ..io.screen import screen
 from ..physics import physics_space, Physics as _Physics
 from ..utils import clamp as _clamp, is_called_from_pygame
-from ..utils.async_helpers import make_async
 from .components import EventComponent
 
 
