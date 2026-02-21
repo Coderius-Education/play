@@ -86,6 +86,14 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
         self.events.update_collisions()
 
+    def update(self):
+        """Update the sprite."""
+        # Collision checks must run every frame, even if no properties changed,
+        # because another sprite may have moved into or away from this one.
+
+        self._update_sprite_collisions()
+        self._update_wall_collisions()
+
         if not self._should_recompute:
             return
 
