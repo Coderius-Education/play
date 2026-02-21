@@ -802,9 +802,7 @@ You might want to look in your code where you're setting transparency and make s
         for begin in [True, False]:
             collision_registry.callbacks[begin].pop(collision_type, None)
             for shape_ct in list(collision_registry.callbacks[begin]):
-                collision_registry.callbacks[begin][shape_ct].pop(
-                    collision_type, None
-                )
+                collision_registry.callbacks[begin][shape_ct].pop(collision_type, None)
         collision_registry.shape_registry.pop(collision_type, None)
 
     def _reregister_own_callbacks(self, saved_callbacks):
