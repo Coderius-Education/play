@@ -83,12 +83,8 @@ class Sprite(
                 continue
         return touching
 
-    def update(self):  # pylint: disable=too-many-branches
-        """Update the sprite."""
-        # Collision checks must run every frame, even if no properties changed,
-        # because another sprite may have moved into or away from this one.
-
-        # Check if we are touching any other sprites
+    def _update_sprite_collisions(self):
+        """Update sprite-to-sprite collision state."""
         for callback, shape_b in callback_manager.get_callback(
             [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING],
             id(self),
@@ -115,7 +111,8 @@ class Sprite(
                 if callback.type == CallbackType.WHEN_STOPPED_TOUCHING:
                     self._stopped_callback[collision_key] = callback
 
-        # Get which walls are currently being touched
+    def _update_wall_collisions(self):
+        """Update wall collision state."""
         touching_walls = self.get_touching_walls()
 
         for callback_data in callback_manager.get_callback(
@@ -137,6 +134,14 @@ class Sprite(
                 del self._touching_callback[collision_key]
                 if callback.type == CallbackType.WHEN_STOPPED_TOUCHING_WALL:
                     self._stopped_callback[collision_key] = callback
+
+    def update(self):
+        """Update the sprite."""
+        # Collision checks must run every frame, even if no properties changed,
+        # because another sprite may have moved into or away from this one.
+
+        self._update_sprite_collisions()
+        self._update_wall_collisions()
 
         if not self._should_recompute:
             return
