@@ -769,7 +769,88 @@ You might want to look in your code where you're setting transparency and make s
         :return: The cloned sprite."""
         return self.__class__(image=self.image)
 
-    def start_physics(  # # pylint: disable=too-many-locals, too-many-branches
+    @staticmethod
+    def _save_and_clear_callbacks(sprite_id):
+        """Save all physics-related callbacks for a sprite and clear them.
+
+        Returns a dict mapping each CallbackType to a list of saved callbacks.
+        """
+        callback_types = [
+            CallbackType.WHEN_TOUCHING,
+            CallbackType.WHEN_TOUCHING_WALL,
+            CallbackType.WHEN_STOPPED_TOUCHING,
+            CallbackType.WHEN_STOPPED_TOUCHING_WALL,
+        ]
+        saved_callbacks = {
+            ctype: list(callback_manager.get_callback(ctype, sprite_id) or [])
+            for ctype in callback_types
+        }
+        for ctype in callback_types:
+            callback_manager.remove_callbacks(ctype, sprite_id)
+        return saved_callbacks
+
+    @staticmethod
+    def _cleanup_collision_registry(collision_type_id):
+        """Remove all collision_registry entries for a given collision type.
+
+        Cleans up both begin/separate callback dicts and the shape_registry.
+        """
+        if collision_type_id is None:
+            return
+        for begin in [True, False]:
+            collision_registry.callbacks[begin].pop(collision_type_id, None)
+            for shape_ct in list(collision_registry.callbacks[begin]):
+                collision_registry.callbacks[begin][shape_ct].pop(
+                    collision_type_id, None
+                )
+        collision_registry.shape_registry.pop(collision_type_id, None)
+
+    def _reregister_own_callbacks(self, saved_callbacks):
+        """Re-register this sprite's own callbacks after physics recreation."""
+        for callback, sprite in saved_callbacks[CallbackType.WHEN_TOUCHING]:
+            self.when_touching(sprite)(callback)
+        for callback, wall_side in saved_callbacks[CallbackType.WHEN_TOUCHING_WALL]:
+            self.when_touching_wall(callback, wall=wall_side)
+        for callback, sprite in saved_callbacks[CallbackType.WHEN_STOPPED_TOUCHING]:
+            self.when_stopped_touching(sprite)(callback)
+        for callback, wall_side in saved_callbacks[
+            CallbackType.WHEN_STOPPED_TOUCHING_WALL
+        ]:
+            self.when_stopped_touching_wall(callback, wall=wall_side)
+
+    def _reregister_dependent_callbacks(self):
+        """Re-register callbacks from other sprites that reference self.
+
+        When self's pymunk shape changes, other sprites' collision registrations
+        become stale and need to be refreshed.
+        """
+        sprite_callback_types = [
+            CallbackType.WHEN_TOUCHING,
+            CallbackType.WHEN_STOPPED_TOUCHING,
+        ]
+        for dependent in list(self._dependent_sprites):
+            if not dependent.physics:
+                continue
+            dep_id = id(dependent)
+            dep_saved = {
+                ctype: list(callback_manager.get_callback(ctype, dep_id) or [])
+                for ctype in sprite_callback_types
+            }
+            has_refs = any(s is self for cbs in dep_saved.values() for _, s in cbs)
+            if not has_refs:
+                continue
+            for ctype in sprite_callback_types:
+                callback_manager.remove_callbacks(ctype, dep_id)
+            dep_shape_ct = getattr(
+                dependent.physics._pymunk_shape, "collision_type", None
+            )
+            self._cleanup_collision_registry(dep_shape_ct)
+            for cb, sprite in dep_saved[CallbackType.WHEN_TOUCHING]:
+                dependent.when_touching(sprite)(cb)
+            for cb, sprite in dep_saved[CallbackType.WHEN_STOPPED_TOUCHING]:
+                dependent.when_stopped_touching(sprite)(cb)
+
+    def start_physics(
         self,
         can_move=True,
         stable=False,
@@ -790,42 +871,16 @@ You might want to look in your code where you're setting transparency and make s
         :param mass: The mass of the object.
         :param friction: The friction of the object.
         """
-        # Get copies of all current callbacks before potentially removing physics
-        callback_types = [
-            CallbackType.WHEN_TOUCHING,
-            CallbackType.WHEN_TOUCHING_WALL,
-            CallbackType.WHEN_STOPPED_TOUCHING,
-            CallbackType.WHEN_STOPPED_TOUCHING_WALL,
-        ]
-        saved_callbacks = {
-            ctype: list(callback_manager.get_callback(ctype, id(self)) or [])
-            for ctype in callback_types
-        }
+        saved_callbacks = self._save_and_clear_callbacks(id(self))
 
-        # Clear old callback entries to prevent duplicates
-        for ctype in callback_types:
-            callback_manager.remove_callbacks(ctype, id(self))
-
-        # Clean up old collision_registry entries for our old shape
-        # so re-registration doesn't conflict with stale entries
         old_shape_ct = None
         if self.physics and hasattr(self.physics._pymunk_shape, "collision_type"):
             old_shape_ct = self.physics._pymunk_shape.collision_type
-        if old_shape_ct is not None:
-            for begin in [True, False]:
-                if old_shape_ct in collision_registry.callbacks[begin]:
-                    del collision_registry.callbacks[begin][old_shape_ct]
-                for shape_ct in list(collision_registry.callbacks[begin]):
-                    if old_shape_ct in collision_registry.callbacks[begin][shape_ct]:
-                        del collision_registry.callbacks[begin][shape_ct][old_shape_ct]
-            if old_shape_ct in collision_registry.shape_registry:
-                del collision_registry.shape_registry[old_shape_ct]
+        self._cleanup_collision_registry(old_shape_ct)
 
-        # Remove existing physics if it exists
         if self.physics:
             self.physics._remove()
 
-        # Create new physics
         self.physics = _Physics(
             self,
             can_move,
@@ -838,57 +893,8 @@ You might want to look in your code where you're setting transparency and make s
             friction,
         )
 
-        # Re-register all callbacks with the new physics object
-        for callback, sprite in saved_callbacks[CallbackType.WHEN_TOUCHING]:
-            self.when_touching(sprite)(callback)
-        for callback, wall_side in saved_callbacks[CallbackType.WHEN_TOUCHING_WALL]:
-            self.when_touching_wall(callback, wall=wall_side)
-        for callback, sprite in saved_callbacks[CallbackType.WHEN_STOPPED_TOUCHING]:
-            self.when_stopped_touching(sprite)(callback)
-        for callback, wall_side in saved_callbacks[
-            CallbackType.WHEN_STOPPED_TOUCHING_WALL
-        ]:
-            self.when_stopped_touching_wall(callback, wall=wall_side)
-
-        # Re-register callbacks from other sprites that reference self,
-        # since self's pymunk shape has changed and old collision registrations
-        # are now stale.
-        sprite_callback_types = [
-            CallbackType.WHEN_TOUCHING,
-            CallbackType.WHEN_STOPPED_TOUCHING,
-        ]
-        for dependent in list(self._dependent_sprites):
-            if not dependent.physics:
-                continue
-            dep_id = id(dependent)
-            dep_saved = {
-                ctype: list(callback_manager.get_callback(ctype, dep_id) or [])
-                for ctype in sprite_callback_types
-            }
-            # Check if any callbacks reference self
-            has_refs = any(s is self for cbs in dep_saved.values() for _, s in cbs)
-            if not has_refs:
-                continue
-            # Remove callback_manager entries for dependent
-            for ctype in sprite_callback_types:
-                callback_manager.remove_callbacks(ctype, dep_id)
-            # Clean up collision_registry entries for dependent's shape
-            dep_shape_ct = getattr(
-                dependent.physics._pymunk_shape, "collision_type", None
-            )
-            if dep_shape_ct is not None:
-                for begin in [True, False]:
-                    collision_registry.callbacks[begin].pop(dep_shape_ct, None)
-                    for shape_ct in list(collision_registry.callbacks[begin]):
-                        collision_registry.callbacks[begin][shape_ct].pop(
-                            dep_shape_ct, None
-                        )
-                collision_registry.shape_registry.pop(dep_shape_ct, None)
-            # Re-register all dependent callbacks with fresh collision entries
-            for cb, sprite in dep_saved[CallbackType.WHEN_TOUCHING]:
-                dependent.when_touching(sprite)(cb)
-            for cb, sprite in dep_saved[CallbackType.WHEN_STOPPED_TOUCHING]:
-                dependent.when_stopped_touching(sprite)(cb)
+        self._reregister_own_callbacks(saved_callbacks)
+        self._reregister_dependent_callbacks()
 
     def stop_physics(self):
         """Resets the physics to the starting situation"""
