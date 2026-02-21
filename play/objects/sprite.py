@@ -877,10 +877,10 @@ You might want to look in your code where you're setting transparency and make s
         """
         saved_callbacks = self._save_and_clear_callbacks()
 
-        old_shape_ct = None
+        old_collision_type = None
         if self.physics and hasattr(self.physics._pymunk_shape, "collision_type"):
-            old_shape_ct = self.physics._pymunk_shape.collision_type
-        self._cleanup_collision_registry(old_shape_ct)
+            old_collision_type = self.physics._pymunk_shape.collision_type
+        self._cleanup_collision_registry(old_collision_type)
 
         if self.physics:
             self.physics._remove()
