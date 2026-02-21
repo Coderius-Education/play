@@ -58,7 +58,7 @@ class Sprite(
         # ignore if it's in the ignored list or if the variable doesn't change
         if name not in _should_ignore_update and getattr(self, name, value) != value:
             self._should_recompute = True
-            if hasattr(self, 'events'):
+            if hasattr(self, "events"):
                 for sprite in self.events._dependent_sprites:
                     sprite._should_recompute = True
         super().__setattr__(name, value)
