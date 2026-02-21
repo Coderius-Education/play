@@ -84,7 +84,7 @@ class Sprite(
         return touching
 
     def _update_sprite_collisions(self):
-        """Update sprite collisions manually."""
+        """Update sprite-to-sprite collision state."""
         for callback, shape_b in callback_manager.get_callback(
             [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING],
             id(self),
@@ -112,7 +112,7 @@ class Sprite(
                     self._stopped_callback[collision_key] = callback
 
     def _update_wall_collisions(self):
-        """Update wall collisions manually."""
+        """Update wall collision state."""
         touching_walls = self.get_touching_walls()
 
         for callback_data in callback_manager.get_callback(
