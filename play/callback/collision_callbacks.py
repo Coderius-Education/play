@@ -63,7 +63,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             callback = self.callbacks[True][shape_a.collision_type][
                 shape_b.collision_type
             ]
-            self.shape_registry[shape_a.collision_type]._touching_callback[
+            self.shape_registry[shape_a.collision_type].events._touching_callback[
                 shape_b.collision_id
             ] = callback
         # If callback is only registered in the reverse direction, use that
@@ -74,7 +74,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             callback = self.callbacks[True][shape_b.collision_type][
                 shape_a.collision_type
             ]
-            self.shape_registry[shape_a.collision_type]._touching_callback[
+            self.shape_registry[shape_a.collision_type].events._touching_callback[
                 shape_b.collision_id
             ] = callback
         return True
@@ -94,8 +94,8 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
 
         if shape_a.collision_type in self.shape_registry and self.shape_registry[
             shape_a.collision_type
-        ]._touching_callback.get(shape_b.collision_id):
-            del self.shape_registry[shape_a.collision_type]._touching_callback[
+        ].events._touching_callback.get(shape_b.collision_id):
+            del self.shape_registry[shape_a.collision_type].events._touching_callback[
                 shape_b.collision_id
             ]
         if (
@@ -105,7 +105,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             callback = self.callbacks[False][shape_a.collision_type][
                 shape_b.collision_type
             ]
-            self.shape_registry[shape_a.collision_type]._stopped_callback[
+            self.shape_registry[shape_a.collision_type].events._stopped_callback[
                 shape_b.collision_id
             ] = callback
         return True
