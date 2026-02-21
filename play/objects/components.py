@@ -6,22 +6,23 @@ from ..globals import globals_list
 from ..utils.async_helpers import make_async
 from ..callback.callback_helpers import run_async_callback
 
+
 class EventComponent:
     """Manages event callbacks and collision detection checks for a sprite."""
-    
+
     def __init__(self, sprite):
         self._sprite = sprite
         self._touching_callback = {}
         self._stopped_callback = {}
         self._dependent_sprites = []
         self._is_clicked = False
-        
+
     @property
     def is_clicked(self):
         """Get whether the sprite is currently clicked.
         :return: Whether the sprite is clicked."""
         return self._is_clicked
-        
+
     def when_clicked(self, callback, call_with_sprite=False):
         """Register a callback for when the sprite is clicked.
         :param callback: The async callback function.
