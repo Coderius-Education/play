@@ -1,13 +1,11 @@
 """Tests for sprite update methods: _update_sprite_collisions and _update_wall_collisions."""
 
-import pytest
-import sys
-
-sys.path.insert(0, ".")
-
 
 def test_update_sprite_collisions_touching():
     """Test manual collision checks with other sprites."""
+    import sys
+
+    sys.path.insert(0, ".")
     import play
 
     sprite1 = play.new_box(x=0, y=0, width=50, height=50)
@@ -32,6 +30,9 @@ def test_update_sprite_collisions_touching():
 
 def test_update_sprite_collisions_stopped_touching():
     """Test manual collision checks when stopping touching."""
+    import sys
+
+    sys.path.insert(0, ".")
     import play
 
     sprite1 = play.new_box(x=0, y=0, width=50, height=50)
@@ -66,6 +67,9 @@ def test_update_sprite_collisions_stopped_touching():
 
 def test_update_wall_collisions_touching(monkeypatch):
     """Test manual collision checks with walls."""
+    import sys
+
+    sys.path.insert(0, ".")
     import play
     from play.callback.collision_callbacks import WallSide, CollisionType
 
@@ -95,6 +99,9 @@ def test_update_wall_collisions_touching(monkeypatch):
 
 def test_update_wall_collisions_stopped_touching(monkeypatch):
     """Test manual collision checks when stopped touching walls."""
+    import sys
+
+    sys.path.insert(0, ".")
     import play
     from play.callback.collision_callbacks import WallSide, CollisionType
 
