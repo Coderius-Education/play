@@ -5,6 +5,7 @@ play trigger pygame.init() which starts background threads.  Those
 threads do not survive fork(), causing deadlocks with pytest --forked.
 """
 
+import logging
 import os
 import pytest
 
@@ -13,7 +14,13 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 
 def pytest_collection_finish(session):
-    """Kill pygame threads in the parent after test collection."""
+    """Quit pygame in the collection-phase parent process.
+
+    Module-level imports of play trigger pygame.init() which starts background
+    threads.  Those threads do not survive a fork() (used by pytest --forked),
+    causing deadlocks in child processes.  Calling pygame.quit() here tears
+    down those threads in the parent before any child processes are spawned.
+    """
     try:
         import pygame
 
@@ -28,7 +35,12 @@ def clean_play_state():
     """Flush play globals, physics, callbacks, and groups before every test.
     This prevents state bleed across tests and resolves random hanging test loops.
     """
+    import asyncio
+
     import pygame
+
+    import play
+    import play.loop
 
     # Headless Execution Fixes: properly initialize Pygame
     pygame.init()
@@ -40,16 +52,8 @@ def clean_play_state():
         from play.io.screen import screen
 
         screen.update_display()
-    except Exception:
-        pass
-
-    import pygame
-
-    pygame.event.clear()
-
-    import play
-    import asyncio
-    import play.loop
+    except Exception as e:
+        logging.warning("Failed to initialize pygame display: %s", e)
 
     old_loop = play.loop.get_loop()
     if old_loop and not old_loop.is_closed():
@@ -57,9 +61,10 @@ def clean_play_state():
         for task in asyncio.all_tasks(loop=old_loop):
             task.cancel()
         old_loop.stop()
-        # Create a completely fresh event loop to prevent task/state bleed
-        play.loop._loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(play.loop._loop)
+        old_loop.close()
+    # Reset so get_loop() creates a new properly configured loop on the next
+    # call (with exception handler, debug mode, etc.).
+    play.loop._creator_pid = None
 
     from play.physics import physics_space
     from play.callback import callback_manager
@@ -69,17 +74,10 @@ def clean_play_state():
     play.globals.globals_list.sprites_group.empty()
     play.globals.globals_list.walls.clear()
     play.globals.globals_list.controllers.clear()
-    import pygame
-
-    pygame.event.clear()
 
     import play.core.sprites_loop
 
     play.core.sprites_loop._clicked_sprite_id = None
-
-    import pygame
-
-    pygame.event.clear()
 
     import play.api.utils
 
@@ -112,10 +110,6 @@ def clean_play_state():
 
     create_walls()
 
-    import pygame
-
-    pygame.event.clear()
-
     import play.core
 
     play.core._clock = pygame.time.Clock()
@@ -140,8 +134,7 @@ def clean_play_state():
     mouse.y = 0
     mouse._is_clicked = False
 
-    import pygame
-
+    # Final event queue flush — the only clear that matters
     if pygame.display.get_init():
         pygame.event.pump()
         pygame.event.clear()
