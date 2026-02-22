@@ -33,9 +33,9 @@ def update_sprite_physics(sprite):
 
 async def run_sprite_callbacks(sprite):
     """Run touching and stopped callbacks for a sprite."""
-    await run_any_async_callback(list(sprite._touching_callback.values()), [], [])
-    await run_any_async_callback(list(sprite._stopped_callback.values()), [], [])
-    sprite._stopped_callback = {}
+    await run_any_async_callback(sprite.events.touching_callbacks(), [], [])
+    await run_any_async_callback(sprite.events.stopped_callbacks(), [], [])
+    sprite.events.clear_all_stopped()
 
 
 def handle_sprite_click(sprite):
@@ -51,7 +51,7 @@ def handle_sprite_click(sprite):
         _clicked_sprite_id = id(sprite)
 
     if mouse.is_clicked and touching_and_clicked:
-        sprite._is_clicked = True
+        sprite.events.is_clicked = True
         callback_manager.run_callbacks(
             CallbackType.WHEN_CLICKED_SPRITE, callback_discriminator=id(sprite)
         )
@@ -90,7 +90,7 @@ async def update_sprites(do_events: bool = True):
         if sprite.physics and sprite.physics.can_move:
             update_sprite_physics(sprite)
 
-        sprite._is_clicked = False
+        sprite.events.is_clicked = False
         if sprite.is_hidden:
             continue
 

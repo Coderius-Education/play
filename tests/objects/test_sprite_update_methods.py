@@ -24,14 +24,14 @@ def test_update_sprite_collisions_touching(monkeypatch):
     monkeypatch.setattr(sprite2, "physics", None)
     monkeypatch.setattr(sprite1, "is_touching", lambda s: True)
 
-    assert id(sprite2) not in sprite1._touching_callback
+    assert id(sprite2) not in sprite1.events._touching_callback
 
     result = []
 
     @play.when_program_starts
     def check():
-        sprite1._update_sprite_collisions()
-        result.append(id(sprite2) in sprite1._touching_callback)
+        sprite1.events._update_sprite_collisions()
+        result.append(id(sprite2) in sprite1.events._touching_callback)
         play.stop_program()
 
     play.start_program()
@@ -61,15 +61,15 @@ def test_update_sprite_collisions_stopped_touching(monkeypatch):
     @play.when_program_starts
     def check():
         # First simulate that they are touching
-        sprite1._update_sprite_collisions()
-        result.append(id(sprite2) in sprite1._touching_callback)
+        sprite1.events._update_sprite_collisions()
+        result.append(id(sprite2) in sprite1.events._touching_callback)
 
         # Now simulate them separating
         is_touching_now[0] = False
-        sprite1._update_sprite_collisions()
+        sprite1.events._update_sprite_collisions()
 
-        result.append(id(sprite2) not in sprite1._touching_callback)
-        result.append(id(sprite2) in sprite1._stopped_callback)
+        result.append(id(sprite2) not in sprite1.events._touching_callback)
+        result.append(id(sprite2) in sprite1.events._stopped_callback)
         play.stop_program()
 
     play.start_program()
@@ -97,14 +97,14 @@ def test_update_wall_collisions_touching(monkeypatch):
     monkeypatch.setattr(sprite, "get_touching_walls", mock_get_touching_walls)
 
     collision_key = (CollisionType.WALL, WallSide.TOP)
-    assert collision_key not in sprite._touching_callback
+    assert collision_key not in sprite.events._touching_callback
 
     result = []
 
     @play.when_program_starts
     def check():
-        sprite._update_wall_collisions()
-        result.append(collision_key in sprite._touching_callback)
+        sprite.events._update_wall_collisions()
+        result.append(collision_key in sprite.events._touching_callback)
         play.stop_program()
 
     play.start_program()
@@ -135,16 +135,16 @@ def test_update_wall_collisions_stopped_touching(monkeypatch):
 
     @play.when_program_starts
     def check():
-        sprite._update_wall_collisions()
-        result.append(collision_key in sprite._touching_callback)
+        sprite.events._update_wall_collisions()
+        result.append(collision_key in sprite.events._touching_callback)
 
         # Change to not touching walls
         touching_walls.clear()
 
-        sprite._update_wall_collisions()
+        sprite.events._update_wall_collisions()
 
-        result.append(collision_key not in sprite._touching_callback)
-        result.append(collision_key in sprite._stopped_callback)
+        result.append(collision_key not in sprite.events._touching_callback)
+        result.append(collision_key in sprite.events._stopped_callback)
 
         play.stop_program()
 
