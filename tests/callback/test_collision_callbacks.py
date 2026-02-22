@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_collision_registry_exists():
     """Test that collision_registry exists."""
     import play

@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_is_touching_wall_false():
     """Test is_touching_wall() returns False when not touching wall."""
     import play

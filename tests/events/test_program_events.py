@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_when_program_starts_decorator():
     """Test play.when_program_starts decorator."""
     import play

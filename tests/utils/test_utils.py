@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_clamp_within_range():
     """Test clamp function with value within range."""
     from play.utils import clamp

@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_when_any_key_pressed_decorator():
     """Test play.when_any_key_pressed decorator."""
     import play

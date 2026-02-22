@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_mouse_initial_state():
     """Test mouse initial state."""
     import play

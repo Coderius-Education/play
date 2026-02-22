@@ -4,7 +4,6 @@ import pytest
 from io import StringIO
 
 
-
 def test_info_method_runs():
     """Test that info() method runs without error."""
     import play

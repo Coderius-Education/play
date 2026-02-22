@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_set_backdrop_color():
     """Test setting backdrop color."""
     import play

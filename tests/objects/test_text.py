@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_text_creation_default():
     """Test creating a text object with default values."""
     import play

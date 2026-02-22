@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def get_pixel_at(x, y):
     """Get the RGB value at screen coordinates (x, y)."""
     import pygame

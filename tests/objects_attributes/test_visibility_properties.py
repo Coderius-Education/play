@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_is_hidden_default():
     """Test is_hidden is False by default."""
     import play

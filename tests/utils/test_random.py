@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_random_number_default():
     """Test random_number with default parameters."""
     import play

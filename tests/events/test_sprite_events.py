@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_sprite_when_clicked_method():
     """Test sprite.when_clicked() method."""
     import play

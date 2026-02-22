@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_text_words_getter():
     """Test getting text words."""
     import play

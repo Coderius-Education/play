@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_screen_resize_before_sprites():
     """Test resizing screen before creating sprites."""
     import play

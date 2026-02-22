@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_physics_x_speed_setter():
     """Test setting x_speed after physics initialization."""
     import play

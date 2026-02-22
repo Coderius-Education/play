@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_callback_manager_exists():
     """Test that callback_manager exists."""
     import play

@@ -4,7 +4,6 @@ import pytest
 import math
 
 
-
 def test_sprite_distance_to_coordinates():
     """Test distance_to method with x, y coordinates."""
     import play

@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_controllers_object_exists():
     """Test that controllers object exists and is accessible."""
     import play

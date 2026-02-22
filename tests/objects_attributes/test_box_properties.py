@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_box_color_getter():
     """Test getting box color."""
     import play

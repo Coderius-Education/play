@@ -1,5 +1,6 @@
 import pytest
 
+
 def write_data():
     from play.db import Database
 

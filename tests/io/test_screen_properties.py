@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_screen_width_getter():
     """Test getting screen width."""
     import play

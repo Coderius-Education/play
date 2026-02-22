@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_game_loop_runs():
     """Test that game loop runs and can be stopped."""
     import play

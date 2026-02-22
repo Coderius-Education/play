@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_circle_color_getter():
     """Test getting circle color."""
     import play

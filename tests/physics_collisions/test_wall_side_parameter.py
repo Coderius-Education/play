@@ -3,7 +3,6 @@
 import pytest
 
 
-
 def test_wallside_enum_exists():
     """Test that WallSide enum is accessible from play module."""
     import play
