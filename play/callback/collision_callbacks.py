@@ -63,9 +63,9 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             callback = self.callbacks[True][shape_a.collision_type][
                 shape_b.collision_type
             ]
-            self.shape_registry[shape_a.collision_type].events._touching_callback[
-                shape_b.collision_id
-            ] = callback
+            self.shape_registry[shape_a.collision_type].events.set_touching(
+                shape_b.collision_id, callback
+            )
         # If callback is only registered in the reverse direction, use that
         elif (
             shape_b.collision_type in self.callbacks[True]
@@ -74,9 +74,9 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             callback = self.callbacks[True][shape_b.collision_type][
                 shape_a.collision_type
             ]
-            self.shape_registry[shape_a.collision_type].events._touching_callback[
-                shape_b.collision_id
-            ] = callback
+            self.shape_registry[shape_a.collision_type].events.set_touching(
+                shape_b.collision_id, callback
+            )
         return True
 
     def _handle_end_collision_shape(self, shape_a: Shape, shape_b: Shape):
@@ -94,10 +94,10 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
 
         if shape_a.collision_type in self.shape_registry and self.shape_registry[
             shape_a.collision_type
-        ].events._touching_callback.get(shape_b.collision_id):
-            del self.shape_registry[shape_a.collision_type].events._touching_callback[
+        ].events.get_touching(shape_b.collision_id):
+            self.shape_registry[shape_a.collision_type].events.clear_touching(
                 shape_b.collision_id
-            ]
+            )
         if (
             shape_a.collision_type in self.callbacks[False]
             and shape_b.collision_type in self.callbacks[False][shape_a.collision_type]
@@ -105,9 +105,9 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             callback = self.callbacks[False][shape_a.collision_type][
                 shape_b.collision_type
             ]
-            self.shape_registry[shape_a.collision_type].events._stopped_callback[
-                shape_b.collision_id
-            ] = callback
+            self.shape_registry[shape_a.collision_type].events.set_stopped(
+                shape_b.collision_id, callback
+            )
         return True
 
     def _handle_end_collision(self, arbiter: Arbiter, _, __):

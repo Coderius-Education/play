@@ -43,7 +43,6 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
         self._image = image
         self.physics = None
-        self._is_clicked = False
         self._is_hidden = False
         self._should_recompute = True
 

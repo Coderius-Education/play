@@ -77,8 +77,8 @@ class TestRunSpriteCallbacks:
         sprite = MagicMock()
         touching_cb = MagicMock()
         stopped_cb = MagicMock()
-        sprite.events._touching_callback = {"a": touching_cb}
-        sprite.events._stopped_callback = {"b": stopped_cb}
+        sprite.events.touching_callbacks.return_value = [touching_cb]
+        sprite.events.stopped_callbacks.return_value = [stopped_cb]
 
         with patch(
             "play.core.sprites_loop.run_any_async_callback", new_callable=AsyncMock
@@ -94,14 +94,12 @@ class TestRunSpriteCallbacks:
 
     def test_clears_stopped_callbacks(self):
         sprite = MagicMock()
-        sprite.events._touching_callback = {}
-        sprite.events._stopped_callback = {"b": MagicMock()}
 
         with patch(
             "play.core.sprites_loop.run_any_async_callback", new_callable=AsyncMock
         ):
             asyncio.run(run_sprite_callbacks(sprite))
-            assert sprite.events._stopped_callback == {}
+            sprite.events.clear_all_stopped.assert_called_once()
 
 
 class TestHandleSpriteClick:
@@ -127,14 +125,13 @@ class TestHandleSpriteClick:
     @patch("play.core.sprites_loop.mouse")
     def test_fires_when_clicked_callback(self, mock_mouse, mock_state, mock_cb):
         sprite = MagicMock()
-        sprite.events._is_clicked = False
         mock_mouse.is_touching.return_value = True
         mock_state.click_happened = True
         mock_mouse.is_clicked = True
 
         handle_sprite_click(sprite)
 
-        assert sprite.events._is_clicked is True
+        assert sprite.events.is_clicked is True
         mock_cb.run_callbacks.assert_called_once_with(
             sprites_loop.CallbackType.WHEN_CLICKED_SPRITE,
             callback_discriminator=id(sprite),
