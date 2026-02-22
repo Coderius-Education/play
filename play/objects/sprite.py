@@ -31,9 +31,7 @@ _should_ignore_update = [
 ]
 
 
-class Sprite(
-    pygame.sprite.Sprite
-):  # pylint: disable=attribute-defined-outside-init, too-many-public-methods
+class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def __init__(self, image=None):
         self._size = None
         self._x = None
@@ -45,7 +43,6 @@ class Sprite(
 
         self._image = image
         self.physics = None
-        self._is_clicked = False
         self._is_hidden = False
         self._should_recompute = True
 
@@ -81,7 +78,7 @@ class Sprite(
                 continue
         return touching
 
-    def update(self):  # pylint: disable=too-many-branches
+    def update(self):
         """Update the sprite."""
         # Collision checks must run every frame, even if no properties changed,
         # because another sprite may have moved into or away from this one.
