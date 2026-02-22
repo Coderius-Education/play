@@ -1,9 +1,6 @@
 """Tests for physics property setters."""
 
 import pytest
-import sys
-
-sys.path.insert(0, ".")
 
 
 def test_physics_x_speed_setter():

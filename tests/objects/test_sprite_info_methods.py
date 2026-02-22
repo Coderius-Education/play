@@ -4,8 +4,6 @@ import pytest
 import sys
 from io import StringIO
 
-sys.path.insert(0, ".")
-
 
 def test_info_method_runs():
     """Test that info() method runs without error."""

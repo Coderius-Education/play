@@ -1,9 +1,6 @@
 """Tests for hide() and show() methods, both inside and outside callbacks."""
 
 import pytest
-import sys
-
-sys.path.insert(0, ".")
 
 
 def get_pixel_at(x, y):

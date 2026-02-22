@@ -4,8 +4,6 @@ import pytest
 import sys
 import math
 
-sys.path.insert(0, ".")
-
 
 def test_sprite_distance_to_coordinates():
     """Test distance_to method with x, y coordinates."""

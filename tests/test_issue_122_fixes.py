@@ -4,8 +4,6 @@ import pytest
 import sys
 import math
 
-sys.path.insert(0, ".")
-
 
 def test_image_rotation_from_physics():
     """Test that Image rotation reads from physics body angle like Box/Circle do."""

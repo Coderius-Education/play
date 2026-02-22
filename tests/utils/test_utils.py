@@ -1,9 +1,6 @@
 """Tests for utility functions."""
 
 import pytest
-import sys
-
-sys.path.insert(0, ".")
 
 
 def test_clamp_within_range():

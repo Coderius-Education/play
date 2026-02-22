@@ -1,9 +1,6 @@
 """Tests for mouse event decorators and functionality."""
 
 import pytest
-import sys
-
-sys.path.insert(0, ".")
 
 
 def test_mouse_initial_state():

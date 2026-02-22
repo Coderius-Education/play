@@ -1,9 +1,6 @@
 """Tests for Text object creation and properties."""
 
 import pytest
-import sys
-
-sys.path.insert(0, ".")
 
 
 def test_text_creation_default():
