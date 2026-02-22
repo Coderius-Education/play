@@ -1,9 +1,7 @@
 """Tests for is_touching_wall() and get_touching_walls() methods."""
 
 import pytest
-import sys
 
-sys.path.insert(0, ".")
 
 
 def test_is_touching_wall_false():

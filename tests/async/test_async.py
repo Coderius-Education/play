@@ -9,9 +9,7 @@ actual = None
 
 
 def test_async():
-    import sys
 
-    sys.path.insert(0, ".")
     import play
 
     bal = play.new_circle(x=x_start, color="blue", radius=50)

@@ -30,9 +30,7 @@ sprite_to_expected = {
 
 @pytest.mark.parametrize("sprite_items", list(sprite_to_expected.items()))
 def test_sprite_attributes(sprite_items):
-    import sys
 
-    sys.path.insert(0, ".")
     import play
 
     sprite_type, expected_values = sprite_items

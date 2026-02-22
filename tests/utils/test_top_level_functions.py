@@ -1,9 +1,7 @@
 """Tests for top-level API functions."""
 
 import pytest
-import sys
 
-sys.path.insert(0, ".")
 
 
 def test_set_backdrop_color():

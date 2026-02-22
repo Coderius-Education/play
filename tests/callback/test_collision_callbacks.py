@@ -1,9 +1,7 @@
 """Tests for collision callback system."""
 
 import pytest
-import sys
 
-sys.path.insert(0, ".")
 
 
 def test_collision_registry_exists():

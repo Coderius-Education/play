@@ -1,9 +1,7 @@
 """Tests for program event decorators like when_program_starts and repeat_forever."""
 
 import pytest
-import sys
 
-sys.path.insert(0, ".")
 
 
 def test_when_program_starts_decorator():

@@ -1,9 +1,7 @@
 """Tests for sprite event decorators like when_clicked."""
 
 import pytest
-import sys
 
-sys.path.insert(0, ".")
 
 
 def test_sprite_when_clicked_method():

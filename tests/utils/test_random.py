@@ -1,9 +1,7 @@
 """Tests for random utility functions."""
 
 import pytest
-import sys
 
-sys.path.insert(0, ".")
 
 
 def test_random_number_default():

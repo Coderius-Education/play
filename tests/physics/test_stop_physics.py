@@ -11,9 +11,7 @@ expected = list(range(0, 26)) + [25 for _ in range(50)]
 
 
 def test_stop_physics():
-    import sys
 
-    sys.path.insert(0, ".")
     import play
 
     ball = play.new_circle(
@@ -52,9 +50,7 @@ def test_stop_physics():
 def test_stop_physics_removes_gravity():
     """Test that stop_physics disables gravity."""
     global frames
-    import sys
 
-    sys.path.insert(0, ".")
     import play
 
     ball = play.new_circle(x=0, y=100, radius=50)

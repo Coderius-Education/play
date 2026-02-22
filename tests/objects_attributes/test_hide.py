@@ -5,9 +5,7 @@ max_frames = 100
 
 
 def test_hide():
-    import sys
 
-    sys.path.insert(0, ".")
     import pygame
     import pygame.surfarray as surfarray
     import play

@@ -5,9 +5,7 @@ import pytest
 
 def test_when_touching_callbacks_not_duplicated():
     """Calling start_physics a second time should not duplicate when_touching callbacks."""
-    import sys
 
-    sys.path.insert(0, ".")
     import play
     from play.callback import callback_manager, CallbackType
 
@@ -45,9 +43,7 @@ def test_when_touching_callbacks_not_duplicated():
 
 def test_when_touching_wall_callbacks_not_duplicated():
     """Calling start_physics a second time should not duplicate when_touching_wall callbacks."""
-    import sys
 
-    sys.path.insert(0, ".")
     import play
     from play.callback import callback_manager, CallbackType
 
@@ -79,9 +75,7 @@ def test_when_touching_wall_callbacks_not_duplicated():
 
 def test_when_stopped_touching_callbacks_not_duplicated():
     """Calling start_physics a second time should not duplicate when_stopped_touching callbacks."""
-    import sys
 
-    sys.path.insert(0, ".")
     import play
     from play.callback import callback_manager, CallbackType
 
@@ -118,9 +112,7 @@ def test_when_stopped_touching_callbacks_not_duplicated():
 
 def test_when_stopped_touching_wall_callbacks_not_duplicated():
     """Calling start_physics a second time should not duplicate when_stopped_touching_wall callbacks."""
-    import sys
 
-    sys.path.insert(0, ".")
     import play
     from play.callback import callback_manager, CallbackType
 
@@ -154,9 +146,7 @@ def test_when_stopped_touching_wall_callbacks_not_duplicated():
 
 def test_multiple_start_physics_calls_preserve_callbacks():
     """Calling start_physics 3 times should still have the same callback count as after the first."""
-    import sys
 
-    sys.path.insert(0, ".")
     import play
     from play.callback import callback_manager, CallbackType
 
@@ -205,9 +195,7 @@ def test_multiple_start_physics_calls_preserve_callbacks():
 def test_other_sprite_start_physics_preserves_dependent_callbacks():
     """When sprite B calls start_physics, callbacks registered by sprite A
     referencing B should be re-registered with B's new physics shape."""
-    import sys
 
-    sys.path.insert(0, ".")
     import play
     from play.callback import callback_manager, CallbackType
 

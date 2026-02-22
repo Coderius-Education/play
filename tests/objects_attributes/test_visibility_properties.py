@@ -1,9 +1,7 @@
 """Tests for sprite visibility properties (is_hidden, is_shown)."""
 
 import pytest
-import sys
 
-sys.path.insert(0, ".")
 
 
 def test_is_hidden_default():

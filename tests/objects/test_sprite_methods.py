@@ -1,10 +1,8 @@
 """Tests for sprite methods like distance_to, etc."""
 
 import pytest
-import sys
 import math
 
-sys.path.insert(0, ".")
 
 
 def test_sprite_distance_to_coordinates():

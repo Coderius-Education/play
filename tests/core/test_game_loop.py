@@ -1,9 +1,7 @@
 """Tests for core game loop functionality."""
 
 import pytest
-import sys
 
-sys.path.insert(0, ".")
 
 
 def test_game_loop_runs():

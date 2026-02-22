@@ -1,9 +1,7 @@
 """Tests for Box sprite properties."""
 
 import pytest
-import sys
 
-sys.path.insert(0, ".")
 
 
 def test_box_color_getter():

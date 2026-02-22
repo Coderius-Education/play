@@ -14,9 +14,7 @@ expected = (
 
 
 def test_ball_movement():
-    import sys
 
-    sys.path.insert(0, ".")
     import play
 
     ball = play.new_circle(

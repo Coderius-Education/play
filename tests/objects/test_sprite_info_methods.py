@@ -1,10 +1,8 @@
 """Tests for sprite info() and physics_info() methods."""
 
 import pytest
-import sys
 from io import StringIO
 
-sys.path.insert(0, ".")
 
 
 def test_info_method_runs():
@@ -19,7 +17,6 @@ def test_info_method_runs():
     @play.when_program_starts
     def check():
         # Capture stdout
-        import sys
         from io import StringIO
 
         captured = StringIO()
@@ -50,7 +47,6 @@ def test_info_method_circle():
 
     @play.when_program_starts
     def check():
-        import sys
         from io import StringIO
 
         captured = StringIO()
@@ -82,7 +78,6 @@ def test_physics_info_method_runs():
 
     @play.when_program_starts
     def check():
-        import sys
         from io import StringIO
 
         captured = StringIO()
@@ -113,7 +108,6 @@ def test_physics_info_static():
 
     @play.when_program_starts
     def check():
-        import sys
         from io import StringIO
 
         captured = StringIO()
@@ -147,7 +141,6 @@ def test_physics_info_kinematic():
 
     @play.when_program_starts
     def check():
-        import sys
         from io import StringIO
 
         captured = StringIO()
