@@ -8,9 +8,6 @@ actual = []
 
 
 def test_set_alpha():
-    import sys
-
-    sys.path.insert(0, ".")
     import play
 
     image1 = play.new_image(

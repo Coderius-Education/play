@@ -1,9 +1,6 @@
 """Tests for Circle sprite properties."""
 
 import pytest
-import sys
-
-sys.path.insert(0, ".")
 
 
 def test_circle_color_getter():

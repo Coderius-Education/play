@@ -1,9 +1,6 @@
 """Tests for play.screen.resize method."""
 
 import pytest
-import sys
-
-sys.path.insert(0, ".")
 
 
 def test_screen_resize_before_sprites():

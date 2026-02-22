@@ -1,10 +1,6 @@
 """Tests for the _make_pymunk method body type selection."""
 
 import pytest
-import sys
-
-sys.path.insert(0, ".")
-
 import pymunk
 
 

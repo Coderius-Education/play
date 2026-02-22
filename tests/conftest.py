@@ -3,33 +3,17 @@
 Handles pygame re-initialisation after fork().  Module-level imports of
 play trigger pygame.init() which starts background threads.  Those
 threads do not survive fork(), causing deadlocks with pytest --forked.
-
-Two hooks cooperate to fix this:
-
-1. pytest_collection_finish – runs in the *parent* after all test modules
-   have been collected (and thus after pygame.init() has been triggered by
-   module-level imports).  Calls pygame.quit() to kill background threads
-   so that subsequent fork() calls don't deadlock.
-
-2. pytest_runtest_setup – runs in every forked *child* before each test.
-   Calls pygame.init() to restart pygame cleanly.
 """
 
 import os
+import pytest
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
-_parent_pid = os.getpid()
-
 
 def pytest_collection_finish(session):
-    """Kill pygame threads in the parent after test collection.
-
-    Module-level imports during collection trigger pygame.init(), which
-    starts background threads.  Those threads make fork() unsafe.
-    Quitting pygame here is safe because no tests have run yet.
-    """
+    """Kill pygame threads in the parent after test collection."""
     try:
         import pygame
 
@@ -39,16 +23,127 @@ def pytest_collection_finish(session):
         pass
 
 
-def pytest_runtest_setup(item):
-    """Re-initialise pygame in forked child processes.
-
-    After the parent quit pygame (see above), forked children need to
-    restart it before running any test that uses play.
+@pytest.fixture(autouse=True)
+def clean_play_state():
+    """Flush play globals, physics, callbacks, and groups before every test.
+    This prevents state bleed across tests and resolves random hanging test loops.
     """
-    if os.getpid() != _parent_pid:
-        import pygame
+    import pygame
 
-        pygame.init()
+    # Headless Execution Fixes: properly initialize Pygame
+    pygame.init()
+    pygame.display.init()
+    pygame.font.init()
+
+    try:
+        pygame.display.set_mode((800, 600))
         from play.io.screen import screen
 
         screen.update_display()
+    except Exception:
+        pass
+
+    import pygame
+
+    pygame.event.clear()
+
+    import play
+    import asyncio
+    import play.loop
+
+    old_loop = play.loop.get_loop()
+    if old_loop and not old_loop.is_closed():
+        # Cancel any leftover tasks in the old loop
+        for task in asyncio.all_tasks(loop=old_loop):
+            task.cancel()
+        old_loop.stop()
+        # Create a completely fresh event loop to prevent task/state bleed
+        play.loop._loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(play.loop._loop)
+
+    from play.physics import physics_space
+    from play.callback import callback_manager
+
+    # Clean play globals
+    play.globals.globals_list.all_sprites.clear()
+    play.globals.globals_list.sprites_group.empty()
+    play.globals.globals_list.walls.clear()
+    play.globals.globals_list.controllers.clear()
+    import pygame
+
+    pygame.event.clear()
+
+    import play.core.sprites_loop
+
+    play.core.sprites_loop._clicked_sprite_id = None
+
+    import pygame
+
+    pygame.event.clear()
+
+    import play.api.utils
+
+    play.api.utils._program_started = False
+    play.api.utils._initial_pid = -1
+
+    # Reset frame_rate, dimensions, backdrop, gravity to default
+    play.globals.globals_list.frame_rate = 60
+    play.globals.globals_list.width = 800
+    play.globals.globals_list.height = 600
+    play.globals.globals_list.backdrop_type = "color"
+    play.globals.globals_list.backdrop = (255, 255, 255)
+    play.globals.globals_list.gravity.vertical = -100
+    play.globals.globals_list.gravity.horizontal = 0
+    from play.io.screen import screen
+
+    screen.width = 800
+    screen.height = 600
+    screen.update_display()
+
+    # Clean Pymunk physics spaces
+    for body in list(physics_space.bodies):
+        physics_space.remove(body)
+    for shape in list(physics_space.shapes):
+        physics_space.remove(shape)
+    for constraint in list(physics_space.constraints):
+        physics_space.remove(constraint)
+
+    from play.io.screen import create_walls
+
+    create_walls()
+
+    import pygame
+
+    pygame.event.clear()
+
+    import play.core
+
+    play.core._clock = pygame.time.Clock()
+
+    # Clean callback queues
+    callback_manager.callbacks.clear()
+
+    from play.callback.collision_callbacks import collision_registry
+
+    collision_registry.callbacks = {True: {}, False: {}}
+    collision_registry.shape_registry.clear()
+
+    from play.core import keyboard_state, mouse_state
+
+    keyboard_state.pressed.clear()
+    mouse_state.click_happened = False
+    mouse_state.click_release_happened = False
+
+    from play.io.mouse import mouse
+
+    mouse.x = 0
+    mouse.y = 0
+    mouse._is_clicked = False
+
+    import pygame
+
+    if pygame.display.get_init():
+        pygame.event.pump()
+        pygame.event.clear()
+
+    yield

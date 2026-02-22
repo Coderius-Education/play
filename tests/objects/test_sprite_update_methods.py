@@ -1,9 +1,5 @@
 """Tests for sprite update methods: _update_sprite_collisions and _update_wall_collisions."""
 
-import sys
-
-sys.path.insert(0, ".")
-
 
 def test_update_sprite_collisions_touching(monkeypatch):
     """Test _update_sprite_collisions updates _touching_callback when sprites overlap."""

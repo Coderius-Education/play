@@ -3,9 +3,6 @@
 
 def test_save_and_clear_callbacks_returns_saved():
     """_save_and_clear_callbacks should return all registered callbacks."""
-    import sys
-
-    sys.path.insert(0, ".")
     import play
     from play.callback import CallbackType
 
@@ -36,9 +33,6 @@ def test_save_and_clear_callbacks_returns_saved():
 
 def test_save_and_clear_callbacks_clears_manager():
     """After _save_and_clear_callbacks, the callback_manager should have no entries."""
-    import sys
-
-    sys.path.insert(0, ".")
     import play
     from play.callback import callback_manager, CallbackType
 
@@ -62,9 +56,6 @@ def test_save_and_clear_callbacks_clears_manager():
 
 def test_save_and_clear_callbacks_empty_when_no_callbacks():
     """_save_and_clear_callbacks should return empty lists when nothing is registered."""
-    import sys
-
-    sys.path.insert(0, ".")
     import play
 
     ball = play.new_circle(x=0, y=0, radius=20)
@@ -80,9 +71,6 @@ def test_save_and_clear_callbacks_empty_when_no_callbacks():
 
 def test_cleanup_collision_registry_removes_entries():
     """_cleanup_collision_registry should remove all entries for a collision type."""
-    import sys
-
-    sys.path.insert(0, ".")
     import play
     from play.callback.collision_callbacks import collision_registry
 
@@ -112,9 +100,6 @@ def test_cleanup_collision_registry_removes_entries():
 
 def test_cleanup_collision_registry_removes_nested_entries():
     """_cleanup_collision_registry should also remove the sprite from nested dicts of other sprites."""
-    import sys
-
-    sys.path.insert(0, ".")
     import play
     from play.callback.collision_callbacks import collision_registry
 
@@ -145,9 +130,6 @@ def test_cleanup_collision_registry_removes_nested_entries():
 
 def test_cleanup_collision_registry_none_is_noop():
     """_cleanup_collision_registry with None should do nothing."""
-    import sys
-
-    sys.path.insert(0, ".")
     import play
 
     ball = play.new_circle(x=0, y=0, radius=20)
@@ -160,9 +142,6 @@ def test_cleanup_collision_registry_none_is_noop():
 
 def test_reregister_own_callbacks_restores_touching():
     """_reregister_own_callbacks should restore when_touching callbacks."""
-    import sys
-
-    sys.path.insert(0, ".")
     import play
     from play.callback import callback_manager, CallbackType
 
@@ -195,9 +174,6 @@ def test_reregister_own_callbacks_restores_touching():
 
 def test_reregister_own_callbacks_restores_wall_callbacks():
     """_reregister_own_callbacks should restore when_touching_wall callbacks."""
-    import sys
-
-    sys.path.insert(0, ".")
     import play
     from play.callback import callback_manager, CallbackType
 
@@ -228,9 +204,6 @@ def test_reregister_own_callbacks_restores_wall_callbacks():
 
 def test_reregister_dependent_callbacks_refreshes_other_sprite():
     """_reregister_dependent_callbacks should refresh when_touching callbacks from dependents."""
-    import sys
-
-    sys.path.insert(0, ".")
     import play
     from play.callback import callback_manager, CallbackType
 
@@ -262,9 +235,6 @@ def test_reregister_dependent_callbacks_refreshes_other_sprite():
 
 def test_reregister_dependent_callbacks_refreshes_when_stopped_touching():
     """_reregister_dependent_callbacks should refresh when_stopped_touching callbacks from dependents."""
-    import sys
-
-    sys.path.insert(0, ".")
     import play
     from play.callback import callback_manager, CallbackType
 
@@ -298,9 +268,6 @@ def test_reregister_dependent_callbacks_refreshes_when_stopped_touching():
 
 def test_reregister_dependent_callbacks_skips_no_physics():
     """_reregister_dependent_callbacks should skip dependents without physics."""
-    import sys
-
-    sys.path.insert(0, ".")
     import play
 
     ball = play.new_circle(x=0, y=0, radius=20)
