@@ -85,7 +85,9 @@ def test_space_shooter():
     play.start_program()
 
     # --- assertions --------------------------------------------------------
-    assert shots_fired[0] > 0, "no shots were fired — when_program_starts may not have run"
+    assert (
+        shots_fired[0] > 0
+    ), "no shots were fired — when_program_starts may not have run"
     assert hits[0] > 0, (
         f"bullet never hit the enemy after {shots_fired[0]} shots; "
         "collision detection may be broken"
