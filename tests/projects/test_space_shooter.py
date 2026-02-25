@@ -16,15 +16,14 @@ This test verifies:
 import pytest
 
 max_frames = 3000
-hits = 0
 winning_hits = 3
-shots_fired = 0
 
 
 def test_space_shooter():
     import play
 
-    global hits, shots_fired
+    hits = [0]
+    shots_fired = [0]
 
     # --- sprites -----------------------------------------------------------
     # Player ship at the bottom
@@ -61,20 +60,18 @@ def test_space_shooter():
     # --- bullet hits enemy -------------------------------------------------
     @bullet.when_stopped_touching(enemy)
     def bullet_hit():
-        global hits
-        hits += 1
-        score_text.words = f"Hits: {hits}"
+        hits[0] += 1
+        score_text.words = f"Hits: {hits[0]}"
         # Reset bullet to below screen so it can be re-fired
         bullet.x = 0
         bullet.y = -500
         bullet.physics.y_speed = 0
-        if hits >= winning_hits:
+        if hits[0] >= winning_hits:
             play.stop_program()
 
     # --- fire bullets on a timer ------------------------------------------
     @play.when_program_starts
     async def fire_loop():
-        global shots_fired
         for frame in range(max_frames):
             await play.animate()
             # Fire a new bullet every 20 frames if it is parked off-screen
@@ -82,19 +79,19 @@ def test_space_shooter():
                 bullet.x = enemy.x  # aim at current enemy x
                 bullet.y = player.y + 30
                 bullet.physics.y_speed = 500
-                shots_fired += 1
+                shots_fired[0] += 1
         play.stop_program()
 
     play.start_program()
 
     # --- assertions --------------------------------------------------------
-    assert shots_fired > 0, "no shots were fired — when_program_starts may not have run"
-    assert hits > 0, (
-        f"bullet never hit the enemy after {shots_fired} shots; "
+    assert shots_fired[0] > 0, "no shots were fired — when_program_starts may not have run"
+    assert hits[0] > 0, (
+        f"bullet never hit the enemy after {shots_fired[0]} shots; "
         "collision detection may be broken"
     )
-    assert hits <= shots_fired, (
-        f"more hits ({hits}) than shots fired ({shots_fired}); "
+    assert hits[0] <= shots_fired[0], (
+        f"more hits ({hits[0]}) than shots fired ({shots_fired[0]}); "
         "when_stopped_touching callback may be firing multiple times per collision"
     )
 

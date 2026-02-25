@@ -80,10 +80,18 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         return True
 
     def _handle_end_collision_shape(self, shape_a: Shape, shape_b: Shape):
+        """Check and fire the stopped-touching callback for shape_a → shape_b.
+
+        Returns True if the second direction should be skipped:
+        - a wall is involved (wall callbacks are handled separately), or
+        - a callback was found and queued for this collision pair.
+        Returns False if no relevant callback was found.
+        """
         if not hasattr(shape_a, "collision_id") or not hasattr(shape_b, "collision_id"):
             return False
 
-        # check for walls
+        # check for walls — wall callbacks are handled separately; return True
+        # so the caller skips the reverse direction check.
         if any(
             [
                 self.shape_registry[shape_a.collision_type] is None,
@@ -140,6 +148,9 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         if not shape.collision_type in self.callbacks[begin]:
             self.callbacks[begin][shape.collision_type] = {}
 
+        # pymunk always initialises collision_type=0 on every Shape, so
+        # hasattr() would always return True.  Use our own sentinel flag to
+        # distinguish "we assigned a unique id" from "pymunk defaulted it to 0".
         if not getattr(other_shape, "_play_collision_type_set", False):
             other_shape.collision_type = id(other_shape)
             other_shape._play_collision_type_set = True

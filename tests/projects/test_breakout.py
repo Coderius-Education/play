@@ -19,15 +19,13 @@ import pytest
 max_frames = 3000
 TOTAL_BRICKS = 3
 
-lives = 3
-bricks_destroyed = 0
-
 
 def test_breakout():
     import play
     from play.callback.collision_callbacks import WallSide
 
-    global lives, bricks_destroyed
+    lives = [3]
+    bricks_destroyed = [0]
 
     # --- sprites -----------------------------------------------------------
     ball = play.new_circle(color="white", x=0, y=-100, radius=12)
@@ -66,13 +64,12 @@ def test_breakout():
     def _make_brick_callback(brick):
         @ball.when_stopped_touching(brick)
         def brick_hit():
-            global bricks_destroyed
             if not brick.is_hidden:
-                bricks_destroyed += 1
-                score_text.words = f"Score: {bricks_destroyed}"
+                bricks_destroyed[0] += 1
+                score_text.words = f"Score: {bricks_destroyed[0]}"
                 brick.hide()
                 brick.stop_physics()
-                if bricks_destroyed >= TOTAL_BRICKS:
+                if bricks_destroyed[0] >= TOTAL_BRICKS:
                     play.stop_program()
 
     for brick in bricks:
@@ -81,14 +78,13 @@ def test_breakout():
     # --- bottom wall = lose a life -----------------------------------------
     @ball.when_stopped_touching_wall(wall=WallSide.BOTTOM)
     def ball_fell():
-        global lives
-        lives -= 1
-        lives_text.words = f"Lives: {lives}"
+        lives[0] -= 1
+        lives_text.words = f"Lives: {lives[0]}"
         ball.x = 0
         ball.y = -100
         ball.physics.x_speed = 120
         ball.physics.y_speed = 240
-        if lives <= 0:
+        if lives[0] <= 0:
             play.stop_program()
 
     # --- safety timeout ----------------------------------------------------
@@ -101,13 +97,13 @@ def test_breakout():
     play.start_program()
 
     # --- assertions --------------------------------------------------------
-    assert bricks_destroyed >= 0, "bricks_destroyed should never go negative"
-    assert lives >= 0, "lives should never go negative"
+    assert bricks_destroyed[0] >= 0, "bricks_destroyed should never go negative"
+    assert lives[0] >= 0, "lives should never go negative"
     assert (
-        bricks_destroyed <= TOTAL_BRICKS
-    ), f"can't destroy more than {TOTAL_BRICKS} bricks, got {bricks_destroyed}"
+        bricks_destroyed[0] <= TOTAL_BRICKS
+    ), f"can't destroy more than {TOTAL_BRICKS} bricks, got {bricks_destroyed[0]}"
     # At least something happened during the game
-    game_events = bricks_destroyed + (3 - lives)
+    game_events = bricks_destroyed[0] + (3 - lives[0])
     assert (
         game_events > 0
     ), "No game events detected — ball likely did not move or collide with anything"

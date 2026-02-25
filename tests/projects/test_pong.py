@@ -16,18 +16,16 @@ This test verifies:
 import pytest
 
 max_frames = 3000
-
-score_left = 0
-score_right = 0
 winning_score = 3
-ball_paddle_hits = 0
 
 
 def test_pong():
     import play
     from play.callback.collision_callbacks import WallSide
 
-    global score_left, score_right, ball_paddle_hits
+    score_left = [0]
+    score_right = [0]
+    ball_paddle_hits = [0]
 
     # --- sprites -----------------------------------------------------------
     ball = play.new_circle(color="black", x=0, y=0, radius=10)
@@ -57,37 +55,33 @@ def test_pong():
     # --- paddle–ball collisions --------------------------------------------
     @ball.when_stopped_touching(paddle_left)
     def ball_leaves_left_paddle():
-        global ball_paddle_hits
-        ball_paddle_hits += 1
+        ball_paddle_hits[0] += 1
 
     @ball.when_stopped_touching(paddle_right)
     def ball_leaves_right_paddle():
-        global ball_paddle_hits
-        ball_paddle_hits += 1
+        ball_paddle_hits[0] += 1
 
     # --- scoring via wall callbacks ----------------------------------------
     @ball.when_stopped_touching_wall(wall=WallSide.LEFT)
     def right_player_scores():
-        global score_right
-        score_right += 1
-        score_text.words = f"{score_left} - {score_right}"
+        score_right[0] += 1
+        score_text.words = f"{score_left[0]} - {score_right[0]}"
         ball.x = 0
         ball.y = 0
         ball.physics.x_speed = 300
         ball.physics.y_speed = 40
-        if score_right >= winning_score:
+        if score_right[0] >= winning_score:
             play.stop_program()
 
     @ball.when_stopped_touching_wall(wall=WallSide.RIGHT)
     def left_player_scores():
-        global score_left
-        score_left += 1
-        score_text.words = f"{score_left} - {score_right}"
+        score_left[0] += 1
+        score_text.words = f"{score_left[0]} - {score_right[0]}"
         ball.x = 0
         ball.y = 0
         ball.physics.x_speed = -300
         ball.physics.y_speed = -40
-        if score_left >= winning_score:
+        if score_left[0] >= winning_score:
             play.stop_program()
 
     # --- safety timeout ----------------------------------------------------
@@ -100,15 +94,15 @@ def test_pong():
     play.start_program()
 
     # --- assertions --------------------------------------------------------
-    total_score = score_left + score_right
+    total_score = score_left[0] + score_right[0]
     assert (
         total_score >= winning_score
     ), f"expected at least {winning_score} total points scored, got {total_score}"
-    assert score_left >= winning_score or score_right >= winning_score, (
+    assert score_left[0] >= winning_score or score_right[0] >= winning_score, (
         f"expected one player to reach {winning_score}, "
-        f"scores were {score_left} - {score_right}"
+        f"scores were {score_left[0]} - {score_right[0]}"
     )
-    assert ball_paddle_hits > 0, "ball should have hit at least one paddle"
+    assert ball_paddle_hits[0] > 0, "ball should have hit at least one paddle"
 
 
 if __name__ == "__main__":

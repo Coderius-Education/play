@@ -9,6 +9,43 @@ import logging
 import os
 import pytest
 
+
+# ---------------------------------------------------------------------------
+# Shared mouse-event helpers (used by tests/events/ and tests/projects/)
+# ---------------------------------------------------------------------------
+
+
+def post_mouse_motion(screen_x, screen_y):
+    """Post a MOUSEMOTION event to position the simulated cursor."""
+    import pygame
+
+    event = pygame.event.Event(
+        pygame.MOUSEMOTION,
+        {"pos": (screen_x, screen_y), "rel": (0, 0), "buttons": (0, 0, 0)},
+    )
+    pygame.event.post(event)
+
+
+def post_mouse_down(screen_x, screen_y):
+    """Post a MOUSEBUTTONDOWN event at the given screen coordinates."""
+    import pygame
+
+    event = pygame.event.Event(
+        pygame.MOUSEBUTTONDOWN, {"pos": (screen_x, screen_y), "button": 1}
+    )
+    pygame.event.post(event)
+
+
+def post_mouse_up(screen_x, screen_y):
+    """Post a MOUSEBUTTONUP event at the given screen coordinates."""
+    import pygame
+
+    event = pygame.event.Event(
+        pygame.MOUSEBUTTONUP, {"pos": (screen_x, screen_y), "button": 1}
+    )
+    pygame.event.post(event)
+
+
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 

@@ -1,5 +1,5 @@
 [tool.pytest.ini_options]
-pythonpath = ["."]
+pythonpath = [".", "tests"]
 
 [tool.pylint.MASTER]
 max-line-length = 120

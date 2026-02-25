@@ -15,16 +15,16 @@ This test verifies:
 import pytest
 
 max_frames = 2000
-lives = 3
-paddle_hits = 0
-bottom_hits = 0
+starting_lives = 3
 
 
 def test_pong_singleplayer():
     import play
     from play.callback.collision_callbacks import WallSide
 
-    global lives, paddle_hits, bottom_hits
+    lives = [starting_lives]
+    paddle_hits = [0]
+    bottom_hits = [0]
 
     # --- sprites -----------------------------------------------------------
     ball = play.new_circle(color="black", x=0, y=100, radius=10)
@@ -48,21 +48,19 @@ def test_pong_singleplayer():
     # --- paddle collision --------------------------------------------------
     @ball.when_stopped_touching(paddle)
     def ball_hits_paddle():
-        global paddle_hits
-        paddle_hits += 1
+        paddle_hits[0] += 1
 
     # --- ball hits bottom wall = lose a life -------------------------------
     @ball.when_stopped_touching_wall(wall=WallSide.BOTTOM)
     def ball_hits_bottom():
-        global lives, bottom_hits
-        bottom_hits += 1
-        lives -= 1
-        lives_text.words = f"Lives: {lives}"
+        bottom_hits[0] += 1
+        lives[0] -= 1
+        lives_text.words = f"Lives: {lives[0]}"
         ball.x = 0
         ball.y = 100
         ball.physics.x_speed = 60
         ball.physics.y_speed = -260
-        if lives <= 0:
+        if lives[0] <= 0:
             play.stop_program()
 
     # --- safety timeout ----------------------------------------------------
@@ -75,9 +73,14 @@ def test_pong_singleplayer():
     play.start_program()
 
     # --- assertions --------------------------------------------------------
-    assert paddle_hits > 0, "ball should have hit the paddle at least once"
-    assert bottom_hits > 0, "ball should have hit the bottom wall at least once"
-    assert lives < 3, "player should have lost at least one life"
+    assert paddle_hits[0] > 0, "ball should have hit the paddle at least once"
+    assert bottom_hits[0] > 0, "ball should have hit the bottom wall at least once"
+    assert lives[0] < starting_lives, "player should have lost at least one life"
+    assert lives[0] >= 0, "lives should never go negative"
+    assert bottom_hits[0] <= 10, (
+        f"too many bottom hits ({bottom_hits[0]}); "
+        "when_stopped_touching_wall callback may be firing twice per collision"
+    )
 
 
 if __name__ == "__main__":
