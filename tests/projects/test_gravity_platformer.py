@@ -32,8 +32,8 @@ def test_gravity_platformer():
     # Wide lower platform so the player reliably lands on it
     lower_platform = play.new_box(color="brown", x=0, y=-200, width=400, height=20)
 
-    # Narrower upper platform — player can reach it after a big bounce
-    upper_platform = play.new_box(color="gray", x=0, y=50, width=200, height=20)
+    # Upper platform off to the side — player falls past it to the lower one
+    upper_platform = play.new_box(color="gray", x=250, y=50, width=200, height=20)
 
     lives_text = play.new_text(words="Bounces: 0", x=0, y=270, font_size=24)
 

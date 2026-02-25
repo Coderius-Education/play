@@ -32,8 +32,8 @@ def test_space_shooter():
     # Enemy that sweeps left-right near the top
     enemy = play.new_box(color="red", x=0, y=200, width=60, height=30)
 
-    # A single reusable bullet — starts off-screen
-    bullet = play.new_circle(color="yellow", x=0, y=-500, radius=6)
+    # A single reusable bullet — starts hidden at the bottom of the screen
+    bullet = play.new_circle(color="yellow", x=0, y=-290, radius=6)
 
     score_text = play.new_text(words="Hits: 0", x=0, y=270, font_size=24)
 
@@ -54,7 +54,7 @@ def test_space_shooter():
         y_speed=0,
         friction=0,
         mass=1,
-        bounciness=0,
+        bounciness=1.0,
     )
 
     # --- bullet hits enemy -------------------------------------------------
@@ -64,7 +64,7 @@ def test_space_shooter():
         score_text.words = f"Hits: {hits[0]}"
         # Reset bullet to below screen so it can be re-fired
         bullet.x = 0
-        bullet.y = -500
+        bullet.y = -290
         bullet.physics.y_speed = 0
         if hits[0] >= winning_hits:
             play.stop_program()
@@ -74,8 +74,8 @@ def test_space_shooter():
     async def fire_loop():
         for frame in range(max_frames):
             await play.animate()
-            # Fire a new bullet every 20 frames if it is parked off-screen
-            if frame % 20 == 0 and bullet.y < -400:
+            # Fire a new bullet every 20 frames if it is parked at the bottom
+            if frame % 20 == 0 and bullet.y < -250:
                 bullet.x = enemy.x  # aim at current enemy x
                 bullet.y = player.y + 30
                 bullet.physics.y_speed = 500
