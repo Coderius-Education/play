@@ -98,6 +98,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             self.shape_registry[shape_a.collision_type].events.clear_touching(
                 shape_b.collision_id
             )
+        fired = False
         if (
             shape_a.collision_type in self.callbacks[False]
             and shape_b.collision_type in self.callbacks[False][shape_a.collision_type]
@@ -108,15 +109,17 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             self.shape_registry[shape_a.collision_type].events.set_stopped(
                 shape_b.collision_id, callback
             )
-        return True
+            fired = True
+        return fired
 
     def _handle_end_collision(self, arbiter: Arbiter, _, __):
         shape_a, shape_b = arbiter.shapes
 
-        self._handle_end_collision_shape(shape_a, shape_b)
-        self._handle_end_collision_shape(  # pylint: disable=arguments-out-of-order
-            shape_b, shape_a
-        )
+        fired_a = self._handle_end_collision_shape(shape_a, shape_b)
+        if not fired_a:
+            self._handle_end_collision_shape(  # pylint: disable=arguments-out-of-order
+                shape_b, shape_a
+            )
 
         return True
 
@@ -137,8 +140,9 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         if not shape.collision_type in self.callbacks[begin]:
             self.callbacks[begin][shape.collision_type] = {}
 
-        if not hasattr(other_shape, "collision_type"):
+        if not getattr(other_shape, "_play_collision_type_set", False):
             other_shape.collision_type = id(other_shape)
+            other_shape._play_collision_type_set = True
 
         # Check if a callback already exists for this collision pair (sprites only)
         if (
