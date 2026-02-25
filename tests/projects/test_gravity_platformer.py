@@ -78,13 +78,13 @@ def test_gravity_platformer():
     play.start_program()
 
     # --- assertions --------------------------------------------------------
-    assert lower_bounces > 0, (
-        "player should have bounced off the lower platform at least once"
-    )
+    assert (
+        lower_bounces > 0
+    ), "player should have bounced off the lower platform at least once"
     # Each bounce fires exactly once — the double-fire fix
-    assert lower_bounces <= 20, (
-        f"too many bounce events ({lower_bounces}); callback may be firing twice per collision"
-    )
+    assert (
+        lower_bounces <= 20
+    ), f"too many bounce events ({lower_bounces}); callback may be firing twice per collision"
 
 
 if __name__ == "__main__":

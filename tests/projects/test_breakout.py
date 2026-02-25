@@ -103,14 +103,14 @@ def test_breakout():
     # --- assertions --------------------------------------------------------
     assert bricks_destroyed >= 0, "bricks_destroyed should never go negative"
     assert lives >= 0, "lives should never go negative"
-    assert bricks_destroyed <= TOTAL_BRICKS, (
-        f"can't destroy more than {TOTAL_BRICKS} bricks, got {bricks_destroyed}"
-    )
+    assert (
+        bricks_destroyed <= TOTAL_BRICKS
+    ), f"can't destroy more than {TOTAL_BRICKS} bricks, got {bricks_destroyed}"
     # At least something happened during the game
     game_events = bricks_destroyed + (3 - lives)
-    assert game_events > 0, (
-        "No game events detected — ball likely did not move or collide with anything"
-    )
+    assert (
+        game_events > 0
+    ), "No game events detected — ball likely did not move or collide with anything"
 
 
 if __name__ == "__main__":
