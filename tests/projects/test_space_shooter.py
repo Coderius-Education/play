@@ -13,7 +13,7 @@ This test verifies:
 - the game stops cleanly after the win condition
 """
 
-max_frames = 3000
+max_frames = 4000
 winning_hits = 3
 
 

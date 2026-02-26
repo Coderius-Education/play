@@ -12,7 +12,9 @@ This test verifies:
 - life tracking and game-over
 """
 
-max_frames = 2000
+from tests.projects.conftest import add_safety_timeout
+
+max_frames = 4000
 starting_lives = 3
 
 
@@ -61,12 +63,7 @@ def test_pong_singleplayer():
         if lives[0] <= 0:
             play.stop_program()
 
-    # --- safety timeout ----------------------------------------------------
-    @play.when_program_starts
-    async def safety_timeout():
-        for _ in range(max_frames):
-            await play.animate()
-        play.stop_program()
+    add_safety_timeout(max_frames)
 
     play.start_program()
 

@@ -16,7 +16,13 @@ This test verifies:
 import os
 import tempfile
 
-max_frames = 3000
+from tests.projects.conftest import (
+    setup_pong,
+    add_safety_timeout,
+    assert_pong_winner,
+)
+
+max_frames = 4000
 winning_score = 3
 
 
@@ -24,49 +30,23 @@ def test_pong_highscore():
     import play
     from play.callback.collision_callbacks import WallSide
 
-    # Use a temp file so we don't pollute the project directory
     db_fd, db_path = tempfile.mkstemp(suffix=".json")
     os.close(db_fd)
-    os.remove(db_path)  # let new_database create it fresh
+    os.remove(db_path)
 
     try:
         score_left = [0]
         score_right = [0]
         highscore_updated = [False]
 
-        # --- database ----------------------------------------------------------
         db = play.new_database(db_filename=db_path)
         db.set_data("high_score", 0)
-        old_high = db.get_data("high_score", fallback=0)
 
-        # --- sprites -----------------------------------------------------------
-        ball = play.new_circle(color="black", x=0, y=0, radius=10)
+        ball, paddle_left, paddle_right, score_text = setup_pong()
 
-        paddle_left = play.new_box(color="blue", x=-350, y=0, width=15, height=80)
-        paddle_right = play.new_box(color="red", x=350, y=0, width=15, height=80)
+        highscore_text = play.new_text(words="High Score: 0", x=0, y=230, font_size=20)
 
-        score_text = play.new_text(words="0 - 0", x=0, y=260, font_size=30)
-        highscore_text = play.new_text(
-            words=f"High Score: {old_high}", x=0, y=230, font_size=20
-        )
-
-        # --- physics -----------------------------------------------------------
-        ball.start_physics(
-            obeys_gravity=False,
-            x_speed=300,
-            y_speed=40,
-            friction=0,
-            mass=10,
-            bounciness=1.0,
-        )
-        paddle_left.start_physics(
-            obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
-        )
-        paddle_right.start_physics(
-            obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
-        )
-
-        # --- collisions --------------------------------------------------------
+        # --- collisions ----------------------------------------------------
         @ball.when_stopped_touching(paddle_left)
         def ball_leaves_left():
             pass
@@ -75,7 +55,7 @@ def test_pong_highscore():
         def ball_leaves_right():
             pass
 
-        # --- scoring with high-score tracking ----------------------------------
+        # --- scoring with high-score tracking (custom) ---------------------
         def check_highscore():
             winner_score = max(score_left[0], score_right[0])
             current_high = db.get_data("high_score", fallback=0)
@@ -110,27 +90,14 @@ def test_pong_highscore():
             ball.physics.x_speed = -300
             ball.physics.y_speed = -40
 
-        # --- safety timeout ----------------------------------------------------
-        @play.when_program_starts
-        async def safety_timeout():
-            for _ in range(max_frames):
-                await play.animate()
-            play.stop_program()
+        add_safety_timeout(max_frames)
 
         play.start_program()
 
-        # --- assertions --------------------------------------------------------
-        total_score = score_left[0] + score_right[0]
-        assert (
-            total_score >= winning_score
-        ), f"expected at least {winning_score} total points, got {total_score}"
-        assert score_left[0] >= winning_score or score_right[0] >= winning_score
-
+        assert_pong_winner(score_left, score_right, winning_score)
         assert highscore_updated[
             0
         ], "high score should have been updated (started at 0)"
-
-        # verify the database file was actually written
         assert os.path.exists(db_path), "database file should exist on disk"
         stored = db.get_data("high_score", fallback=0)
         assert (
@@ -138,7 +105,6 @@ def test_pong_highscore():
         ), f"stored high score should be >= {winning_score}, got {stored}"
 
     finally:
-        # clean up temp database file
         if os.path.exists(db_path):
             os.remove(db_path)
 

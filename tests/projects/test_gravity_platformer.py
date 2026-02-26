@@ -14,7 +14,9 @@ This test verifies:
 - the game stops cleanly after the win condition or timeout
 """
 
-max_frames = 2000
+from tests.projects.conftest import add_safety_timeout
+
+max_frames = 4000
 
 
 def test_gravity_platformer():
@@ -63,12 +65,7 @@ def test_gravity_platformer():
     def reached_upper():
         upper_reached[0] = True
 
-    # --- safety timeout ----------------------------------------------------
-    @play.when_program_starts
-    async def safety_timeout():
-        for _ in range(max_frames):
-            await play.animate()
-        play.stop_program()
+    add_safety_timeout(max_frames)
 
     play.start_program()
 

@@ -8,12 +8,18 @@ This test verifies:
 - await play.animate() for frame-by-frame delays
 - text.words updates during the countdown
 - setting physics speed to 0 and back works correctly
+- countdown runs in the correct order (3 → 2 → 1 → Go!)
 - the game still completes normally after repeated serve delays
 """
 
+from tests.projects.conftest import (
+    setup_pong,
+    assert_pong_winner,
+)
+
 max_frames = 5000
 winning_score = 3
-countdown_frames = 10  # frames per countdown step (short for testing)
+countdown_frames = 10
 
 
 def test_pong_serve_delay():
@@ -23,33 +29,12 @@ def test_pong_serve_delay():
     score_left = [0]
     score_right = [0]
     serves = [0]
-    countdown_values = []  # track that countdown text actually changes
-    serve_direction = [0]  # non-zero means a serve is pending
+    countdown_values = []
+    serve_direction = [0]
 
-    # --- sprites -----------------------------------------------------------
-    ball = play.new_circle(color="black", x=0, y=0, radius=10)
+    ball, paddle_left, paddle_right, score_text = setup_pong()
 
-    paddle_left = play.new_box(color="blue", x=-350, y=0, width=15, height=80)
-    paddle_right = play.new_box(color="red", x=350, y=0, width=15, height=80)
-
-    score_text = play.new_text(words="0 - 0", x=0, y=260, font_size=30)
     countdown_text = play.new_text(words="", x=0, y=0, font_size=50)
-
-    # --- physics -----------------------------------------------------------
-    ball.start_physics(
-        obeys_gravity=False,
-        x_speed=300,
-        y_speed=40,
-        friction=0,
-        mass=10,
-        bounciness=1.0,
-    )
-    paddle_left.start_physics(
-        obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
-    )
-    paddle_right.start_physics(
-        obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
-    )
 
     # --- collisions --------------------------------------------------------
     @ball.when_stopped_touching(paddle_left)
@@ -60,7 +45,7 @@ def test_pong_serve_delay():
     def ball_leaves_right():
         pass
 
-    # --- scoring (request a serve, don't do async work here) ---------------
+    # --- scoring (custom: freezes ball and requests serve) -----------------
     @ball.when_stopped_touching_wall(wall=WallSide.LEFT)
     def right_player_scores():
         score_right[0] += 1
@@ -68,7 +53,6 @@ def test_pong_serve_delay():
         if score_right[0] >= winning_score:
             play.stop_program()
             return
-        # freeze ball and request serve
         ball.x = 0
         ball.y = 0
         ball.physics.x_speed = 0
@@ -98,7 +82,6 @@ def test_pong_serve_delay():
                 direction = serve_direction[0]
                 serve_direction[0] = 0
 
-                # countdown
                 for n in [3, 2, 1]:
                     countdown_text.words = str(n)
                     countdown_values.append(n)
@@ -108,7 +91,6 @@ def test_pong_serve_delay():
                 countdown_text.words = "Go!"
                 countdown_values.append(0)
 
-                # launch
                 ball.physics.x_speed = 300 * direction
                 ball.physics.y_speed = 40 * direction
                 serves[0] += 1
@@ -120,16 +102,17 @@ def test_pong_serve_delay():
 
     play.start_program()
 
-    # --- assertions --------------------------------------------------------
-    total_score = score_left[0] + score_right[0]
-    assert (
-        total_score >= winning_score
-    ), f"expected at least {winning_score} total points, got {total_score}"
-    assert score_left[0] >= winning_score or score_right[0] >= winning_score
+    assert_pong_winner(score_left, score_right, winning_score)
     assert serves[0] > 0, "at least one serve with countdown should have happened"
     assert len(countdown_values) > 0, "countdown text should have been updated"
-    assert 3 in countdown_values, "countdown should have shown '3'"
-    assert 1 in countdown_values, "countdown should have shown '1'"
+    # Verify countdown ran in order: 3, 2, 1, 0 (Go!)
+    first_sequence = countdown_values[:4]
+    assert first_sequence == [
+        3,
+        2,
+        1,
+        0,
+    ], f"countdown should run 3→2→1→Go!, got {first_sequence}"
 
 
 if __name__ == "__main__":

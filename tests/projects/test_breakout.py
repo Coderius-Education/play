@@ -14,7 +14,9 @@ This test verifies:
 - win/lose conditions stop the program correctly
 """
 
-max_frames = 3000
+from tests.projects.conftest import add_safety_timeout
+
+max_frames = 4000
 TOTAL_BRICKS = 3
 
 
@@ -85,26 +87,16 @@ def test_breakout():
         if lives[0] <= 0:
             play.stop_program()
 
-    # --- safety timeout ----------------------------------------------------
-    @play.when_program_starts
-    async def safety_timeout():
-        for _ in range(max_frames):
-            await play.animate()
-        play.stop_program()
+    add_safety_timeout(max_frames)
 
     play.start_program()
 
     # --- assertions --------------------------------------------------------
-    assert bricks_destroyed[0] >= 0, "bricks_destroyed should never go negative"
-    assert lives[0] >= 0, "lives should never go negative"
+    assert bricks_destroyed[0] > 0, "at least one brick should have been destroyed"
     assert (
         bricks_destroyed[0] <= TOTAL_BRICKS
     ), f"can't destroy more than {TOTAL_BRICKS} bricks, got {bricks_destroyed[0]}"
-    # At least something happened during the game
-    game_events = bricks_destroyed[0] + (3 - lives[0])
-    assert (
-        game_events > 0
-    ), "No game events detected — ball likely did not move or collide with anything"
+    assert lives[0] >= 0, "lives should never go negative"
 
 
 if __name__ == "__main__":

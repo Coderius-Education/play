@@ -12,7 +12,12 @@ This test verifies:
 - the game resumes and completes after unpausing
 """
 
-from conftest import post_key_down, post_key_up
+from tests.conftest import post_key_down, post_key_up
+from tests.projects.conftest import (
+    setup_pong,
+    add_pong_scoring,
+    assert_pong_winner,
+)
 
 max_frames = 5000
 winning_score = 3
@@ -21,51 +26,28 @@ winning_score = 3
 def test_pong_pause_key():
     import pygame
     import play
-    from play.callback.collision_callbacks import WallSide
 
     score_left = [0]
     score_right = [0]
     paused = [False]
     pause_toggles = [0]
-    saved_speed = [0.0, 0.0]  # x, y saved when pausing
+    saved_speed = [0.0, 0.0]
+    position_stable_during_pause = [True]
 
-    # --- sprites -----------------------------------------------------------
-    ball = play.new_circle(color="black", x=0, y=0, radius=10)
+    ball, paddle_left, paddle_right, score_text = setup_pong()
 
-    paddle_left = play.new_box(color="blue", x=-350, y=0, width=15, height=80)
-    paddle_right = play.new_box(color="red", x=350, y=0, width=15, height=80)
-
-    score_text = play.new_text(words="0 - 0", x=0, y=260, font_size=30)
     pause_text = play.new_text(words="PAUSED", x=0, y=0, font_size=60)
     pause_text.hide()
-
-    # --- physics -----------------------------------------------------------
-    ball.start_physics(
-        obeys_gravity=False,
-        x_speed=300,
-        y_speed=40,
-        friction=0,
-        mass=10,
-        bounciness=1.0,
-    )
-    paddle_left.start_physics(
-        obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
-    )
-    paddle_right.start_physics(
-        obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
-    )
 
     # --- pause toggle via "p" key ------------------------------------------
     @play.when_key_pressed("p")
     def toggle_pause(key=None):
         if paused[0]:
-            # unpause: restore saved speed
             paused[0] = False
             ball.physics.x_speed = saved_speed[0]
             ball.physics.y_speed = saved_speed[1]
             pause_text.hide()
         else:
-            # pause: save current speed and zero it
             paused[0] = True
             saved_speed[0] = ball.physics.x_speed
             saved_speed[1] = ball.physics.y_speed
@@ -83,33 +65,13 @@ def test_pong_pause_key():
     def ball_leaves_right():
         pass
 
-    # --- scoring -----------------------------------------------------------
-    @ball.when_stopped_touching_wall(wall=WallSide.LEFT)
-    def right_player_scores():
-        score_right[0] += 1
-        score_text.words = f"{score_left[0]} - {score_right[0]}"
-        ball.x = 0
-        ball.y = 0
-        ball.physics.x_speed = 300
-        ball.physics.y_speed = 40
-        if score_right[0] >= winning_score:
-            play.stop_program()
-
-    @ball.when_stopped_touching_wall(wall=WallSide.RIGHT)
-    def left_player_scores():
-        score_left[0] += 1
-        score_text.words = f"{score_left[0]} - {score_right[0]}"
-        ball.x = 0
-        ball.y = 0
-        ball.physics.x_speed = -300
-        ball.physics.y_speed = -40
-        if score_left[0] >= winning_score:
-            play.stop_program()
+    add_pong_scoring(
+        ball, score_left, score_right, score_text, winning_score=winning_score
+    )
 
     # --- driver: pause, verify freeze, unpause, let game finish ------------
     @play.when_program_starts
     async def driver():
-        # let the ball move a bit first
         for _ in range(30):
             await play.animate()
 
@@ -119,15 +81,14 @@ def test_pong_pause_key():
         post_key_up(pygame.K_p)
         await play.animate()
 
-        # record position while paused
         paused_x = ball.x
         paused_y = ball.y
 
-        # wait 20 frames while paused — ball should not move
         for _ in range(20):
             await play.animate()
 
-        position_stable = abs(ball.x - paused_x) < 0.5 and abs(ball.y - paused_y) < 0.5
+        if abs(ball.x - paused_x) > 0.5 or abs(ball.y - paused_y) > 0.5:
+            position_stable_during_pause[0] = False
 
         # press "p" again to unpause
         post_key_down(pygame.K_p)
@@ -135,24 +96,21 @@ def test_pong_pause_key():
         post_key_up(pygame.K_p)
         await play.animate()
 
-        # let the game play out
         for _ in range(max_frames):
             await play.animate()
         play.stop_program()
 
     play.start_program()
 
-    # --- assertions --------------------------------------------------------
-    total_score = score_left[0] + score_right[0]
-    assert (
-        total_score >= winning_score
-    ), f"expected at least {winning_score} total points, got {total_score}"
-    assert score_left[0] >= winning_score or score_right[0] >= winning_score
+    assert_pong_winner(score_left, score_right, winning_score)
     assert (
         pause_toggles[0] >= 2
-    ), f"expected at least 2 pause toggles (pause + unpause), got {pause_toggles[0]}"
+    ), f"expected at least 2 pause toggles, got {pause_toggles[0]}"
     assert not paused[0], "game should not be paused at the end"
     assert pause_text.is_hidden, "pause overlay should be hidden after unpause"
+    assert position_stable_during_pause[
+        0
+    ], "ball position should not change while the game is paused"
 
 
 if __name__ == "__main__":

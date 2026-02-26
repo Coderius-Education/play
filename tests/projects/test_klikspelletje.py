@@ -14,7 +14,7 @@ This test verifies:
 - score tracking and game-over condition
 """
 
-from conftest import post_mouse_motion, post_mouse_down, post_mouse_up
+from tests.conftest import post_mouse_motion, post_mouse_down, post_mouse_up
 
 max_frames = 500
 target_score = 3

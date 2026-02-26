@@ -11,6 +11,12 @@ This test verifies:
 - the game completes normally after multiple pause/unpause cycles
 """
 
+from tests.projects.conftest import (
+    setup_pong,
+    add_safety_timeout,
+    assert_pong_winner,
+)
+
 max_frames = 5000
 winning_score = 3
 
@@ -24,29 +30,7 @@ def test_pong_pause():
     pause_cycles = [0]
     position_stable_during_pause = [True]
 
-    # --- sprites -----------------------------------------------------------
-    ball = play.new_circle(color="black", x=0, y=0, radius=10)
-
-    paddle_left = play.new_box(color="blue", x=-350, y=0, width=15, height=80)
-    paddle_right = play.new_box(color="red", x=350, y=0, width=15, height=80)
-
-    score_text = play.new_text(words="0 - 0", x=0, y=260, font_size=30)
-
-    # --- physics -----------------------------------------------------------
-    ball.start_physics(
-        obeys_gravity=False,
-        x_speed=300,
-        y_speed=40,
-        friction=0,
-        mass=10,
-        bounciness=1.0,
-    )
-    paddle_left.start_physics(
-        obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
-    )
-    paddle_right.start_physics(
-        obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
-    )
+    ball, paddle_left, paddle_right, score_text = setup_pong()
 
     # --- serve with pause/unpause cycle ------------------------------------
     async def pause_and_serve(direction):
@@ -56,15 +40,12 @@ def test_pong_pause():
         ball.physics.y_speed = 0
         ball.physics.pause()
 
-        # Record position while paused
         paused_x = ball.x
         paused_y = ball.y
 
-        # Wait a few frames while paused
         for _ in range(5):
             await play.animate()
 
-        # Verify position didn't change while paused
         if abs(ball.x - paused_x) > 0.01 or abs(ball.y - paused_y) > 0.01:
             position_stable_during_pause[0] = False
 
@@ -82,7 +63,7 @@ def test_pong_pause():
     def ball_leaves_right():
         pass
 
-    # --- scoring -----------------------------------------------------------
+    # --- scoring (custom because of async pause_and_serve) -----------------
     @ball.when_stopped_touching_wall(wall=WallSide.LEFT)
     async def right_player_scores():
         score_right[0] += 1
@@ -101,21 +82,11 @@ def test_pong_pause():
             return
         await pause_and_serve(-1)
 
-    # --- safety timeout ----------------------------------------------------
-    @play.when_program_starts
-    async def safety_timeout():
-        for _ in range(max_frames):
-            await play.animate()
-        play.stop_program()
+    add_safety_timeout(max_frames)
 
     play.start_program()
 
-    # --- assertions --------------------------------------------------------
-    total_score = score_left[0] + score_right[0]
-    assert (
-        total_score >= winning_score
-    ), f"expected at least {winning_score} total points, got {total_score}"
-    assert score_left[0] >= winning_score or score_right[0] >= winning_score
+    assert_pong_winner(score_left, score_right, winning_score)
     assert pause_cycles[0] > 0, "at least one pause/unpause cycle should have occurred"
     assert position_stable_during_pause[
         0

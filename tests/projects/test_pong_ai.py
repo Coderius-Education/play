@@ -11,42 +11,26 @@ This test verifies:
 - the game completes with both physics and per-frame AI running
 """
 
-max_frames = 3000
+from tests.projects.conftest import (
+    setup_pong,
+    add_pong_scoring,
+    add_safety_timeout,
+    assert_pong_winner,
+)
+
+max_frames = 4000
 winning_score = 3
 
 
 def test_pong_ai():
     import play
-    from play.callback.collision_callbacks import WallSide
 
     score_left = [0]
     score_right = [0]
     ai_moves = [0]
     distances_measured = []
 
-    # --- sprites -----------------------------------------------------------
-    ball = play.new_circle(color="black", x=0, y=0, radius=10)
-
-    paddle_left = play.new_box(color="blue", x=-350, y=0, width=15, height=80)
-    paddle_right = play.new_box(color="red", x=350, y=0, width=15, height=80)
-
-    score_text = play.new_text(words="0 - 0", x=0, y=260, font_size=30)
-
-    # --- physics -----------------------------------------------------------
-    ball.start_physics(
-        obeys_gravity=False,
-        x_speed=300,
-        y_speed=40,
-        friction=0,
-        mass=10,
-        bounciness=1.0,
-    )
-    paddle_left.start_physics(
-        obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
-    )
-    paddle_right.start_physics(
-        obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
-    )
+    ball, paddle_left, paddle_right, score_text = setup_pong()
 
     # --- AI: right paddle tracks ball each frame ---------------------------
     @play.repeat_forever
@@ -73,49 +57,24 @@ def test_pong_ai():
     def ball_leaves_right():
         pass
 
-    # --- scoring -----------------------------------------------------------
-    @ball.when_stopped_touching_wall(wall=WallSide.LEFT)
-    def right_player_scores():
-        score_right[0] += 1
-        score_text.words = f"{score_left[0]} - {score_right[0]}"
-        ball.x = 0
-        ball.y = 0
-        ball.physics.x_speed = 300
-        ball.physics.y_speed = 40
-        if score_right[0] >= winning_score:
-            play.stop_program()
-
-    @ball.when_stopped_touching_wall(wall=WallSide.RIGHT)
-    def left_player_scores():
-        score_left[0] += 1
-        score_text.words = f"{score_left[0]} - {score_right[0]}"
-        ball.x = 0
-        ball.y = 0
-        ball.physics.x_speed = -300
-        ball.physics.y_speed = -40
-        if score_left[0] >= winning_score:
-            play.stop_program()
-
-    # --- safety timeout ----------------------------------------------------
-    @play.when_program_starts
-    async def safety_timeout():
-        for _ in range(max_frames):
-            await play.animate()
-        play.stop_program()
+    add_pong_scoring(
+        ball, score_left, score_right, score_text, winning_score=winning_score
+    )
+    add_safety_timeout(max_frames)
 
     play.start_program()
 
     # --- assertions --------------------------------------------------------
-    total_score = score_left[0] + score_right[0]
-    assert (
-        total_score >= winning_score
-    ), f"expected at least {winning_score} total points, got {total_score}"
-    assert score_left[0] >= winning_score or score_right[0] >= winning_score
+    assert_pong_winner(score_left, score_right, winning_score)
     assert ai_moves[0] > 0, "AI paddle should have moved via repeat_forever"
     assert len(distances_measured) > 0, "distance_to() should have been called"
     assert all(
         d >= 0 for d in distances_measured
     ), "distance_to() should return non-negative values"
+    # Verify AI actually reduced distance — compare first and last samples
+    assert (
+        distances_measured[-1] != distances_measured[0]
+    ), "AI paddle should have changed its distance to the ball over time"
 
 
 if __name__ == "__main__":

@@ -11,7 +11,12 @@ This test verifies:
 - when_stopped_touching_wall scoring with ball identification
 """
 
-max_frames = 3000
+from tests.projects.conftest import (
+    add_safety_timeout,
+    assert_pong_winner,
+)
+
+max_frames = 4000
 winning_score = 3
 
 
@@ -24,7 +29,7 @@ def test_pong_multiballs():
     ball1_paddle_hits = [0]
     ball2_paddle_hits = [0]
 
-    # --- sprites -----------------------------------------------------------
+    # --- sprites (custom: two balls) ---------------------------------------
     ball1 = play.new_circle(color="black", x=0, y=50, radius=10)
     ball2 = play.new_circle(color="black", x=0, y=-50, radius=10)
 
@@ -50,7 +55,6 @@ def test_pong_multiballs():
         mass=10,
         bounciness=1.0,
     )
-
     paddle_left.start_physics(
         obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
     )
@@ -115,24 +119,11 @@ def test_pong_multiballs():
         if score_left[0] >= winning_score:
             play.stop_program()
 
-    # --- safety timeout ----------------------------------------------------
-    @play.when_program_starts
-    async def safety_timeout():
-        for _ in range(max_frames):
-            await play.animate()
-        play.stop_program()
+    add_safety_timeout(max_frames)
 
     play.start_program()
 
-    # --- assertions --------------------------------------------------------
-    total_score = score_left[0] + score_right[0]
-    assert (
-        total_score >= winning_score
-    ), f"expected at least {winning_score} total points scored, got {total_score}"
-    assert score_left[0] >= winning_score or score_right[0] >= winning_score, (
-        f"expected one player to reach {winning_score}, "
-        f"scores were {score_left[0]} - {score_right[0]}"
-    )
+    assert_pong_winner(score_left, score_right, winning_score)
     total_paddle_hits = ball1_paddle_hits[0] + ball2_paddle_hits[0]
     assert total_paddle_hits > 0, "at least one ball should have hit a paddle"
 

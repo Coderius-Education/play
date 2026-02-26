@@ -15,7 +15,8 @@ This test verifies:
 - text.words updates for title, button, and score display
 """
 
-from conftest import post_mouse_down, post_mouse_motion, post_mouse_up
+from tests.conftest import post_mouse_down, post_mouse_motion, post_mouse_up
+from tests.projects.conftest import assert_pong_winner
 
 max_frames = 5000
 winning_score = 3
@@ -28,7 +29,7 @@ def test_pong_start_menu():
 
     score_left = [0]
     score_right = [0]
-    state = ["menu"]  # "menu" → "playing" → "gameover"
+    state = ["menu"]
     state_transitions = []
 
     # --- menu sprites (visible at start) ------------------------------------
@@ -44,7 +45,6 @@ def test_pong_start_menu():
     # --- game-over sprites (hidden at start) --------------------------------
     gameover_text = play.new_text(words="", x=0, y=40, font_size=50)
 
-    # hide game and gameover sprites initially
     ball.hide()
     paddle_left.hide()
     paddle_right.hide()
@@ -74,12 +74,8 @@ def test_pong_start_menu():
             return
         state[0] = "playing"
         state_transitions.append("menu→playing")
-
-        # hide menu
         title_text.hide()
         start_button.hide()
-
-        # show game
         ball.show()
         paddle_left.show()
         paddle_right.show()
@@ -94,14 +90,13 @@ def test_pong_start_menu():
     def ball_leaves_right():
         pass
 
-    # --- scoring -----------------------------------------------------------
+    # --- scoring (custom because of game-over state) -----------------------
     def end_game():
         state[0] = "gameover"
         state_transitions.append("playing→gameover")
         ball.hide()
         paddle_left.hide()
         paddle_right.hide()
-
         winner = "Left" if score_left[0] >= winning_score else "Right"
         gameover_text.words = f"{winner} wins!  {score_left[0]} - {score_right[0]}"
         gameover_text.show()
@@ -130,14 +125,12 @@ def test_pong_start_menu():
         ball.physics.x_speed = -300
         ball.physics.y_speed = -40
 
-    # --- driver: click start button, then wait for game to finish ----------
+    # --- driver: click start, wait for game to finish ----------------------
     @play.when_program_starts
     async def driver():
-        # wait a few frames for the menu to settle
         for _ in range(10):
             await play.animate()
 
-        # click the start button (centre of screen where the button is)
         sx = int(screen.width / 2 + start_button.x)
         sy = int(screen.height / 2 - start_button.y)
         post_mouse_motion(sx, sy)
@@ -147,10 +140,8 @@ def test_pong_start_menu():
         post_mouse_up(sx, sy)
         await play.animate()
 
-        # let the game play out
         for _ in range(max_frames):
             if state[0] == "gameover":
-                # wait a few more frames to let the gameover screen show
                 for _ in range(5):
                     await play.animate()
                 play.stop_program()
@@ -163,15 +154,11 @@ def test_pong_start_menu():
     # --- assertions --------------------------------------------------------
     assert (
         "menu→playing" in state_transitions
-    ), "game should have transitioned from menu to playing via start button click"
+    ), "game should have transitioned from menu to playing"
     assert (
         "playing→gameover" in state_transitions
     ), "game should have transitioned from playing to gameover"
-    total_score = score_left[0] + score_right[0]
-    assert (
-        total_score >= winning_score
-    ), f"expected at least {winning_score} total points, got {total_score}"
-    assert score_left[0] >= winning_score or score_right[0] >= winning_score
+    assert_pong_winner(score_left, score_right, winning_score)
     assert gameover_text.is_shown, "game-over text should be visible at the end"
     assert ball.is_hidden, "ball should be hidden after game over"
 

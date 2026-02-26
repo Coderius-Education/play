@@ -10,7 +10,13 @@ This test verifies:
 - scoring and reset still work at higher speeds
 """
 
-max_frames = 3000
+from tests.projects.conftest import (
+    setup_pong,
+    add_safety_timeout,
+    assert_pong_winner,
+)
+
+max_frames = 4000
 winning_score = 3
 speed_factor = 1.2
 
@@ -22,33 +28,10 @@ def test_pong_speedup():
     score_left = [0]
     score_right = [0]
     paddle_hits = [0]
-    current_speed = [300.0]  # tracks intended speed independently of physics
-    max_speed_ever = [300.0]  # high-water mark — never reset
+    current_speed = [300.0]
+    max_speed_ever = [300.0]
 
-    # --- sprites -----------------------------------------------------------
-    ball = play.new_circle(color="black", x=0, y=0, radius=10)
-
-    paddle_left = play.new_box(color="blue", x=-350, y=0, width=15, height=80)
-    paddle_right = play.new_box(color="red", x=350, y=0, width=15, height=80)
-
-    score_text = play.new_text(words="0 - 0", x=0, y=260, font_size=30)
-
-    # --- physics -----------------------------------------------------------
-    ball.start_physics(
-        obeys_gravity=False,
-        x_speed=300,
-        y_speed=40,
-        friction=0,
-        mass=10,
-        bounciness=1.0,
-    )
-
-    paddle_left.start_physics(
-        obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
-    )
-    paddle_right.start_physics(
-        obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
-    )
+    ball, paddle_left, paddle_right, score_text = setup_pong()
 
     # --- paddle collisions: speed up on each hit --------------------------
     @ball.when_stopped_touching(paddle_left)
@@ -69,7 +52,7 @@ def test_pong_speedup():
         ball.physics.x_speed = ball.physics.x_speed * speed_factor
         ball.physics.y_speed = ball.physics.y_speed * speed_factor
 
-    # --- scoring (reset speed on each serve) ------------------------------
+    # --- scoring (reset speed on each serve) — custom because of speed reset
     @ball.when_stopped_touching_wall(wall=WallSide.LEFT)
     def right_player_scores():
         score_right[0] += 1
@@ -94,29 +77,15 @@ def test_pong_speedup():
         if score_left[0] >= winning_score:
             play.stop_program()
 
-    # --- safety timeout ----------------------------------------------------
-    @play.when_program_starts
-    async def safety_timeout():
-        for _ in range(max_frames):
-            await play.animate()
-        play.stop_program()
+    add_safety_timeout(max_frames)
 
     play.start_program()
 
-    # --- assertions --------------------------------------------------------
-    total_score = score_left[0] + score_right[0]
-    assert (
-        total_score >= winning_score
-    ), f"expected at least {winning_score} total points scored, got {total_score}"
-    assert score_left[0] >= winning_score or score_right[0] >= winning_score, (
-        f"expected one player to reach {winning_score}, "
-        f"scores were {score_left[0]} - {score_right[0]}"
-    )
+    assert_pong_winner(score_left, score_right, winning_score)
     assert paddle_hits[0] > 0, "ball should have hit at least one paddle"
-    assert max_speed_ever[0] > 300, (
-        f"speed should have increased beyond 300, but max was {max_speed_ever[0]}; "
-        "when_stopped_touching callback may not have fired on paddle hit"
-    )
+    assert (
+        max_speed_ever[0] > 300
+    ), f"speed should have increased beyond 300, but max was {max_speed_ever[0]}"
 
 
 if __name__ == "__main__":

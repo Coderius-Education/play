@@ -10,7 +10,12 @@ This test verifies:
 - scoring and game-end still function with active key input
 """
 
-from conftest import post_key_down, post_key_up
+from tests.conftest import post_key_down, post_key_up
+from tests.projects.conftest import (
+    setup_pong,
+    add_pong_scoring,
+    assert_pong_winner,
+)
 
 max_frames = 5000
 winning_score = 3
@@ -19,35 +24,12 @@ winning_score = 3
 def test_pong_keyboard():
     import pygame
     import play
-    from play.callback.collision_callbacks import WallSide
 
     score_left = [0]
     score_right = [0]
     paddle_moves = [0]
 
-    # --- sprites -----------------------------------------------------------
-    ball = play.new_circle(color="black", x=0, y=0, radius=10)
-
-    paddle_left = play.new_box(color="blue", x=-350, y=0, width=15, height=80)
-    paddle_right = play.new_box(color="red", x=350, y=0, width=15, height=80)
-
-    score_text = play.new_text(words="0 - 0", x=0, y=260, font_size=30)
-
-    # --- physics -----------------------------------------------------------
-    ball.start_physics(
-        obeys_gravity=False,
-        x_speed=300,
-        y_speed=40,
-        friction=0,
-        mass=10,
-        bounciness=1.0,
-    )
-    paddle_left.start_physics(
-        obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
-    )
-    paddle_right.start_physics(
-        obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
-    )
+    ball, paddle_left, paddle_right, score_text = setup_pong()
 
     # --- keyboard-controlled paddle movement -------------------------------
     @play.when_key_pressed("w")
@@ -79,34 +61,15 @@ def test_pong_keyboard():
     def ball_leaves_right():
         pass
 
-    @ball.when_stopped_touching_wall(wall=WallSide.LEFT)
-    def right_player_scores():
-        score_right[0] += 1
-        score_text.words = f"{score_left[0]} - {score_right[0]}"
-        ball.x = 0
-        ball.y = 0
-        ball.physics.x_speed = 300
-        ball.physics.y_speed = 40
-        if score_right[0] >= winning_score:
-            play.stop_program()
-
-    @ball.when_stopped_touching_wall(wall=WallSide.RIGHT)
-    def left_player_scores():
-        score_left[0] += 1
-        score_text.words = f"{score_left[0]} - {score_right[0]}"
-        ball.x = 0
-        ball.y = 0
-        ball.physics.x_speed = -300
-        ball.physics.y_speed = -40
-        if score_left[0] >= winning_score:
-            play.stop_program()
+    add_pong_scoring(
+        ball, score_left, score_right, score_text, winning_score=winning_score
+    )
 
     # --- simulate keyboard input + safety timeout --------------------------
     @play.when_program_starts
     async def driver():
         directions = [pygame.K_w, pygame.K_s, pygame.K_UP, pygame.K_DOWN]
         for i in range(max_frames):
-            # press a key every 10 frames, release it 5 frames later
             if i % 10 == 0:
                 key = directions[i // 10 % len(directions)]
                 post_key_down(key)
@@ -118,12 +81,7 @@ def test_pong_keyboard():
 
     play.start_program()
 
-    # --- assertions --------------------------------------------------------
-    total_score = score_left[0] + score_right[0]
-    assert (
-        total_score >= winning_score
-    ), f"expected at least {winning_score} total points, got {total_score}"
-    assert score_left[0] >= winning_score or score_right[0] >= winning_score
+    assert_pong_winner(score_left, score_right, winning_score)
     assert paddle_moves[0] > 0, "keyboard-driven paddle movement should have occurred"
 
 
