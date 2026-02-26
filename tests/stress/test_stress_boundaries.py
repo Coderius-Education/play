@@ -20,12 +20,10 @@ def test_stress_extreme_sizes():
         # Extremely large radius (2,000,000 diameter)
         box = play.new_circle(color="red", x=0, y=0, radius=1000000)
 
+    msg = str(exc_info.value).lower()
     assert (
-        "too large" in str(exc_info.value).lower()
-        or "memory" in str(exc_info.value).lower()
-        or "dimensions" in str(exc_info.value).lower()
-        or exc_info.value
-    )
+        "too large" in msg or "memory" in msg or "dimensions" in msg
+    ), f"Expected a memory/size error message, got: {exc_info.value}"
 
 
 def test_stress_extreme_coordinates():

@@ -100,3 +100,6 @@ def test_physics_direct_global_setters():
     set_physics_simulation_steps(3)
     assert globals_list.num_sim_steps == 3
     set_physics_simulation_steps(10)  # Reset global state
+
+    # Reset gravity to defaults so it doesn't bleed into other tests
+    set_gravity(vertical=-100, horizontal=0)

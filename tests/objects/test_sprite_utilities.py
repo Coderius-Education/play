@@ -134,7 +134,7 @@ def test_sprite_physics_info_output():
     output = stdout.getvalue()
     assert "This sprite has no physics" in output
     assert "DYNAMIC" in output
-    assert "STATIC" in output
+    assert "KINEMATIC" in output
 
 
 def test_sprite_remove():
