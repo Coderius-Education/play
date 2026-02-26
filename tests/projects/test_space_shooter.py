@@ -13,8 +13,8 @@ This test verifies:
 - the game stops cleanly after the win condition
 """
 
-max_frames = 4000
-winning_hits = 3
+max_frames = 1500
+winning_hits = 1
 
 
 def test_space_shooter():

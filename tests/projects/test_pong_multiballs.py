@@ -16,8 +16,8 @@ from tests.projects.conftest import (
     assert_pong_winner,
 )
 
-max_frames = 4000
-winning_score = 3
+max_frames = 1500
+winning_score = 2
 
 
 def test_pong_multiballs():

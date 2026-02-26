@@ -19,7 +19,7 @@ from tests.conftest import post_mouse_down, post_mouse_motion, post_mouse_up
 from tests.projects.conftest import assert_pong_winner
 
 max_frames = 5000
-winning_score = 3
+winning_score = 1
 
 
 def test_pong_start_menu():

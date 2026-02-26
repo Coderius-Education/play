@@ -16,7 +16,7 @@ This test verifies:
 
 from tests.projects.conftest import add_safety_timeout
 
-max_frames = 4000
+max_frames = 1500
 TOTAL_BRICKS = 3
 
 

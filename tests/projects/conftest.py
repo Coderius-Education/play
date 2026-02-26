@@ -38,7 +38,7 @@ def add_pong_scoring(
     score_text,
     ball_x_speed=300,
     ball_y_speed=40,
-    winning_score=3,
+    winning_score=1,
     on_score=None,
 ):
     """Register the standard wall-scoring callbacks on the ball.

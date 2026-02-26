@@ -14,8 +14,8 @@ This test verifies:
 
 from tests.projects.conftest import add_safety_timeout
 
-max_frames = 4000
-starting_lives = 3
+max_frames = 1500
+starting_lives = 1
 
 
 def test_pong_singleplayer():

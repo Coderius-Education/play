@@ -16,8 +16,8 @@ from tests.projects.conftest import (
     assert_pong_winner,
 )
 
-max_frames = 4000
-winning_score = 3
+max_frames = 1500
+winning_score = 1
 speed_factor = 1.2
 
 

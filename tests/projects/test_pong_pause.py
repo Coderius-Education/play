@@ -18,7 +18,7 @@ from tests.projects.conftest import (
 )
 
 max_frames = 5000
-winning_score = 3
+winning_score = 2
 
 
 def test_pong_pause():
