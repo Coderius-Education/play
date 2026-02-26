@@ -142,6 +142,7 @@ def clean_play_state():
     play.globals.globals_list.backdrop = (255, 255, 255)
     play.globals.globals_list.gravity.vertical = -100
     play.globals.globals_list.gravity.horizontal = 0
+    physics_space.gravity = (0, -100)
     from play.io.screen import screen
 
     screen.width = 800

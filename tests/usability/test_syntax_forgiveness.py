@@ -17,7 +17,7 @@ def test_syntax_case_insensitivity_colors():
     box3 = play.new_box(color="red", x=20, y=0, width=10, height=10)
 
     # All should successfully bind the RGB translation without KeyError
-    assert box1.color == "red" or isinstance(box1.color, str)
+    assert box1.color == "red"
     assert box2.color == box1.color
     assert box3.color == box1.color
 

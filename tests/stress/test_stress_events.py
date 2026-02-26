@@ -14,7 +14,7 @@ def test_stress_events():
     Asserts that the custom event polling loops execute all 200 without recursion limits or stack overflows.
     """
     NUM_SPRITES = 200
-    MAX_FRAMES = 5
+    MAX_FRAMES = 20
 
     sprites = []
     callbacks_hit = set()
@@ -48,7 +48,8 @@ def test_stress_events():
     # The engine should process 199 overlapping touching callbacks safely.
     play.start_program()
 
-    # Verify that all sprites actually fired the event loop.
-    assert len(callbacks_hit) > 0, "No callbacks fired during stress test!"
-    # Ideally they all fire due to total overlap, but we are primarily testing for
-    # engine stability (no crash) and at least partial complete polling.
+    assert frames_run[0] >= MAX_FRAMES, "Simulation stopped prematurely!"
+    # All sprites overlap at (0,0), so a majority of callbacks should fire.
+    assert (
+        len(callbacks_hit) >= NUM_SPRITES // 2
+    ), f"Expected at least {NUM_SPRITES // 2} callbacks to fire, got {len(callbacks_hit)}"

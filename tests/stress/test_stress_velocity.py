@@ -46,5 +46,4 @@ def test_stress_velocity_tunneling():
 
     play.start_program()
 
-    # If the program survived without asserting the bullet crossed the wall,
-    # the collision engine successfully prevented tunneling at 50,000 px/s!
+    assert frames_run[0] >= MAX_FRAMES, "Simulation stopped prematurely!"

@@ -86,6 +86,32 @@ def test_experimental_decorator_no_docstring():
     assert "EXPERIMENTAL" in Bare.__doc__
 
 
+def test_new_database_allowed_mid_game():
+    """
+    Unlike new_box/new_circle/etc., new_database() should be allowed mid-game.
+    Students may create or open a database inside a callback to save scores.
+    """
+    play.api.utils._program_started = True
+    try:
+        import tempfile
+        import os
+
+        db_fd, db_path = tempfile.mkstemp(suffix=".json")
+        os.close(db_fd)
+        os.remove(db_path)
+
+        try:
+            # This should NOT raise RuntimeError
+            db = play.new_database(db_filename=db_path)
+            db.set_data("test_key", 42)
+            assert db.get_data("test_key") == 42
+        finally:
+            if os.path.exists(db_path):
+                os.remove(db_path)
+    finally:
+        play.api.utils._program_started = False
+
+
 def test_architecture_trap_double_start_program():
     """
     If a user calls `play.start_program()` twice, it shouldn't crash
