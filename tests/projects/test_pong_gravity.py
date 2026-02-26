@@ -59,6 +59,9 @@ def test_pong_gravity():
 
     play.start_program()
 
+    # restore default gravity so this test doesn't affect others
+    set_gravity(vertical=-900, horizontal=0)
+
     # --- assertions --------------------------------------------------------
     assert_pong_winner(score_left, score_right, winning_score)
     # With rightward gravity the ball is pulled towards the left wall,
