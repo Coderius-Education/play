@@ -11,7 +11,7 @@ from ..callback.collision_callbacks import collision_registry
 from ..globals import globals_list
 from ..io.screen import screen
 from ..physics import physics_space, Physics as _Physics
-from ..utils import clamp as _clamp, is_called_from_pygame
+from ..utils import clamp as _clamp, is_called_from_pygame, cast_to_number
 from .components import EventComponent
 
 
@@ -108,7 +108,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def x(self, _x):
         """Set the x-coordinate of the sprite.
         :param _x: The x-coordinate of the sprite."""
-        self._x = _x
+        self._x = cast_to_number(_x, "x")
         self.physics._pymunk_body.position = self._x, self._y
         if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:
             physics_space.reindex_static()
@@ -123,7 +123,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def y(self, _y):
         """Set the y-coordinate of the sprite.
         :param _y: The y-coordinate of the sprite."""
-        self._y = _y
+        self._y = cast_to_number(_y, "y")
         self.physics._pymunk_body.position = self._x, self._y
         if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:
             physics_space.reindex_static()
@@ -138,12 +138,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def transparency(self, alpha):
         """Set the transparency of the sprite.
         :param alpha: The transparency of the sprite."""
-        if not isinstance(alpha, float) and not isinstance(alpha, int):
-            raise ValueError(
-                f"""Looks like you're trying to set {self}'s transparency to '{alpha}', which isn't a number.
-Try looking in your code for where you're setting transparency for {self} and change it a number.
-"""
-            )
+        alpha = cast_to_number(alpha, "transparency")
         if alpha > 100 or alpha < 0:
             _warnings.warn(
                 f"""The transparency setting for {self} is being set to {alpha} and it should be between 0 and 100.
@@ -175,7 +170,7 @@ You might want to look in your code where you're setting transparency and make s
     def angle(self, _angle):
         """Set the angle of the sprite.
         :param _angle: The angle of the sprite."""
-        self._angle = _angle
+        self._angle = cast_to_number(_angle, "angle")
         self.physics._pymunk_body.angle = _math.radians(_angle)
 
     @property
@@ -188,6 +183,7 @@ You might want to look in your code where you're setting transparency and make s
     def size(self, percent):
         """Set the size of the sprite.
         :param percent: The size of the sprite as a percentage."""
+        percent = cast_to_number(percent, "size")
         self._should_recompute = True
         self._size = percent
         self.physics._remove()

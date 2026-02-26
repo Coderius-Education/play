@@ -4,7 +4,7 @@ import math as _math
 import pygame
 from .sprite import Sprite
 from ..io.screen import convert_pos
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from ..utils import color_name_to_rgb as _color_name_to_rgb, cast_to_number
 
 
 class Circle(Sprite):
@@ -21,16 +21,20 @@ class Circle(Sprite):
         angle=0,
     ):
         super().__init__()
-        self._x = x
-        self._y = y
-        self._color = color
-        self._radius = radius
-        self._border_color = border_color
+        self._x = cast_to_number(x, "x")
+        self._y = cast_to_number(y, "y")
+        self._color = color.lower().strip() if isinstance(color, str) else color
+        self._radius = cast_to_number(radius, "radius")
+        self._border_color = (
+            border_color.lower().strip()
+            if isinstance(border_color, str)
+            else border_color
+        )
         self._border_width = border_width
 
-        self._transparency = transparency
-        self._size = size
-        self._angle = angle
+        self._transparency = cast_to_number(transparency, "transparency")
+        self._size = cast_to_number(size, "size")
+        self._angle = cast_to_number(angle, "angle")
         self._is_clicked = False
         self._is_hidden = False
         self.physics = None
@@ -104,6 +108,8 @@ class Circle(Sprite):
     def color(self, _color):
         """Set the color of the circle.
         :param _color: The color of the circle."""
+        if isinstance(_color, str):
+            _color = _color.lower().strip()
         self._color = _color
 
     ##### radius #####
@@ -117,7 +123,7 @@ class Circle(Sprite):
     def radius(self, _radius):
         """Set the radius of the circle.
         :param _radius: The radius of the circle."""
-        self._radius = _radius
+        self._radius = cast_to_number(_radius, "radius")
         # Account for size scaling when updating physics shape
         size_factor = (self._size or 100) / 100
         self.physics._pymunk_shape.unsafe_set_radius(self._radius * size_factor)
@@ -133,6 +139,8 @@ class Circle(Sprite):
     def border_color(self, _border_color):
         """Set the color of the circle's border.
         :param _border_color: The color of the circle's border."""
+        if isinstance(_border_color, str):
+            _border_color = _border_color.lower().strip()
         self._border_color = _border_color
 
     ##### border_width #####

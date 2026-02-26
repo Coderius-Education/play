@@ -8,6 +8,16 @@ from ..objects import (
     Image as _Image,
     Sound as _Sound,
 )
+from . import utils as _api_utils
+
+
+def _check_mid_game_spawn():
+    if getattr(_api_utils, "_program_started", False):
+        raise RuntimeError(
+            "You cannot create new objects after play.start_program() "
+            "has been called. If you want to spawn objects later, create "
+            "them before the game starts and use .hide() and .show() instead."
+        )
 
 
 def new_text(
@@ -33,6 +43,7 @@ def new_text(
     :param size: The size of the text.
     :return: A new text object.
     """
+    _check_mid_game_spawn()
     if not isinstance(words, str):
         raise TypeError("words for a text object must be a string")
 
@@ -76,6 +87,7 @@ def new_box(
     :param size: The size of the box.
     :return: A new box object.
     """
+    _check_mid_game_spawn()
     return _Box(
         color=color,
         x=x,
@@ -114,6 +126,7 @@ def new_circle(
     :param angle: The angle of the circle.
     :return: A new circle object.
     """
+    _check_mid_game_spawn()
     return _Circle(
         color=color,
         x=x,
@@ -144,6 +157,7 @@ def new_image(
     :param transparency: The transparency of the image.
     :return: A new image object.
     """
+    _check_mid_game_spawn()
     return _Image(
         image=image, x=x, y=y, size=size, angle=angle, transparency=transparency
     )
@@ -160,7 +174,7 @@ def new_sound(
     :param volume: The initial volume (0.0 to 1.0).
     :param loops: Number of times to loop the sound (-1 for infinite, 0 for no loop).
     """
-
+    _check_mid_game_spawn()
     return _Sound(file_name=file_name, volume=volume, loops=loops)
 
 

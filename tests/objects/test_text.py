@@ -10,13 +10,13 @@ def test_text_creation_default():
     test_results = {}
     num_frames = [0]
 
+    text = play.new_text()
+
     @play.repeat_forever
     def check_values():
         if num_frames[0] > 0:
             return
         num_frames[0] += 1
-
-        text = play.new_text()
 
         test_results["words"] = text.words
         test_results["x"] = text.x
@@ -47,22 +47,22 @@ def test_text_creation_with_parameters():
     test_results = {}
     num_frames = [0]
 
+    text = play.new_text(
+        words="Hello World",
+        x=100,
+        y=200,
+        font_size=30,
+        color="red",
+        angle=45,
+        transparency=80,
+        size=150,
+    )
+
     @play.repeat_forever
     def check_values():
         if num_frames[0] > 0:
             return
         num_frames[0] += 1
-
-        text = play.new_text(
-            words="Hello World",
-            x=100,
-            y=200,
-            font_size=30,
-            color="red",
-            angle=45,
-            transparency=80,
-            size=150,
-        )
 
         test_results["words"] = text.words
         test_results["x"] = text.x
@@ -91,13 +91,13 @@ def test_text_words_setter():
     test_results = {}
     num_frames = [0]
 
+    text = play.new_text(words="Initial")
+
     @play.repeat_forever
     def check_values():
         if num_frames[0] > 0:
             return
         num_frames[0] += 1
-
-        text = play.new_text(words="Initial")
 
         test_results["initial"] = text.words
 
@@ -124,13 +124,13 @@ def test_text_color_setter():
     test_results = {}
     num_frames = [0]
 
+    text = play.new_text(color="blue")
+
     @play.repeat_forever
     def check_values():
         if num_frames[0] > 0:
             return
         num_frames[0] += 1
-
-        text = play.new_text(color="blue")
 
         test_results["initial"] = text.color
 
@@ -152,13 +152,13 @@ def test_text_font_size_setter():
     test_results = {}
     num_frames = [0]
 
+    text = play.new_text(font_size=20)
+
     @play.repeat_forever
     def check_values():
         if num_frames[0] > 0:
             return
         num_frames[0] += 1
-
-        text = play.new_text(font_size=20)
 
         test_results["initial"] = text.font_size
 
@@ -180,13 +180,13 @@ def test_text_position_setters():
     test_results = {}
     num_frames = [0]
 
+    text = play.new_text(x=50, y=60)
+
     @play.repeat_forever
     def check_values():
         if num_frames[0] > 0:
             return
         num_frames[0] += 1
-
-        text = play.new_text(x=50, y=60)
 
         test_results["initial_x"] = text.x
         test_results["initial_y"] = text.y
@@ -213,13 +213,13 @@ def test_text_angle_setter():
     test_results = {}
     num_frames = [0]
 
+    text = play.new_text(angle=0)
+
     @play.repeat_forever
     def check_values():
         if num_frames[0] > 0:
             return
         num_frames[0] += 1
-
-        text = play.new_text(angle=0)
 
         test_results["initial"] = text.angle
 
@@ -241,13 +241,13 @@ def test_text_size_setter():
     test_results = {}
     num_frames = [0]
 
+    text = play.new_text(size=100)
+
     @play.repeat_forever
     def check_values():
         if num_frames[0] > 0:
             return
         num_frames[0] += 1
-
-        text = play.new_text(size=100)
 
         test_results["initial"] = text.size
 
@@ -269,21 +269,21 @@ def test_text_clone():
     test_results = {}
     num_frames = [0]
 
+    text1 = play.new_text(
+        words="Clone Me",
+        x=100,
+        y=200,
+        font_size=30,
+        color="purple",
+        angle=45,
+        size=150,
+    )
+
     @play.repeat_forever
     def check_values():
         if num_frames[0] > 0:
             return
         num_frames[0] += 1
-
-        text1 = play.new_text(
-            words="Clone Me",
-            x=100,
-            y=200,
-            font_size=30,
-            color="purple",
-            angle=45,
-            size=150,
-        )
 
         text2 = text1.clone()
 
@@ -325,13 +325,13 @@ def test_text_hide_show():
     test_results = {}
     num_frames = [0]
 
+    text = play.new_text(words="Visible")
+
     @play.repeat_forever
     def check_values():
         if num_frames[0] > 0:
             return
         num_frames[0] += 1
-
-        text = play.new_text(words="Visible")
 
         test_results["initial"] = text.is_hidden
 
@@ -357,13 +357,13 @@ def test_text_transparency():
     test_results = {}
     num_frames = [0]
 
+    text = play.new_text(transparency=100)
+
     @play.repeat_forever
     def check_values():
         if num_frames[0] > 0:
             return
         num_frames[0] += 1
-
-        text = play.new_text(transparency=100)
 
         # Transparency is stored as 0-1, so 100 becomes 1.0
         test_results["initial"] = text.transparency
