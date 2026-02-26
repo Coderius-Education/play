@@ -11,8 +11,6 @@ This test verifies:
 - scoring still works via when_stopped_touching_wall
 """
 
-import pytest
-
 max_frames = 3000
 winning_score = 3
 

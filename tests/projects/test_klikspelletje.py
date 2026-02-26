@@ -14,8 +14,6 @@ This test verifies:
 - score tracking and game-over condition
 """
 
-import pytest
-
 from conftest import post_mouse_motion, post_mouse_down, post_mouse_up
 
 max_frames = 500

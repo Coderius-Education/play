@@ -11,8 +11,6 @@ This test verifies:
 - the game completes normally after multiple pause/unpause cycles
 """
 
-import pytest
-
 max_frames = 5000
 winning_score = 3
 

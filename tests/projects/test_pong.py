@@ -13,8 +13,6 @@ This test verifies:
 - the game stops after the win condition is met
 """
 
-import pytest
-
 max_frames = 3000
 winning_score = 3
 

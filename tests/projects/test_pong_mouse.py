@@ -10,14 +10,13 @@ This test verifies:
 - paddle positioning from mouse input alongside physics collisions
 """
 
-import pytest
+from conftest import post_mouse_motion
 
 max_frames = 3000
 winning_score = 3
 
 
 def test_pong_mouse():
-    import pygame
     import play
     from play.callback.collision_callbacks import WallSide
 
@@ -98,12 +97,7 @@ def test_pong_mouse():
             play_y = 100 * (1 if (i // 60) % 2 == 0 else -1)
             screen_x = int(screen.width / 2 + (-350))  # left paddle x
             screen_y = int(screen.height / 2 - play_y)
-            pygame.event.post(
-                pygame.event.Event(
-                    pygame.MOUSEMOTION,
-                    {"pos": (screen_x, screen_y), "rel": (0, 0), "buttons": (0, 0, 0)},
-                )
-            )
+            post_mouse_motion(screen_x, screen_y)
             await play.animate()
         play.stop_program()
 

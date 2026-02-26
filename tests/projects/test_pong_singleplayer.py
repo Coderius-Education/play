@@ -12,8 +12,6 @@ This test verifies:
 - life tracking and game-over
 """
 
-import pytest
-
 max_frames = 2000
 starting_lives = 3
 

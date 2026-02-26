@@ -9,7 +9,6 @@ import logging
 import os
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Shared mouse-event helpers (used by tests/events/ and tests/projects/)
 # ---------------------------------------------------------------------------

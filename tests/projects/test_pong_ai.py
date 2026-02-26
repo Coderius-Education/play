@@ -11,8 +11,6 @@ This test verifies:
 - the game completes with both physics and per-frame AI running
 """
 
-import pytest
-
 max_frames = 3000
 winning_score = 3
 

@@ -11,8 +11,6 @@ This test verifies:
 - the game still completes normally after repeated serve delays
 """
 
-import pytest
-
 max_frames = 5000
 winning_score = 3
 countdown_frames = 10  # frames per countdown step (short for testing)

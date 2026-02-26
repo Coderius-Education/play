@@ -11,8 +11,6 @@ This test verifies:
 - when_stopped_touching_wall scoring with ball identification
 """
 
-import pytest
-
 max_frames = 3000
 winning_score = 3
 

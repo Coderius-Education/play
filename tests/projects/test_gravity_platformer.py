@@ -14,17 +14,14 @@ This test verifies:
 - the game stops cleanly after the win condition or timeout
 """
 
-import pytest
-
 max_frames = 2000
-lower_bounces = 0
-upper_reached = False
 
 
 def test_gravity_platformer():
     import play
 
-    global lower_bounces, upper_reached
+    lower_bounces = [0]
+    upper_reached = [False]
 
     # --- sprites -----------------------------------------------------------
     player = play.new_box(color="green", x=0, y=100, width=40, height=40)
@@ -57,16 +54,14 @@ def test_gravity_platformer():
     # --- callbacks ---------------------------------------------------------
     @player.when_stopped_touching(lower_platform)
     def bounced_lower():
-        global lower_bounces
-        lower_bounces += 1
-        lives_text.words = f"Bounces: {lower_bounces}"
-        if lower_bounces >= 3:
+        lower_bounces[0] += 1
+        lives_text.words = f"Bounces: {lower_bounces[0]}"
+        if lower_bounces[0] >= 3:
             play.stop_program()
 
     @player.when_stopped_touching(upper_platform)
     def reached_upper():
-        global upper_reached
-        upper_reached = True
+        upper_reached[0] = True
 
     # --- safety timeout ----------------------------------------------------
     @play.when_program_starts
@@ -79,12 +74,12 @@ def test_gravity_platformer():
 
     # --- assertions --------------------------------------------------------
     assert (
-        lower_bounces > 0
+        lower_bounces[0] > 0
     ), "player should have bounced off the lower platform at least once"
     # Each bounce fires exactly once — the double-fire fix
     assert (
-        lower_bounces <= 20
-    ), f"too many bounce events ({lower_bounces}); callback may be firing twice per collision"
+        lower_bounces[0] <= 20
+    ), f"too many bounce events ({lower_bounces[0]}); callback may be firing twice per collision"
 
 
 if __name__ == "__main__":

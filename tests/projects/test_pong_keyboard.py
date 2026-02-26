@@ -10,8 +10,6 @@ This test verifies:
 - scoring and game-end still function with active key input
 """
 
-import pytest
-
 max_frames = 5000
 winning_score = 3
 

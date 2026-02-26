@@ -14,8 +14,6 @@ This test verifies:
 - win/lose conditions stop the program correctly
 """
 
-import pytest
-
 max_frames = 3000
 TOTAL_BRICKS = 3
 

@@ -12,8 +12,6 @@ This test verifies:
 - await play.timer() for timed power-up duration
 """
 
-import pytest
-
 max_frames = 4000
 winning_score = 3
 
@@ -107,8 +105,6 @@ def test_pong_powerups():
             play.stop_program()
 
     # --- powerup respawn via repeat_forever --------------------------------
-    respawn_countdown = [0]
-
     @play.repeat_forever
     def respawn_powerup():
         if powerup_hide_frame[0] > 0:

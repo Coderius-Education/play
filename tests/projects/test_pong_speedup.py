@@ -10,8 +10,6 @@ This test verifies:
 - scoring and reset still work at higher speeds
 """
 
-import pytest
-
 max_frames = 3000
 winning_score = 3
 speed_factor = 1.2

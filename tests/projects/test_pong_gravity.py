@@ -9,8 +9,6 @@ This test verifies:
 - the game plays to completion under altered gravity
 """
 
-import pytest
-
 max_frames = 3000
 winning_score = 3
 
