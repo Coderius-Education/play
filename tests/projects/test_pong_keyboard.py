@@ -10,6 +10,8 @@ This test verifies:
 - scoring and game-end still function with active key input
 """
 
+from conftest import post_key_down, post_key_up
+
 max_frames = 5000
 winning_score = 3
 
@@ -107,10 +109,10 @@ def test_pong_keyboard():
             # press a key every 10 frames, release it 5 frames later
             if i % 10 == 0:
                 key = directions[i // 10 % len(directions)]
-                pygame.event.post(pygame.event.Event(pygame.KEYDOWN, {"key": key}))
+                post_key_down(key)
             if i % 10 == 5:
                 key = directions[i // 10 % len(directions)]
-                pygame.event.post(pygame.event.Event(pygame.KEYUP, {"key": key}))
+                post_key_up(key)
             await play.animate()
         play.stop_program()
 

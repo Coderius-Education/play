@@ -45,6 +45,20 @@ def post_mouse_up(screen_x, screen_y):
     pygame.event.post(event)
 
 
+def post_key_down(pygame_key):
+    """Post a KEYDOWN event for the given pygame key constant."""
+    import pygame
+
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, {"key": pygame_key}))
+
+
+def post_key_up(pygame_key):
+    """Post a KEYUP event for the given pygame key constant."""
+    import pygame
+
+    pygame.event.post(pygame.event.Event(pygame.KEYUP, {"key": pygame_key}))
+
+
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
