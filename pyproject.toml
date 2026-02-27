@@ -1,5 +1,8 @@
 [tool.pytest.ini_options]
-pythonpath = ["."]
+pythonpath = [".", "tests"]
+filterwarnings = [
+    "ignore:This process .* is multi-threaded, use of fork\\(\\) may lead to deadlocks in the child:DeprecationWarning",
+]
 
 [tool.pylint.MASTER]
 max-line-length = 120

@@ -38,8 +38,24 @@ def experimental(cls):
     return cls
 
 
-def clamp(num, min_, max_):
+def cast_to_number(value, name="value"):
+    """Cast a value to a float, raising a friendly error if it fails."""
+    try:
+        return float(value)
+    except (ValueError, TypeError) as exception:
+        raise ValueError(
+            f"You provided an invalid {name}: '{value}'. {name.capitalize()} must be a number (like 50 or 10.5)."
+        ) from exception
+
+
+def clamp(num, min_, max_, name="value"):
     """Clamp a number between a minimum and maximum value."""
+    try:
+        num = float(num)
+    except (ValueError, TypeError):
+        # Fallback to the heavy error generator if it actually fails
+        num = cast_to_number(num, name)
+
     if num < min_:
         return min_
     if num > max_:
@@ -96,7 +112,7 @@ def color_name_to_rgb(
         # Make the last item of the tuple the transparency value
         color = (color[0], color[1], color[2], transparency)
         return color
-    except KeyError as exception:
+    except (KeyError, AttributeError) as exception:
         raise ValueError(
             f"""You gave a color name we didn't understand: '{name}'
 Try using the RGB number form of the color e.g. '(0, 255, 255)'.
