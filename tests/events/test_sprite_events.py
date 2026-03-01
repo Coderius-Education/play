@@ -5,6 +5,8 @@ import sys
 
 sys.path.insert(0, ".")
 
+from conftest import post_mouse_motion, post_mouse_down, post_mouse_up
+
 
 def test_sprite_when_clicked_method():
     """Test sprite.when_clicked() method."""
@@ -229,35 +231,10 @@ def test_sprite_when_click_released_call_with_sprite_false():
     assert callable(wrapper)
 
 
-def _post_mouse_motion(screen_x, screen_y):
-    """Post a MOUSEMOTION event to position the mouse."""
-    import pygame
-
-    motion = pygame.event.Event(
-        pygame.MOUSEMOTION,
-        {"pos": (screen_x, screen_y), "rel": (0, 0), "buttons": (0, 0, 0)},
-    )
-    pygame.event.post(motion)
-
-
-def _post_mouse_down(screen_x, screen_y):
-    """Post a MOUSEBUTTONDOWN event."""
-    import pygame
-
-    click = pygame.event.Event(
-        pygame.MOUSEBUTTONDOWN, {"pos": (screen_x, screen_y), "button": 1}
-    )
-    pygame.event.post(click)
-
-
-def _post_mouse_up(screen_x, screen_y):
-    """Post a MOUSEBUTTONUP event."""
-    import pygame
-
-    release = pygame.event.Event(
-        pygame.MOUSEBUTTONUP, {"pos": (screen_x, screen_y), "button": 1}
-    )
-    pygame.event.post(release)
+# Aliases for backward-compatibility within this module
+_post_mouse_motion = post_mouse_motion
+_post_mouse_down = post_mouse_down
+_post_mouse_up = post_mouse_up
 
 
 def test_sprite_when_click_released_fires_on_release():

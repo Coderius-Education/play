@@ -23,7 +23,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pylint==3.3.6 black==25.1.0 pytest-forked
+        pip install pylint==3.3.6 black==25.1.0 pytest-forked pytest-xdist
         pip install -r requirements.txt
 
     - name: Checking formatting with black
@@ -36,4 +36,4 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest ./tests --forked -v
+        pytest ./tests --forked -n auto -v

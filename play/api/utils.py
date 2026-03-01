@@ -35,6 +35,13 @@ def start_program():
     play.start_program() should almost certainly go at the very end of your program.
     """
     global _program_started
+    if _program_started:
+        raise RuntimeError(
+            "You've already started the program! Calling play.start_program() "
+            "twice can cause errors. Check to make sure it's only called once "
+            "at the very bottom of your file."
+        )
+
     _program_started = True
     callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
 

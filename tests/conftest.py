@@ -9,6 +9,56 @@ import logging
 import os
 import pytest
 
+# ---------------------------------------------------------------------------
+# Shared mouse-event helpers (used by tests/events/ and tests/projects/)
+# ---------------------------------------------------------------------------
+
+
+def post_mouse_motion(screen_x, screen_y):
+    """Post a MOUSEMOTION event to position the simulated cursor."""
+    import pygame
+
+    event = pygame.event.Event(
+        pygame.MOUSEMOTION,
+        {"pos": (screen_x, screen_y), "rel": (0, 0), "buttons": (0, 0, 0)},
+    )
+    pygame.event.post(event)
+
+
+def post_mouse_down(screen_x, screen_y):
+    """Post a MOUSEBUTTONDOWN event at the given screen coordinates."""
+    import pygame
+
+    event = pygame.event.Event(
+        pygame.MOUSEBUTTONDOWN, {"pos": (screen_x, screen_y), "button": 1}
+    )
+    pygame.event.post(event)
+
+
+def post_mouse_up(screen_x, screen_y):
+    """Post a MOUSEBUTTONUP event at the given screen coordinates."""
+    import pygame
+
+    event = pygame.event.Event(
+        pygame.MOUSEBUTTONUP, {"pos": (screen_x, screen_y), "button": 1}
+    )
+    pygame.event.post(event)
+
+
+def post_key_down(pygame_key):
+    """Post a KEYDOWN event for the given pygame key constant."""
+    import pygame
+
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, {"key": pygame_key}))
+
+
+def post_key_up(pygame_key):
+    """Post a KEYUP event for the given pygame key constant."""
+    import pygame
+
+    pygame.event.post(pygame.event.Event(pygame.KEYUP, {"key": pygame_key}))
+
+
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
@@ -92,6 +142,7 @@ def clean_play_state():
     play.globals.globals_list.backdrop = (255, 255, 255)
     play.globals.globals_list.gravity.vertical = -100
     play.globals.globals_list.gravity.horizontal = 0
+    physics_space.gravity = (0, -100)
     from play.io.screen import screen
 
     screen.width = 800
