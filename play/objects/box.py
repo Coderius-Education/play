@@ -4,7 +4,7 @@ import math as _math
 import pygame
 from .sprite import Sprite
 from ..io.screen import convert_pos
-from ..utils import color_name_to_rgb as _color_name_to_rgb, cast_to_number
+from ..utils import color_name_to_rgb as _color_name_to_rgb
 
 
 class Box(Sprite):
@@ -23,21 +23,17 @@ class Box(Sprite):
         angle=0,
     ):
         super().__init__()
-        self._color = color.lower().strip() if isinstance(color, str) else color
-        self._x = cast_to_number(x, "x")
-        self._y = cast_to_number(y, "y")
-        self._width = cast_to_number(width, "width")
-        self._height = cast_to_number(height, "height")
-        self._border_color = (
-            border_color.lower().strip()
-            if isinstance(border_color, str)
-            else border_color
-        )
+        self._color = color
+        self._x = x
+        self._y = y
+        self._width = width
+        self._height = height
+        self._border_color = border_color
         self._border_width = border_width
         self._border_radius = border_radius
-        self._transparency = cast_to_number(transparency, "transparency")
-        self._size = cast_to_number(size, "size")
-        self._angle = cast_to_number(angle, "angle")
+        self._transparency = transparency
+        self._size = size
+        self._angle = angle
         self.rect = pygame.Rect(0, 0, 0, 0)
         self.start_physics(stable=True, obeys_gravity=False)
         self.update()
@@ -96,7 +92,7 @@ class Box(Sprite):
     def width(self, _width):
         """Set the width of the box.
         :param _width: The new width of the box."""
-        self._width = cast_to_number(_width, "width")
+        self._width = _width
         self._should_recompute = True
         if self.physics:
             self.physics._remove()
@@ -113,7 +109,7 @@ class Box(Sprite):
     def height(self, _height):
         """Set the height of the box.
         :param _height: The new height of the box."""
-        self._height = cast_to_number(_height, "height")
+        self._height = _height
         self._should_recompute = True
         if self.physics:
             self.physics._remove()
@@ -130,8 +126,6 @@ class Box(Sprite):
     def color(self, _color):
         """Set the color of the box.
         :param _color: The new color of the box."""
-        if isinstance(_color, str):
-            _color = _color.lower().strip()
         self._color = _color
 
     ##### border_color #####
@@ -145,8 +139,6 @@ class Box(Sprite):
     def border_color(self, _border_color):
         """Set the color of the box's border.
         :param _border_color: The new color of the box's border."""
-        if isinstance(_border_color, str):
-            _border_color = _border_color.lower().strip()
         self._border_color = _border_color
 
     ##### border_width #####
