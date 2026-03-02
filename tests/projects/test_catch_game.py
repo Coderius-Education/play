@@ -23,7 +23,9 @@ def test_catch_game():
     frames_run = [0]
 
     # --- sprites ---
-    basket = play.new_box(color="brown", x=0, y=screen.bottom + 40, width=120, height=20)
+    basket = play.new_box(
+        color="brown", x=0, y=screen.bottom + 40, width=120, height=20
+    )
     basket.start_physics(obeys_gravity=False, can_move=False)
 
     fruit = play.new_circle(color="red", x=0, y=100, radius=15)
