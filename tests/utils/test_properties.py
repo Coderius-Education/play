@@ -4,9 +4,6 @@ import pygame
 import pytest
 from hypothesis import given, strategies as st
 
-# We need pygame to be initialized for color name resolution
-pygame.init()
-
 from play.utils import clamp, color_name_to_rgb
 
 

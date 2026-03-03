@@ -92,6 +92,7 @@ def test_clone_shooter():
     assert (
         bullets_removed[0] >= 1
     ), f"Expected >=1 bullet removed, got {bullets_removed[0]}"
+    assert score[0] >= 1, f"Expected at least 1 hit, got {score[0]}"
 
 
 if __name__ == "__main__":

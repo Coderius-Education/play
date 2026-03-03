@@ -19,8 +19,8 @@ def test_friction_parameter_stored():
 
 
 def test_friction_zero_vs_high():
-    """A sprite with friction=0 should retain more speed than one with high friction
-    when sliding along a surface."""
+    """Friction values should be stored correctly on the pymunk shape for both
+    zero and high friction settings."""
     box_no_friction = play.new_box(color="red", x=-100, y=0, width=10, height=10)
     box_no_friction.start_physics(
         friction=0.0, obeys_gravity=False, x_speed=100, y_speed=0

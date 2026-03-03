@@ -20,11 +20,8 @@ from play.callback import callback_manager, CallbackType
 
 
 @pytest.fixture(autouse=True)
-def clean_callbacks():
-    """Ensure callbacks are cleaned before and after each test."""
-    callback_manager.callbacks.clear()
-    yield
-    callback_manager.callbacks.clear()
+def setup_play(clean_play_state):
+    pass
 
 
 def test_when_program_starts():
