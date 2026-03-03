@@ -8,10 +8,11 @@ on:
 
 jobs:
   run_tests:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
 
@@ -27,13 +28,21 @@ jobs:
         pip install -r requirements.txt
 
     - name: Checking formatting with black
+      if: runner.os == 'Linux'
       run: |
         black --check ./play ./tests
 
     - name: Analysing the code with pylint
+      if: runner.os == 'Linux'
       run: |
         pylint $(git ls-files 'play/*.py')
 
-    - name: Run tests
+    - name: Run tests (Linux)
+      if: runner.os == 'Linux'
       run: |
         pytest ./tests --forked -n auto -v
+
+    - name: Run tests (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        pytest ./tests -n auto -v
