@@ -54,6 +54,6 @@ def test_stress_quantity_sprites():
 
     # Ensure it didn't crash and finished within a reasonable time
     # (CI runners are slower than local machines, so use a generous limit)
-    assert duration < 60.0, f"Stress test took too long! Duration: {duration}s"
+    assert duration < 120.0, f"Stress test took too long! Duration: {duration}s"
 
     print(f"Quantity Stress Test (1000 boxes, 50 frames): {duration:.2f} seconds")

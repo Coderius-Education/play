@@ -7,8 +7,11 @@ test.py
 __pycache__/
 *.py[cod]
 *$py.class
+.hypothesis/
+.coverage
 
 # Distribution / packaging
 *.egg-info/
 dist/
 build/
+coverage_report.txt
