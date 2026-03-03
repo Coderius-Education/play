@@ -91,10 +91,10 @@ async def game_loop():
 
     #############################
     # @repeat_forever callbacks
-    # Scheduled after physics and sprite updates so that on all platforms
-    # (including Windows where asyncio tasks run at the first available await
-    # point) the callbacks see fully-updated sprite positions and physics state.
+    # Awaited inline (not via create_task) so that on all platforms the
+    # callbacks always run synchronously after physics, seeing fully-updated
+    # sprite positions and physics state.
     #############################
-    callback_manager.run_callbacks(CallbackType.REPEAT_FOREVER)
+    await callback_manager.run_callbacks_inline(CallbackType.REPEAT_FOREVER)
 
     _get_loop().create_task(game_loop())
