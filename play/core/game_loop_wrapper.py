@@ -14,27 +14,19 @@ def listen_to_failure():
     """A decorator that listens to exceptions in the game loop."""
 
     def decorate(f):
-        if asyncio.iscoroutinefunction(f):
+        _is_async = asyncio.iscoroutinefunction(f)
 
-            @functools.wraps(f)
-            async def applicator(*args, **kwargs):
-                try:
-                    return await f(*args, **kwargs)
-                except Exception as e:
-                    _get_loop().stop()
-                    play_logger.critical("Error in %s: %s", f.__name__, e)
-                    raise e
-
-        else:
-
-            @functools.wraps(f)
-            async def applicator(*args, **kwargs):
-                try:
-                    return f(*args, **kwargs)
-                except Exception as e:
-                    _get_loop().stop()
-                    play_logger.critical("Error in %s: %s", f.__name__, e)
-                    raise e
+        @functools.wraps(f)
+        async def applicator(*args, **kwargs):
+            try:
+                result = f(*args, **kwargs)
+                if _is_async:
+                    return await result
+                return result
+            except Exception as e:
+                _get_loop().stop()
+                play_logger.critical("Error in %s: %s", f.__name__, e)
+                raise e
 
         return applicator
 

@@ -92,11 +92,10 @@ async def game_loop():
     #############################
     # @repeat_forever callbacks
     # Awaited inline (not via create_task) so that on all platforms the
-    # callbacks always run synchronously after physics, seeing fully-updated
-    # sprite positions and physics state.
+    # callbacks run deterministically within the game loop frame.
+    # Placed after flip to match the effective timing of the original
+    # create_task approach (task ran in the next event loop cycle).
     #############################
     await callback_manager.run_callbacks_inline(CallbackType.REPEAT_FOREVER)
 
-    loop = _get_loop()
-    if loop.is_running():
-        loop.create_task(game_loop())
+    _get_loop().create_task(game_loop())
