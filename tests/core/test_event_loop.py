@@ -7,6 +7,8 @@ platforms (including Windows where ProactorEventLoop is the default).
 import asyncio
 import sys
 
+import pytest
+
 import play.loop
 
 
@@ -47,7 +49,7 @@ def test_loop_type_on_windows():
     """On Windows, the loop should be a ProactorEventLoop (or SelectorEventLoop
     on Python 3.14+ where the default policy changed)."""
     if sys.platform != "win32":
-        return  # skip on non-Windows
+        pytest.skip("not Windows")
 
     loop = play.loop.get_loop()
     # Just verify it's a valid asyncio event loop that works

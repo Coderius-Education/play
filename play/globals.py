@@ -26,7 +26,13 @@ class Globals:
     controllers: list = field(default_factory=list)
 
     def reset(self):
-        """Reset all mutable state to defaults."""
+        """Reset mutable game state to defaults.
+
+        Note: ``gravity`` and ``display`` are intentionally NOT reset here.
+        ``gravity`` requires re-initialisation with a pymunk Space object and
+        is handled separately in the test conftest.  ``display`` needs an
+        active pygame Surface and is managed by the screen module.
+        """
         self.all_sprites.clear()
         self.sprites_group.empty()
         self.walls.clear()

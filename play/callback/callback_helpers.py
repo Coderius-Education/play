@@ -2,7 +2,6 @@
 This module contains helper functions for running callback functions.
 """
 
-import asyncio as _asyncio
 import inspect
 
 from ..loop import get_loop as _get_loop
