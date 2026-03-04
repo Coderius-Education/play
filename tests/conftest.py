@@ -136,6 +136,7 @@ def clean_play_state():
 
     # Reset frame_rate, dimensions, backdrop, gravity to default
     play.globals.globals_list.frame_rate = 60
+    play.globals.globals_list.num_sim_steps = 10
     play.globals.globals_list.width = 800
     play.globals.globals_list.height = 600
     play.globals.globals_list.backdrop_type = "color"
