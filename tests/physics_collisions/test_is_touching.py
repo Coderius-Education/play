@@ -1,15 +1,14 @@
 import pytest
 
-num_frames = 0
-max_frames = 200
-x_speed = 60
-
-method_check_inside_decorator = 0
-num_collisions_decorator = 0
-
 
 def test_ball_movement():
     import play
+
+    num_frames = [0]
+    max_frames = 200
+    x_speed = 60
+    num_collisions_decorator = [0]
+    method_check_inside_decorator = [0]
 
     ball = play.new_circle(
         color="black",
@@ -29,25 +28,22 @@ def test_ball_movement():
 
     @ball.when_touching(batje)
     def detect_collision():
-        global num_collisions_decorator
-        global method_check_inside_decorator
-        num_collisions_decorator += 1
+        num_collisions_decorator[0] += 1
         if ball.is_touching(batje):
-            method_check_inside_decorator += 1
+            method_check_inside_decorator[0] += 1
 
     @play.repeat_forever
     def move():
-        global num_frames
-        num_frames += 1
+        num_frames[0] += 1
 
-        if num_frames == max_frames:
+        if num_frames[0] == max_frames:
             play.stop_program()
 
     play.start_program()
 
-    if not (num_collisions_decorator == 2 and method_check_inside_decorator == 2):
+    if not (num_collisions_decorator[0] == 2 and method_check_inside_decorator[0] == 2):
         pytest.fail(
-            f"expected two collisions by the method and the decorator, but found {num_collisions_decorator}, {method_check_inside_decorator}"
+            f"expected two collisions by the method and the decorator, but found {num_collisions_decorator[0]}, {method_check_inside_decorator[0]}"
         )
 
 

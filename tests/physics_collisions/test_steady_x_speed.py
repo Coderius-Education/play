@@ -1,14 +1,14 @@
 import pytest
 
-num_frames = 0
-max_frames = 1000
-x_speed = 60
-data_x_speed = []
-data_y = []
-
 
 def test_ball_movement():
     import play
+
+    num_frames = [0]
+    max_frames = 1000
+    x_speed = 60
+    data_x_speed = []
+    data_y = []
 
     ball = play.new_circle(
         color="gray", x=0, y=0, radius=10, border_color="light blue", size=100, angle=0
@@ -19,16 +19,12 @@ def test_ball_movement():
 
     @play.repeat_forever
     def move():
-        global num_frames
-        global data_x_speed
-        global data_y
-
-        num_frames += 1
+        num_frames[0] += 1
 
         data_x_speed.append(ball.physics.x_speed)
         data_y.append(ball.y)
 
-        if num_frames == max_frames:
+        if num_frames[0] == max_frames:
             play.stop_program()
 
     play.start_program()

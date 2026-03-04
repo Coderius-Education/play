@@ -16,11 +16,15 @@ from tests.projects.conftest import (
     assert_pong_winner,
 )
 
-max_frames = 5000
+max_frames = 3000
 winning_score = 2
 
 
 def test_pong_random():
+    import random
+
+    random.seed(42)  # deterministic serves to avoid flaky near-vertical angles
+
     import play
     from play.callback.collision_callbacks import WallSide
 

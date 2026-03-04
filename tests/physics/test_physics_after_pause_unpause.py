@@ -1,20 +1,19 @@
 import pytest
 
-num_frames = 0
-max_frames = 100
-
-data = []
-expected = (
-    [0]
-    + list(range(1, 25))
-    + [25 for _ in range(25)]
-    + list(range(25, 50))
-    + [50 for _ in range(25)]
-)
-
 
 def test_ball_movement():
     import play
+
+    max_frames = 100
+    num_frames = [0]
+    data = []
+    expected = (
+        [0]
+        + list(range(1, 25))
+        + [25 for _ in range(25)]
+        + list(range(25, 50))
+        + [50 for _ in range(25)]
+    )
 
     ball = play.new_circle(
         color="gray",
@@ -33,30 +32,22 @@ def test_ball_movement():
 
     @play.repeat_forever
     def move():
-        global num_frames
-        global data
-
-        num_frames += 1
-
+        num_frames[0] += 1
         data.append(round(ball.y))
 
-        print(num_frames)
-
-        if num_frames == 25:
+        if num_frames[0] == 25:
             ball.physics.pause()
-        elif num_frames == 50:
+        elif num_frames[0] == 50:
             ball.physics.unpause()
-        elif num_frames == 75:
+        elif num_frames[0] == 75:
             ball.physics.pause()
-        elif num_frames == 100:
+        elif num_frames[0] == 100:
             ball.physics.unpause()
 
-        if num_frames == max_frames:
+        if num_frames[0] == max_frames:
             play.stop_program()
 
     play.start_program()
-
-    print(len(data), len(expected))
 
     for expected_value, actual_value in zip(expected, data):
         if expected_value != actual_value:

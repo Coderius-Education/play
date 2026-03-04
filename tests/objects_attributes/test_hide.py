@@ -1,13 +1,14 @@
 import pytest
 
-num_frames = 0
-max_frames = 100
-
 
 def test_hide():
     import pygame
     import pygame.surfarray as surfarray
     import play
+
+    num_frames = [0]
+    max_frames = 100
+    pixel_array = [None]
 
     image = play.new_image(
         image="tests/objects_attributes/yellow.jpg", size=10, transparency=0
@@ -36,18 +37,16 @@ def test_hide():
 
     @play.repeat_forever
     def move():
-        global num_frames
-        global pixel_array
-        num_frames += 1
+        num_frames[0] += 1
 
-        if num_frames == max_frames:
+        if num_frames[0] == max_frames:
             the_surface = play.pygame.display.get_surface()
-            pixel_array = surfarray.array3d(the_surface)
+            pixel_array[0] = surfarray.array3d(the_surface)
             play.stop_program()
 
     play.start_program()
 
-    for row_index, row in enumerate(pixel_array):
+    for row_index, row in enumerate(pixel_array[0]):
         for column_index, (r, g, b) in enumerate(row):
             if (r, g, b) != (255, 255, 255):
                 pytest.fail(

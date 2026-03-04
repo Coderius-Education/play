@@ -124,10 +124,7 @@ def clean_play_state():
     from play.callback import callback_manager
 
     # Clean play globals
-    play.globals.globals_list.all_sprites.clear()
-    play.globals.globals_list.sprites_group.empty()
-    play.globals.globals_list.walls.clear()
-    play.globals.globals_list.controllers.clear()
+    play.globals.globals_list.reset()
 
     import play.core.sprites_loop
 
@@ -138,13 +135,6 @@ def clean_play_state():
     play.api.utils._program_started = False
     play.api.utils._initial_pid = -1
 
-    # Reset frame_rate, dimensions, backdrop, gravity to default
-    play.globals.globals_list.frame_rate = 60
-    play.globals.globals_list.num_sim_steps = 10
-    play.globals.globals_list.width = 800
-    play.globals.globals_list.height = 600
-    play.globals.globals_list.backdrop_type = "color"
-    play.globals.globals_list.backdrop = (255, 255, 255)
     play.globals.globals_list.gravity.vertical = -100
     play.globals.globals_list.gravity.horizontal = 0
     physics_space.gravity = (0, -100)
