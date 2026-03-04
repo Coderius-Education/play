@@ -97,4 +97,6 @@ async def game_loop():
     #############################
     await callback_manager.run_callbacks_inline(CallbackType.REPEAT_FOREVER)
 
-    _get_loop().create_task(game_loop())
+    loop = _get_loop()
+    if loop.is_running():
+        loop.create_task(game_loop())

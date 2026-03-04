@@ -107,9 +107,13 @@ def clean_play_state():
 
     old_loop = play.loop.get_loop()
     if old_loop and not old_loop.is_closed():
-        # Cancel any leftover tasks in the old loop
+        # Cancel any leftover tasks and close their coroutines to prevent
+        # "coroutine was never awaited" warnings during garbage collection.
         for task in asyncio.all_tasks(loop=old_loop):
             task.cancel()
+            coro = task.get_coro()
+            if coro is not None:
+                coro.close()
         old_loop.stop()
         old_loop.close()
     # Reset so get_loop() creates a new properly configured loop on the next
