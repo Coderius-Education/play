@@ -2,7 +2,8 @@
 This module contains a decorator that listens to exceptions in the game loop.
 """
 
-import asyncio
+import functools
+import inspect
 
 from ..io.logging import play_logger
 from ..loop import get_loop as _get_loop
@@ -13,10 +14,13 @@ def listen_to_failure():
     """A decorator that listens to exceptions in the game loop."""
 
     def decorate(f):
+        _is_async = inspect.iscoroutinefunction(f)
+
+        @functools.wraps(f)
         async def applicator(*args, **kwargs):
             try:
                 result = f(*args, **kwargs)
-                if asyncio.iscoroutine(result):
+                if _is_async:
                     return await result
                 return result
             except Exception as e:

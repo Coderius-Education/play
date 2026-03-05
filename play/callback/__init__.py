@@ -146,6 +146,27 @@ class CallbackManager:
                 if is_valid_callback(callback):
                     run_callback(callback, [], [], *args, **kwargs)
 
+    async def run_callbacks_inline(self, callback_type):
+        """Run all callbacks of a type inline (awaited directly), not as separate tasks.
+
+        This guarantees that on all platforms (including Windows where asyncio task
+        scheduling order differs) callbacks always run synchronously within the caller's
+        frame, seeing fully up-to-date state.
+
+        NOTE: Only safe for callback types whose storage is a list (e.g. REPEAT_FOREVER).
+        Dict-based callback types (e.g. PRESSED_KEYS) store callbacks under discriminator
+        keys, so iterating self.callbacks[callback_type] would yield keys, not callables.
+        Use run_callbacks_with_filter() for those types instead.
+        """
+        if callback_type not in self.callbacks:
+            return
+
+        for callback in list(self.callbacks[callback_type]):
+            if callable(callback) and not (
+                hasattr(callback, "is_running") and callback.is_running
+            ):
+                await run_async_callback(callback, [], [])
+
     async def run_callbacks_with_filter(
         self,
         callback_type,

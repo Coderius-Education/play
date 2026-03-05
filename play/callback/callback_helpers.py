@@ -2,7 +2,6 @@
 This module contains helper functions for running callback functions.
 """
 
-import asyncio as _asyncio
 import inspect
 
 from ..loop import get_loop as _get_loop
@@ -19,7 +18,7 @@ def run_callback(callback, required_args, optional_args, *args, **kwargs):
     :return: The result of the callback function.
     """
     # check if callback takes in the required number of arguments
-    if not _asyncio.iscoroutinefunction(callback):
+    if not inspect.iscoroutinefunction(callback):
         raise ValueError("The callback function must be an async function.")
     actual_args = inspect.getfullargspec(callback).args
     if (
@@ -54,7 +53,7 @@ async def run_async_callback(callback, required_args, optional_args, *args, **kw
     :return: The result of the callback function.
     """
     # check if callback takes in the required number of arguments
-    if not _asyncio.iscoroutinefunction(callback):
+    if not inspect.iscoroutinefunction(callback):
         raise ValueError("The callback function must be an async function.")
     actual_cb = callback
     if hasattr(callback, "original_function"):

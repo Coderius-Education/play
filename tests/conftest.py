@@ -1,8 +1,9 @@
 """Root conftest for pytest.
 
-Handles pygame re-initialisation after fork().  Module-level imports of
-play trigger pygame.init() which starts background threads.  Those
-threads do not survive fork(), causing deadlocks with pytest --forked.
+Provides shared fixtures and helpers for all tests. Module-level imports
+of play trigger pygame.init() which starts background threads; the
+clean_play_state fixture reinitialises pygame and resets all play globals
+between tests to prevent state bleed.
 """
 
 import logging
@@ -64,12 +65,11 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 
 def pytest_collection_finish(session):
-    """Quit pygame in the collection-phase parent process.
+    """Quit pygame after the collection phase.
 
     Module-level imports of play trigger pygame.init() which starts background
-    threads.  Those threads do not survive a fork() (used by pytest --forked),
-    causing deadlocks in child processes.  Calling pygame.quit() here tears
-    down those threads in the parent before any child processes are spawned.
+    threads.  Calling pygame.quit() here tears down those threads so they do
+    not interfere with the test run that follows.
     """
     try:
         import pygame
@@ -107,9 +107,13 @@ def clean_play_state():
 
     old_loop = play.loop.get_loop()
     if old_loop and not old_loop.is_closed():
-        # Cancel any leftover tasks in the old loop
+        # Cancel any leftover tasks and close their coroutines to prevent
+        # "coroutine was never awaited" warnings during garbage collection.
         for task in asyncio.all_tasks(loop=old_loop):
             task.cancel()
+            coro = task.get_coro()
+            if coro is not None:
+                coro.close()
         old_loop.stop()
         old_loop.close()
     # Reset so get_loop() creates a new properly configured loop on the next
@@ -120,10 +124,7 @@ def clean_play_state():
     from play.callback import callback_manager
 
     # Clean play globals
-    play.globals.globals_list.all_sprites.clear()
-    play.globals.globals_list.sprites_group.empty()
-    play.globals.globals_list.walls.clear()
-    play.globals.globals_list.controllers.clear()
+    play.globals.globals_list.reset()
 
     import play.core.sprites_loop
 
@@ -134,12 +135,6 @@ def clean_play_state():
     play.api.utils._program_started = False
     play.api.utils._initial_pid = -1
 
-    # Reset frame_rate, dimensions, backdrop, gravity to default
-    play.globals.globals_list.frame_rate = 60
-    play.globals.globals_list.width = 800
-    play.globals.globals_list.height = 600
-    play.globals.globals_list.backdrop_type = "color"
-    play.globals.globals_list.backdrop = (255, 255, 255)
     play.globals.globals_list.gravity.vertical = -100
     play.globals.globals_list.gravity.horizontal = 0
     physics_space.gravity = (0, -100)

@@ -1,9 +1,9 @@
 """This module contains code to help with async functions."""
 
-import asyncio as _asyncio
+import inspect as _inspect
 import warnings as _warnings
 
-from play.io.logging import play_logger
+from ..io.logging import play_logger
 
 
 def _raise_on_await_warning(func):
@@ -47,7 +47,7 @@ def make_async(func):
     Used mainly in decorators like @repeat_forever.
     :param func: A function that may or may not be async.
     """
-    if _asyncio.iscoroutinefunction(func):
+    if _inspect.iscoroutinefunction(func):
         return _raise_on_await_warning(func)
 
     @_raise_on_await_warning

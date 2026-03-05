@@ -1,14 +1,13 @@
 import pytest
 
-num_frames = 0
-max_frames = 100
-
-expected = [0, 128, 255]
-actual = []
-
 
 def test_set_alpha():
     import play
+
+    num_frames = [0]
+    max_frames = 100
+    expected = [0, 128, 255]
+    actual = [None]
 
     image1 = play.new_image(
         image="tests/objects_attributes/yellow.jpg", size=10, transparency=0
@@ -22,12 +21,10 @@ def test_set_alpha():
 
     @play.repeat_forever
     def move():
-        global num_frames
-        global actual
-        num_frames += 1
+        num_frames[0] += 1
 
-        if num_frames == max_frames:
-            actual = [
+        if num_frames[0] == max_frames:
+            actual[0] = [
                 image1.image.get_alpha(),
                 image2.image.get_alpha(),
                 image3.image.get_alpha(),
@@ -36,7 +33,7 @@ def test_set_alpha():
 
     play.start_program()
 
-    for expected_value, actual_value in zip(expected, actual):
+    for expected_value, actual_value in zip(expected, actual[0]):
         if expected_value != actual_value:
             pytest.fail(
                 f"expected alpha to be {expected_value} but the actual value is {actual_value}"

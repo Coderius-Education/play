@@ -37,21 +37,15 @@ def test_sprite_attributes(sprite_items):
     method = getattr(play, sprite_type)
     sprite = method(**expected_values)
 
-    global num_frames
-    global max_frames
-    global data
-    num_frames = 0
+    num_frames = [0]
     max_frames = 100
     data = {}
 
     @play.repeat_forever
     def move():
-        global num_frames
-        global max_frames
+        num_frames[0] += 1
 
-        num_frames += 1
-
-        if num_frames == max_frames:
+        if num_frames[0] == max_frames:
             for key in expected_values:
                 for item in dir(sprite):
                     print(item)

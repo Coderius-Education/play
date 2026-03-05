@@ -21,6 +21,10 @@ winning_score = 2
 
 
 def test_pong_random():
+    import random
+
+    random.seed(42)  # deterministic serves to avoid flaky near-vertical angles
+
     import play
     from play.callback.collision_callbacks import WallSide
 

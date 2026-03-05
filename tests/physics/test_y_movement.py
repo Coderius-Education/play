@@ -1,14 +1,13 @@
 import pytest
 
-num_frames = 0
-max_frames = 100
-y_speed = 60
-
-y_data = []
-
 
 def test_ball_movement():
     import play
+
+    max_frames = 100
+    y_speed = 60
+    y_data = []
+    num_frames = [0]
 
     ball = play.new_circle(color="gray", radius=10)
     ball.start_physics(
@@ -19,23 +18,20 @@ def test_ball_movement():
 
     @play.repeat_forever
     def move():
-        global num_frames
-        global y_data
-
-        num_frames += 1
+        num_frames[0] += 1
 
         y_data.append(ball.y)
 
-        if num_frames == max_frames:
+        if num_frames[0] == max_frames:
             play.stop_program()
 
     play.start_program()
 
     for index, y_position in enumerate(y_data):
-        expected_value = round(y_position)
-        actual_value = index
-        print(expected_value, actual_value)
-        if expected_value != actual_value:
+        actual_value = round(y_position)
+        expected_value = index
+        print(actual_value, expected_value)
+        if actual_value != expected_value:
             pytest.fail(
                 f"expected ball.y to be {expected_value} but the y value is {actual_value}"
             )

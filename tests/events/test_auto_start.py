@@ -1,4 +1,4 @@
-"""Tests for automatic start_program() when user forgets to call it."""
+"""Tests for the warning when user forgets to call play.start_program()."""
 
 import pytest
 
@@ -24,56 +24,67 @@ def test_program_started_flag_set_after_start():
     utils._program_started = False
 
 
-def test_auto_start_registered_with_atexit():
-    """Test that _auto_start_program is registered with atexit."""
-    import atexit
+def test_warn_if_not_started_registered_with_atexit():
+    """Test that _warn_if_not_started is registered with atexit."""
     from play.api import utils
 
-    # Check that _auto_start_program is in the atexit registry
-    # atexit._run_exitfuncs would run all registered functions
-    # We can check if our function is registered by examining atexit internals
-    # Note: This is implementation-dependent but works for testing
-    assert hasattr(utils, "_auto_start_program")
-    assert callable(utils._auto_start_program)
+    assert hasattr(utils, "_warn_if_not_started")
+    assert callable(utils._warn_if_not_started)
 
 
-def test_auto_start_does_nothing_when_already_started():
-    """Test that _auto_start_program does nothing if program already started."""
+def test_warn_if_not_started_silent_when_already_started():
+    """Test that _warn_if_not_started prints nothing if program already started."""
     from play.api import utils
-    from unittest.mock import patch
 
-    # Set flag to True (simulating program already started)
     utils._program_started = True
-
-    # Mock start_program to verify it's not called
-    with patch.object(utils, "start_program") as mock_start:
-        utils._auto_start_program()
-        mock_start.assert_not_called()
+    # Should not print anything
+    utils._warn_if_not_started()
 
     # Reset for other tests
     utils._program_started = False
 
 
-def test_auto_start_calls_start_program_when_not_started():
-    """Test that _auto_start_program calls start_program if not started and callbacks exist."""
+def test_warn_if_not_started_prints_when_not_started(capsys):
+    """Test that _warn_if_not_started prints a warning if not started and callbacks exist."""
     from play.api import utils
     from play.callback import callback_manager, CallbackType
-    from unittest.mock import patch
 
-    # Ensure flag is False
     utils._program_started = False
 
-    # Register a dummy callback so _auto_start_program will trigger
     async def dummy():
         pass
 
     callback_manager.add_callback(CallbackType.WHEN_PROGRAM_START, dummy)
 
-    # Mock start_program to verify it's called
-    with patch.object(utils, "start_program") as mock_start:
-        utils._auto_start_program()
-        mock_start.assert_called_once()
+    utils._warn_if_not_started()
+
+    captured = capsys.readouterr()
+    assert "play.start_program()" in captured.out
 
     # Cleanup
     callback_manager.remove_callbacks(CallbackType.WHEN_PROGRAM_START)
     utils._program_started = False
+
+
+def test_warn_if_not_started_silent_when_no_callbacks(capsys):
+    """Test that _warn_if_not_started prints nothing if no callbacks registered."""
+    from play.api import utils
+
+    utils._program_started = False
+    utils._warn_if_not_started()
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+
+    utils._program_started = False
+
+
+def test_warn_if_not_started_survives_teardown():
+    """Test that _warn_if_not_started doesn't crash when globals are None."""
+    from play.api import utils
+    from unittest.mock import patch
+
+    # Simulate module teardown where callback_manager becomes None
+    with patch.object(utils, "callback_manager", None):
+        # Should not raise — the except guard catches AttributeError
+        utils._warn_if_not_started()

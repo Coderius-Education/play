@@ -1,15 +1,14 @@
 import pytest
 
-num_frames = 0
-max_frames = 300
-x_speed = 60
-
-num_collisions = 0
-expected_num_collisions = 1
-
 
 def test_ball_movement():
     import play
+
+    num_frames = [0]
+    max_frames = 300
+    x_speed = 60
+    num_collisions = [0]
+    expected_num_collisions = 1
 
     ball = play.new_circle(
         color="black",
@@ -28,23 +27,22 @@ def test_ball_movement():
 
     @play.repeat_forever
     def move():
-        global num_frames
+        num_frames[0] += 1
 
-        num_frames += 1
-
-        if num_frames == max_frames:
+        if num_frames[0] == max_frames:
             play.stop_program()
 
     @ball.when_stopped_touching(batje)
     def detect_collision():
-        global num_collisions
         print("Collision detected!")
-        num_collisions += 1
+        num_collisions[0] += 1
 
     play.start_program()
 
-    if num_collisions != expected_num_collisions:
-        pytest.fail(f"expected exactly one collision event, but found {num_collisions}")
+    if num_collisions[0] != expected_num_collisions:
+        pytest.fail(
+            f"expected exactly one collision event, but found {num_collisions[0]}"
+        )
 
 
 if __name__ == "__main__":

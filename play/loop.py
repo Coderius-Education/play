@@ -33,14 +33,12 @@ def get_loop():
     """Get or create the global event loop.
 
     Creates a new loop on first call and after a fork (detected via pid change).
-    This ensures module-level imports of play don't break forked processes
-    (e.g. pytest --forked).
     """
     global _loop, _creator_pid
 
     pid = os.getpid()
     if _loop is None or _creator_pid != pid:
-        if sys.version_info >= (3, 14):
+        if sys.version_info >= (3, 14) and sys.version_info < (3, 16):
             asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
         _loop = asyncio.new_event_loop()
         asyncio.set_event_loop(_loop)

@@ -170,5 +170,42 @@ def test_run_callbacks():
     assert callback_ran[0] is True
 
 
+def test_run_callbacks_inline():
+    """Test that run_callbacks_inline awaits callbacks directly (not as tasks)."""
+    import asyncio
+    from play.callback import CallbackManager, CallbackType
+
+    cm = CallbackManager()
+    execution_order = []
+
+    async def cb_a():
+        execution_order.append("a")
+
+    async def cb_b():
+        execution_order.append("b")
+
+    cm.add_callback(CallbackType.REPEAT_FOREVER, cb_a)
+    cm.add_callback(CallbackType.REPEAT_FOREVER, cb_b)
+
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(cm.run_callbacks_inline(CallbackType.REPEAT_FOREVER))
+    loop.close()
+
+    # Both callbacks ran in order, synchronously within the same coroutine
+    assert execution_order == ["a", "b"]
+
+
+def test_run_callbacks_inline_skips_missing_type():
+    """Test that run_callbacks_inline returns immediately for unregistered types."""
+    import asyncio
+    from play.callback import CallbackManager, CallbackType
+
+    cm = CallbackManager()
+    loop = asyncio.new_event_loop()
+    # Should not raise — just returns immediately
+    loop.run_until_complete(cm.run_callbacks_inline(CallbackType.WHEN_RESIZED))
+    loop.close()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

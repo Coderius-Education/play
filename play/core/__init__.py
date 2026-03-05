@@ -71,11 +71,6 @@ async def game_loop():
         await _handle_controller()
 
     #############################
-    # @repeat_forever callbacks
-    #############################
-    callback_manager.run_callbacks(CallbackType.REPEAT_FOREVER)
-
-    #############################
     # physics simulation
     #############################
     await simulate_physics()
@@ -93,4 +88,14 @@ async def game_loop():
     await _update_sprites()
 
     pygame.display.flip()
+
+    #############################
+    # @repeat_forever callbacks
+    # Awaited inline (not via create_task) so that on all platforms the
+    # callbacks run deterministically within the game loop frame.
+    # Placed after flip to match the effective timing of the original
+    # create_task approach (task ran in the next event loop cycle).
+    #############################
+    await callback_manager.run_callbacks_inline(CallbackType.REPEAT_FOREVER)
+
     _get_loop().create_task(game_loop())

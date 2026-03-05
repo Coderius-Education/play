@@ -25,5 +25,24 @@ class Globals:
     display: object = None  # This will be set in the screen module
     controllers: list = field(default_factory=list)
 
+    def reset(self):
+        """Reset mutable game state to defaults.
+
+        Note: ``gravity`` and ``display`` are intentionally NOT reset here.
+        ``gravity`` requires re-initialisation with a pymunk Space object and
+        is handled separately in the test conftest.  ``display`` needs an
+        active pygame Surface and is managed by the screen module.
+        """
+        self.all_sprites.clear()
+        self.sprites_group.empty()
+        self.walls.clear()
+        self.controllers.clear()
+        self.backdrop_type = "color"
+        self.backdrop = (255, 255, 255)
+        self.frame_rate = 60
+        self.width = 800
+        self.height = 600
+        self.num_sim_steps = 10
+
 
 globals_list = Globals()
