@@ -3,7 +3,7 @@
 import inspect as _inspect
 import warnings as _warnings
 
-from play.io.logging import play_logger
+from ..io.logging import play_logger
 
 
 def _raise_on_await_warning(func):

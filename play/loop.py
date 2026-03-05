@@ -40,7 +40,7 @@ def get_loop():
 
     pid = os.getpid()
     if _loop is None or _creator_pid != pid:
-        if sys.version_info >= (3, 14):
+        if sys.version_info >= (3, 14) and sys.version_info < (3, 16):
             asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
         _loop = asyncio.new_event_loop()
         asyncio.set_event_loop(_loop)
