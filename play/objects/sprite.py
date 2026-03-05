@@ -148,7 +148,7 @@ Try looking in your code for where you're setting transparency for {self} and ch
             _warnings.warn(
                 f"""The transparency setting for {self} is being set to {alpha} and it should be between 0 and 100.
 You might want to look in your code where you're setting transparency and make sure it's between 0 and 100.  """,
-                Warning,
+                UserWarning,
             )
 
         self._transparency = _clamp(alpha, 0, 100)

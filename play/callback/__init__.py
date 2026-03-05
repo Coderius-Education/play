@@ -4,7 +4,7 @@ This module contains the CallbackManager class and CallbackType enum.
 
 from enum import Enum
 
-from play.callback.callback_helpers import run_callback, run_async_callback
+from .callback_helpers import run_callback, run_async_callback
 
 
 class CallbackType(Enum):
@@ -45,7 +45,7 @@ class CallbackManager:
         """
         if not isinstance(callback, tuple):
             callback.type = callback_type
-        elif isinstance(callback, tuple):
+        else:
             callback[0].type = callback_type
 
         if callback_type not in self.callbacks:
