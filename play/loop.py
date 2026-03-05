@@ -33,8 +33,6 @@ def get_loop():
     """Get or create the global event loop.
 
     Creates a new loop on first call and after a fork (detected via pid change).
-    This ensures module-level imports of play don't break forked processes
-    (e.g. pytest --forked).
     """
     global _loop, _creator_pid
 

@@ -35,7 +35,7 @@ jobs:
     - name: Analysing the code with pylint
       if: runner.os == 'Linux'
       run: |
-        pylint $(git ls-files 'play/*.py')
+        pylint $(git ls-files 'play/*.py' 'play/**/*.py')
 
     - name: Run tests
       run: |

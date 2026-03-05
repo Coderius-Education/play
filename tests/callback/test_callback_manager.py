@@ -173,9 +173,9 @@ def test_run_callbacks():
 def test_run_callbacks_inline():
     """Test that run_callbacks_inline awaits callbacks directly (not as tasks)."""
     import asyncio
-    import play
-    from play.callback import callback_manager, CallbackType
+    from play.callback import CallbackManager, CallbackType
 
+    cm = CallbackManager()
     execution_order = []
 
     async def cb_a():
@@ -184,13 +184,11 @@ def test_run_callbacks_inline():
     async def cb_b():
         execution_order.append("b")
 
-    callback_manager.add_callback(CallbackType.REPEAT_FOREVER, cb_a)
-    callback_manager.add_callback(CallbackType.REPEAT_FOREVER, cb_b)
+    cm.add_callback(CallbackType.REPEAT_FOREVER, cb_a)
+    cm.add_callback(CallbackType.REPEAT_FOREVER, cb_b)
 
     loop = asyncio.new_event_loop()
-    loop.run_until_complete(
-        callback_manager.run_callbacks_inline(CallbackType.REPEAT_FOREVER)
-    )
+    loop.run_until_complete(cm.run_callbacks_inline(CallbackType.REPEAT_FOREVER))
     loop.close()
 
     # Both callbacks ran in order, synchronously within the same coroutine
@@ -200,13 +198,12 @@ def test_run_callbacks_inline():
 def test_run_callbacks_inline_skips_missing_type():
     """Test that run_callbacks_inline returns immediately for unregistered types."""
     import asyncio
-    from play.callback import callback_manager, CallbackType
+    from play.callback import CallbackManager, CallbackType
 
+    cm = CallbackManager()
     loop = asyncio.new_event_loop()
     # Should not raise — just returns immediately
-    loop.run_until_complete(
-        callback_manager.run_callbacks_inline(CallbackType.WHEN_RESIZED)
-    )
+    loop.run_until_complete(cm.run_callbacks_inline(CallbackType.WHEN_RESIZED))
     loop.close()
 
 

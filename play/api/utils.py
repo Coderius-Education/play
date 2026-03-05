@@ -19,13 +19,20 @@ _program_started = False  # pylint: disable=invalid-name
 _initial_pid = _os.getpid()  # pylint: disable=invalid-name
 
 
-def _auto_start_program():
-    """Automatically start the program if it hasn't been started yet."""
-    if not _program_started and callback_manager.callbacks:
-        start_program()
+def _warn_if_not_started():
+    """Warn the user if they forgot to call play.start_program()."""
+    try:
+        if not _program_started and callback_manager.callbacks:
+            print(
+                "\n⚠️  It looks like you forgot to call play.start_program() at the end "
+                "of your program.\nAdd this line at the very bottom of your file:\n\n"
+                "    play.start_program()\n"
+            )
+    except (AttributeError, TypeError, NameError):
+        pass  # module teardown may have cleared globals
 
 
-_atexit.register(_auto_start_program)
+_atexit.register(_warn_if_not_started)
 
 
 def start_program():
