@@ -28,10 +28,10 @@ def test_ball_movement():
     play.start_program()
 
     for index, x_position in enumerate(x_data):
-        expected_value = round(x_position)
-        actual_value = index
-        print(expected_value, actual_value)
-        if expected_value != actual_value:
+        actual_value = round(x_position)
+        expected_value = index
+        print(actual_value, expected_value)
+        if actual_value != expected_value:
             pytest.fail(
                 f"expected ball.x to be {expected_value}, but it is {actual_value}"
             )

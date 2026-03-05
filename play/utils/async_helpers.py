@@ -1,6 +1,5 @@
 """This module contains code to help with async functions."""
 
-import asyncio as _asyncio
 import inspect as _inspect
 import warnings as _warnings
 

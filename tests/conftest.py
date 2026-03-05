@@ -1,8 +1,9 @@
 """Root conftest for pytest.
 
-Handles pygame re-initialisation after fork().  Module-level imports of
-play trigger pygame.init() which starts background threads.  Those
-threads do not survive fork(), causing deadlocks with pytest --forked.
+Provides shared fixtures and helpers for all tests. Module-level imports
+of play trigger pygame.init() which starts background threads; the
+clean_play_state fixture reinitialises pygame and resets all play globals
+between tests to prevent state bleed.
 """
 
 import logging
@@ -64,12 +65,11 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 
 def pytest_collection_finish(session):
-    """Quit pygame in the collection-phase parent process.
+    """Quit pygame after the collection phase.
 
     Module-level imports of play trigger pygame.init() which starts background
-    threads.  Those threads do not survive a fork() (used by pytest --forked),
-    causing deadlocks in child processes.  Calling pygame.quit() here tears
-    down those threads in the parent before any child processes are spawned.
+    threads.  Calling pygame.quit() here tears down those threads so they do
+    not interfere with the test run that follows.
     """
     try:
         import pygame
