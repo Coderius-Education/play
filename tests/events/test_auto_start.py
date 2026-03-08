@@ -49,47 +49,63 @@ def test_auto_start_flag_set_by_sprite():
     utils._program_started = False
 
 
-def test_auto_start_calls_start_program():
-    """Test that _auto_start_if_needed calls start_program when flag is set."""
+def test_on_main_return_calls_start_program():
+    """Test that _on_main_return calls start_program when flag is set."""
     from play.api import utils
 
     utils._program_started = False
     utils._should_auto_start = True
 
     with patch.object(utils, "start_program") as mock_start:
-        utils._auto_start_if_needed()
+        utils._on_main_return(None, "return", None)  # noqa: E501
         mock_start.assert_called_once()
 
     utils._should_auto_start = False
     utils._program_started = False
 
 
-def test_auto_start_skipped_when_already_started():
-    """Test that _auto_start_if_needed does nothing if already started."""
+def test_on_main_return_skipped_when_already_started():
+    """Test that _on_main_return does nothing if already started."""
     from play.api import utils
 
     utils._program_started = True
     utils._should_auto_start = True
 
     with patch.object(utils, "start_program") as mock_start:
-        utils._auto_start_if_needed()
+        utils._on_main_return(None, "return", None)  # noqa: E501
         mock_start.assert_not_called()
 
     utils._should_auto_start = False
     utils._program_started = False
 
 
-def test_auto_start_skipped_when_flag_not_set():
-    """Test that _auto_start_if_needed does nothing if no callbacks/sprites were registered."""
+def test_on_main_return_skipped_when_flag_not_set():
+    """Test that _on_main_return does nothing if no callbacks/sprites were registered."""
     from play.api import utils
 
     utils._program_started = False
     utils._should_auto_start = False
 
     with patch.object(utils, "start_program") as mock_start:
-        utils._auto_start_if_needed()
+        utils._on_main_return(None, "return", None)  # noqa: E501
         mock_start.assert_not_called()
 
+    utils._program_started = False
+
+
+def test_on_main_return_ignores_non_return_events():
+    """Test that _on_main_return only triggers on 'return' events."""
+    from play.api import utils
+
+    utils._program_started = False
+    utils._should_auto_start = True
+
+    with patch.object(utils, "start_program") as mock_start:
+        utils._on_main_return(None, "call", None)  # noqa: E501
+        utils._on_main_return(None, "line", None)  # noqa: E501
+        mock_start.assert_not_called()
+
+    utils._should_auto_start = False
     utils._program_started = False
 
 

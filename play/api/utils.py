@@ -1,9 +1,9 @@
 """Game functions and utilities."""
 
-import atexit as _atexit
 import asyncio as _asyncio
 import logging as _logging
 import os as _os
+import sys as _sys
 
 import pygame
 
@@ -20,25 +20,37 @@ _initial_pid = _os.getpid()  # pylint: disable=invalid-name
 _should_auto_start = False  # pylint: disable=invalid-name
 
 
-def _auto_start_if_needed():
-    """Auto-start the program if the user forgot to call play.start_program().
-
-    Runs via atexit on the main thread, which is required for pygame on Windows.
-    """
-    if _should_auto_start and not _program_started:
-        try:
-            start_program()
-        except (AttributeError, TypeError, NameError, RuntimeError):
-            pass  # module teardown or race condition
+def _on_main_return(_frame, event, _arg):  # pylint: disable=unused-argument
+    """Trace function on the __main__ frame. Calls start_program() when the script ends."""
+    if event == "return":
+        _sys.settrace(None)
+        if _should_auto_start and not _program_started:
+            try:
+                start_program()
+            except RuntimeError:
+                pass
+    return _on_main_return
 
 
 def _schedule_auto_start():
-    """Mark that auto-start should happen. Called when callbacks or sprites are registered."""
+    """Set up auto-start when the user's script finishes.
+
+    Walks the call stack to find the __main__ frame and installs a trace
+    that fires start_program() when that frame returns. This runs on the
+    main thread before interpreter shutdown — required for pygame on Windows.
+    """
     global _should_auto_start
     _should_auto_start = True
 
+    frame = _sys._getframe()  # pylint: disable=protected-access
+    while frame is not None:
+        if frame.f_globals.get("__name__") == "__main__":
+            _sys.settrace(lambda *_args: None)
+            frame.f_trace = _on_main_return
+            break
+        frame = frame.f_back
 
-_atexit.register(_auto_start_if_needed)
+
 callback_manager.on_first_callback = _schedule_auto_start
 globals_list.on_first_sprite = _schedule_auto_start
 
@@ -49,7 +61,7 @@ def start_program():
 
     play.start_program() should almost certainly go at the very end of your program.
     """
-    global _program_started, _should_auto_start
+    global _program_started, _should_auto_start  # pylint: disable=global-statement
     if _program_started:
         raise RuntimeError(
             "You've already started the program! Calling play.start_program() "
