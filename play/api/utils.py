@@ -71,6 +71,7 @@ def start_program():
 
     _program_started = True
     _should_auto_start = False
+    _sys.settrace(None)
     callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
 
     _get_loop().create_task(_game_loop())
