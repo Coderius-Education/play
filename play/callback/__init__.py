@@ -62,7 +62,7 @@ class CallbackManager:
                 self.callbacks[callback_type][callback_discriminator] = []
             self.callbacks[callback_type][callback_discriminator].append(callback)
 
-        if self.on_first_callback is not None:
+        if self.on_first_callback is not None and callable(self.on_first_callback):
             self.on_first_callback()
             self.on_first_callback = None
 
