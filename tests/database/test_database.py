@@ -1,7 +1,4 @@
 import pytest
-import sys
-
-sys.path.append(".")
 
 
 def write_data():

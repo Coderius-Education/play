@@ -40,8 +40,6 @@ class Text(Sprite):
         self._is_hidden = False
         self.physics = None
 
-        self._when_clicked_callbacks = []
-
         self.rect = pygame.Rect(0, 0, 0, 0)
         self.update()  # Must compute rect size before start_physics
         self.start_physics(stable=True, obeys_gravity=False)
@@ -125,9 +123,7 @@ class Text(Sprite):
         elif os.path.isfile(font_name):
             self._pygame_font = pygame.font.Font(font_name, font_size)
         else:
-            play_logger.warning(
-                "File to font doesnt exist, Using default font", exc_info=True
-            )
+            play_logger.warning("File to font doesnt exist, Using default font")
             self._pygame_font = pygame.font.Font(
                 pygame.font.get_default_font(), font_size
             )

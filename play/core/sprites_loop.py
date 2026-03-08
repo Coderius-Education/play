@@ -84,8 +84,6 @@ async def update_sprites(do_events: bool = True):
     """Update all sprites in the game loop.
     :param do_events: If True, run events for sprites. If False, only update positions.
     """
-    globals_list.sprites_group.update()
-
     for sprite in globals_list.sprites_group.sprites():
         if sprite.physics and sprite.physics.can_move:
             update_sprite_physics(sprite)

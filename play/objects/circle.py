@@ -35,8 +35,6 @@ class Circle(Sprite):
         self._is_hidden = False
         self.physics = None
 
-        self._when_clicked_callbacks = []
-
         self.rect = pygame.Rect(0, 0, 0, 0)
         self.start_physics(stable=True, obeys_gravity=False)
         self.update()

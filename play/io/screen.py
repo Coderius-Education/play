@@ -9,8 +9,6 @@ from ..globals import globals_list
 from ..physics import physics_space
 from ..utils.async_helpers import make_async
 
-PYGAME_DISPLAY = None
-
 
 class Screen:
     def update_display(self, extra_flags=0):

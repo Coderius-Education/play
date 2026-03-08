@@ -30,18 +30,16 @@ class Sound:
 
         except FileNotFoundError:
             logger.error("File not found", exc_info=True)
-        logger.info("Loaded sound file", exc_info=True)
+        logger.info("Loaded sound file")
 
     def play(self):
         """Play the loaded sound with the specified loop settings, or resume a paused sound."""
         if not self.sound:
-            logger.warning(
-                "No sound loaded. Use the 'load' method first.", exc_info=True
-            )
+            logger.warning("No sound loaded. Use the 'load' method first.")
 
         self.channel = pygame.mixer.find_channel()
         if self.channel is None:
-            logger.warning("No available channels to play the sound.", exc_info=True)
+            logger.warning("No available channels to play the sound.")
 
         if not self.playing:
             self.channel.play(self.sound, loops=self.loops)
@@ -68,9 +66,7 @@ class Sound:
     def volume(self):
         """Get the current volume of the sound."""
         if not self.sound:
-            logger.warning(
-                "No sound loaded. Use the 'load' method first.", exc_info=True
-            )
+            logger.warning("No sound loaded. Use the 'load' method first.")
         volume = self.sound.get_volume()
         return volume
 
@@ -78,11 +74,9 @@ class Sound:
     def volume(self, volume):
         """Set the volume of the sound (0.0 to 1.0)."""
         if not self.sound:
-            logger.warning(
-                "No sound loaded. Use the 'load' method first.", exc_info=True
-            )
+            logger.warning("No sound loaded. Use the 'load' method first.")
         if not 0.0 <= volume <= 1.0:
-            logger.warning("Volume must be between 0.0 and 1.0", exc_info=True)
+            logger.warning("Volume must be between 0.0 and 1.0")
         self._volume = volume
         self.sound.set_volume(volume)
 
