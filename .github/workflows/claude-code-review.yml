@@ -11,7 +11,7 @@ on:
 jobs:
   claude-review:
     if: |
-      (github.actor == 'koen1711' || github.actor == 'MartenPostma') &&
+      github.actor == 'koen1711' &&
       ((github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
