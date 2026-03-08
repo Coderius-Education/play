@@ -28,7 +28,10 @@ def _auto_start_if_needed():
     """
     _threading.main_thread().join()
     if not _program_started:
-        start_program()
+        try:
+            start_program()
+        except RuntimeError:
+            pass  # start_program() was called just before the main thread ended
 
 
 def _schedule_auto_start():
