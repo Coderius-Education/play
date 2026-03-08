@@ -26,24 +26,21 @@ def test_auto_start_flag_set_by_callback():
 
 
 def test_auto_start_flag_set_by_sprite():
-    """Test that creating a sprite sets _should_auto_start."""
+    """Test that creating a real Sprite subclass sets _should_auto_start."""
     from play.api import utils
     from play.globals import globals_list
-    import pygame
+    import play
 
     utils._program_started = False
     utils._should_auto_start = False
     globals_list.on_first_sprite = utils._schedule_auto_start
 
-    sprite = pygame.sprite.Sprite()
-    globals_list.sprites_group.add(sprite)
-    if globals_list.on_first_sprite is not None:
-        globals_list.on_first_sprite()
-        globals_list.on_first_sprite = None
+    box = play.new_box()
 
     assert utils._should_auto_start is True
+    assert globals_list.on_first_sprite is None
 
-    sprite.kill()
+    box.remove()
     globals_list.on_first_sprite = utils._schedule_auto_start
     utils._should_auto_start = False
     utils._program_started = False

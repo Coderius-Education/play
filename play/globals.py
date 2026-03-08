@@ -43,6 +43,7 @@ class Globals:
         self.width = 800
         self.height = 600
         self.num_sim_steps = 10
+        self.on_first_sprite = None
 
 
 globals_list = Globals()

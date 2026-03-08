@@ -47,6 +47,7 @@ def _schedule_auto_start():
         if frame.f_globals.get("__name__") == "__main__":
             _sys.settrace(lambda *_args: None)
             frame.f_trace = _on_main_return
+            frame.f_trace_lines = False  # suppress per-line trace calls
             break
         frame = frame.f_back
 
