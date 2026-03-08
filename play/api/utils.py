@@ -30,7 +30,7 @@ def _warn_if_not_started():
         )
 
 
-def schedule_start_program_warning():
+def _schedule_start_program_warning():
     """Schedule a delayed warning check. Called when callbacks or sprites are registered."""
     global _warn_timer
     if _program_started or _warn_timer is not None:
@@ -47,8 +47,8 @@ def _cancel_warning():
         _warn_timer = None
 
 
-callback_manager.on_first_callback = schedule_start_program_warning
-globals_list.on_first_sprite = schedule_start_program_warning
+callback_manager.on_first_callback = _schedule_start_program_warning
+globals_list.on_first_sprite = _schedule_start_program_warning
 
 
 def start_program():

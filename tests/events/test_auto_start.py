@@ -31,13 +31,13 @@ def test_warn_if_not_started_silent_when_already_started(capsys):
 
 
 def test_schedule_warning_sets_timer():
-    """Test that schedule_start_program_warning creates a timer."""
+    """Test that _schedule_start_program_warning creates a timer."""
     from play.api import utils
 
     utils._program_started = False
     utils._warn_timer = None
 
-    utils.schedule_start_program_warning()
+    utils._schedule_start_program_warning()
     assert utils._warn_timer is not None
 
     utils._cancel_warning()
@@ -45,28 +45,28 @@ def test_schedule_warning_sets_timer():
 
 
 def test_schedule_warning_skipped_when_already_started():
-    """Test that schedule_start_program_warning does nothing if already started."""
+    """Test that _schedule_start_program_warning does nothing if already started."""
     from play.api import utils
 
     utils._program_started = True
     utils._warn_timer = None
 
-    utils.schedule_start_program_warning()
+    utils._schedule_start_program_warning()
     assert utils._warn_timer is None
 
     utils._program_started = False
 
 
 def test_schedule_warning_not_duplicated():
-    """Test that schedule_start_program_warning only creates one timer."""
+    """Test that _schedule_start_program_warning only creates one timer."""
     from play.api import utils
 
     utils._program_started = False
     utils._warn_timer = None
 
-    utils.schedule_start_program_warning()
+    utils._schedule_start_program_warning()
     first_timer = utils._warn_timer
-    utils.schedule_start_program_warning()
+    utils._schedule_start_program_warning()
     assert utils._warn_timer is first_timer
 
     utils._cancel_warning()
@@ -80,7 +80,7 @@ def test_start_program_cancels_warning():
     utils._program_started = False
     utils._warn_timer = None
 
-    utils.schedule_start_program_warning()
+    utils._schedule_start_program_warning()
     assert utils._warn_timer is not None
 
     with patch.object(utils, "_get_loop"):
@@ -98,7 +98,7 @@ def test_warning_fires_after_delay(capsys):
     utils._program_started = False
     utils._warn_timer = None
 
-    utils.schedule_start_program_warning()
+    utils._schedule_start_program_warning()
     utils._warn_timer.join(timeout=2.0)
 
     captured = capsys.readouterr()
@@ -108,16 +108,14 @@ def test_warning_fires_after_delay(capsys):
     utils._program_started = False
 
 
-def test_warning_suppressed_when_start_program_called_before_delay():
+def test_warning_suppressed_when_start_program_called_before_delay(capsys):
     """Test that start_program() prevents the warning from printing."""
     from play.api import utils
-    import io
-    from contextlib import redirect_stdout
 
     utils._program_started = False
     utils._warn_timer = None
 
-    utils.schedule_start_program_warning()
+    utils._schedule_start_program_warning()
 
     with patch.object(utils, "_get_loop"):
         utils.start_program()
@@ -125,10 +123,8 @@ def test_warning_suppressed_when_start_program_called_before_delay():
     # Wait long enough for the timer to have fired (if it wasn't cancelled)
     time.sleep(0.7)
 
-    f = io.StringIO()
-    with redirect_stdout(f):
-        pass  # nothing should have printed
-    assert "play.start_program()" not in f.getvalue()
+    captured = capsys.readouterr()
+    assert "play.start_program()" not in captured.out
 
     utils._program_started = False
 
@@ -140,7 +136,7 @@ def test_callback_triggers_warning_schedule():
 
     utils._program_started = False
     utils._warn_timer = None
-    callback_manager.on_first_callback = utils.schedule_start_program_warning
+    callback_manager.on_first_callback = utils._schedule_start_program_warning
 
     async def dummy():
         pass
@@ -151,7 +147,7 @@ def test_callback_triggers_warning_schedule():
 
     utils._cancel_warning()
     callback_manager.remove_callbacks(CallbackType.WHEN_PROGRAM_START)
-    callback_manager.on_first_callback = utils.schedule_start_program_warning
+    callback_manager.on_first_callback = utils._schedule_start_program_warning
     utils._program_started = False
 
 
@@ -163,7 +159,7 @@ def test_sprite_triggers_warning_schedule():
 
     utils._program_started = False
     utils._warn_timer = None
-    globals_list.on_first_sprite = utils.schedule_start_program_warning
+    globals_list.on_first_sprite = utils._schedule_start_program_warning
 
     sprite = pygame.sprite.Sprite()
     globals_list.sprites_group.add(sprite)
@@ -175,5 +171,5 @@ def test_sprite_triggers_warning_schedule():
 
     utils._cancel_warning()
     sprite.kill()
-    globals_list.on_first_sprite = utils.schedule_start_program_warning
+    globals_list.on_first_sprite = utils._schedule_start_program_warning
     utils._program_started = False
