@@ -134,7 +134,7 @@ def clean_play_state():
 
     play.api.utils._program_started = False
     play.api.utils._initial_pid = -1
-    play.api.utils._cancel_auto_start()
+    play.api.utils._should_auto_start = False
     callback_manager.on_first_callback = play.api.utils._schedule_auto_start
     play.globals.globals_list.on_first_sprite = play.api.utils._schedule_auto_start
 

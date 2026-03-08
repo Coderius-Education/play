@@ -1,9 +1,9 @@
 """Game functions and utilities."""
 
+import atexit as _atexit
 import asyncio as _asyncio
 import logging as _logging
 import os as _os
-import threading as _threading
 
 import pygame
 
@@ -17,38 +17,28 @@ from ..utils import color_name_to_rgb as _color_name_to_rgb
 
 _program_started = False  # pylint: disable=invalid-name
 _initial_pid = _os.getpid()  # pylint: disable=invalid-name
-_auto_start_thread = None  # pylint: disable=invalid-name
+_should_auto_start = False  # pylint: disable=invalid-name
 
 
 def _auto_start_if_needed():
     """Auto-start the program if the user forgot to call play.start_program().
 
-    Waits for the main thread to finish (i.e. the user's script has fully
-    executed) and then calls start_program() if it was never called.
+    Runs via atexit on the main thread, which is required for pygame on Windows.
     """
-    _threading.main_thread().join()
-    if not _program_started:
+    if _should_auto_start and not _program_started:
         try:
             start_program()
-        except RuntimeError:
-            pass  # start_program() was called just before the main thread ended
+        except (AttributeError, TypeError, NameError, RuntimeError):
+            pass  # module teardown or race condition
 
 
 def _schedule_auto_start():
-    """Schedule an auto-start check. Called when callbacks or sprites are registered."""
-    global _auto_start_thread
-    if _program_started or _auto_start_thread is not None:
-        return
-    _auto_start_thread = _threading.Thread(target=_auto_start_if_needed, daemon=False)
-    _auto_start_thread.start()
+    """Mark that auto-start should happen. Called when callbacks or sprites are registered."""
+    global _should_auto_start
+    _should_auto_start = True
 
 
-def _cancel_auto_start():
-    """Cancel the pending auto-start (called when start_program() is invoked normally)."""
-    global _auto_start_thread
-    _auto_start_thread = None
-
-
+_atexit.register(_auto_start_if_needed)
 callback_manager.on_first_callback = _schedule_auto_start
 globals_list.on_first_sprite = _schedule_auto_start
 
@@ -59,7 +49,7 @@ def start_program():
 
     play.start_program() should almost certainly go at the very end of your program.
     """
-    global _program_started
+    global _program_started, _should_auto_start
     if _program_started:
         raise RuntimeError(
             "You've already started the program! Calling play.start_program() "
@@ -68,7 +58,7 @@ def start_program():
         )
 
     _program_started = True
-    _cancel_auto_start()
+    _should_auto_start = False
     callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
 
     _get_loop().create_task(_game_loop())
