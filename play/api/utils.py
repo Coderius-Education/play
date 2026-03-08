@@ -1,9 +1,9 @@
 """Game functions and utilities."""
 
-import atexit as _atexit
 import asyncio as _asyncio
 import logging as _logging
 import os as _os
+import threading as _threading
 
 import pygame
 
@@ -17,22 +17,38 @@ from ..utils import color_name_to_rgb as _color_name_to_rgb
 
 _program_started = False  # pylint: disable=invalid-name
 _initial_pid = _os.getpid()  # pylint: disable=invalid-name
+_warn_timer = None  # pylint: disable=invalid-name
 
 
 def _warn_if_not_started():
-    """Warn the user if they forgot to call play.start_program()."""
-    try:
-        if not _program_started and callback_manager.callbacks:
-            print(
-                "\n⚠️  It looks like you forgot to call play.start_program() at the end "
-                "of your program.\nAdd this line at the very bottom of your file:\n\n"
-                "    play.start_program()\n"
-            )
-    except (AttributeError, TypeError, NameError):
-        pass  # module teardown may have cleared globals
+    """Print a warning if the user forgot to call play.start_program()."""
+    if not _program_started:
+        print(
+            "\nWARNING: It looks like you forgot to call play.start_program() at the end "
+            "of your program.\nAdd this line at the very bottom of your file:\n\n"
+            "    play.start_program()\n"
+        )
 
 
-_atexit.register(_warn_if_not_started)
+def schedule_start_program_warning():
+    """Schedule a delayed warning check. Called when callbacks or sprites are registered."""
+    global _warn_timer
+    if _program_started or _warn_timer is not None:
+        return
+    _warn_timer = _threading.Timer(0.5, _warn_if_not_started)
+    _warn_timer.start()
+
+
+def _cancel_warning():
+    """Cancel the pending warning timer."""
+    global _warn_timer
+    if _warn_timer is not None:
+        _warn_timer.cancel()
+        _warn_timer = None
+
+
+callback_manager.on_first_callback = schedule_start_program_warning
+globals_list.on_first_sprite = schedule_start_program_warning
 
 
 def start_program():
@@ -50,6 +66,7 @@ def start_program():
         )
 
     _program_started = True
+    _cancel_warning()
     callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
 
     _get_loop().create_task(_game_loop())

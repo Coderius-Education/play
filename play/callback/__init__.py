@@ -32,6 +32,7 @@ class CallbackManager:
         A class to manage callbacks.
         """
         self.callbacks = {}
+        self.on_first_callback = None
 
     def add_callback(
         self, callback_type, callback, callback_discriminator=None
@@ -60,6 +61,10 @@ class CallbackManager:
             if callback_discriminator not in self.callbacks[callback_type]:
                 self.callbacks[callback_type][callback_discriminator] = []
             self.callbacks[callback_type][callback_discriminator].append(callback)
+
+        if self.on_first_callback is not None:
+            self.on_first_callback()
+            self.on_first_callback = None
 
     def remove_callbacks(self, callback_type, callback_discriminator=None) -> None:
         """

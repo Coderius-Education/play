@@ -24,6 +24,7 @@ class Globals:
 
     display: object = None  # This will be set in the screen module
     controllers: list = field(default_factory=list)
+    on_first_sprite: object = None
 
     def reset(self):
         """Reset mutable game state to defaults.
