@@ -73,6 +73,7 @@ def pytest_collection_finish(session):
     """
     try:
         import pygame
+
         try:
             pygame.quit()
         except Exception:

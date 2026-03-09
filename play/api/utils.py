@@ -31,8 +31,12 @@ def _schedule_auto_start():
     wrapping the frame trace instead of replacing the global trace.
     """
     global _should_auto_start
+    if _should_auto_start:
+        return  # already scheduled, don't install a second trace
     _should_auto_start = True
 
+    # CPython-specific: _getframe() is an implementation detail but fine here
+    # since pygame targets CPython.
     frame = _sys._getframe()  # pylint: disable=protected-access
     while frame is not None:
         if frame.f_globals.get("__name__") == "__main__":
@@ -54,8 +58,8 @@ def _schedule_auto_start():
 
             if existing_trace is None:
                 _sys.settrace(lambda *_args: None)
-                frame.f_trace_lines = False
             frame.f_trace = _on_main_return
+            frame.f_trace_lines = False
             break
         frame = frame.f_back
 

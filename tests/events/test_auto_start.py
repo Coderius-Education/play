@@ -59,6 +59,7 @@ def test_schedule_installs_trace_on_main_frame():
 
     assert utils._should_auto_start is True
     # The trace was installed (settrace was called)
+    assert sys.gettrace() is not None
     # Clean up
     sys.settrace(None)
     utils._should_auto_start = False
@@ -72,7 +73,6 @@ def test_schedule_preserves_existing_trace():
     utils._program_started = False
     utils._should_auto_start = False
 
-    marker = []
     original_trace = lambda frame, event, arg: original_trace  # noqa: E731
     sys.settrace(original_trace)
 
