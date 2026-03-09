@@ -73,9 +73,10 @@ def pytest_collection_finish(session):
     """
     try:
         import pygame
-
-        if pygame.get_init():
+        try:
             pygame.quit()
+        except Exception:
+            pass
     except ImportError:
         pass
 
