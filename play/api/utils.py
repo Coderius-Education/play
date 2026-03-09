@@ -20,24 +20,15 @@ _initial_pid = _os.getpid()  # pylint: disable=invalid-name
 _should_auto_start = False  # pylint: disable=invalid-name
 
 
-def _on_main_return(_frame, event, _arg):  # pylint: disable=unused-argument
-    """Trace function on the __main__ frame. Calls start_program() when the script ends."""
-    if event == "return":
-        _sys.settrace(None)
-        if _should_auto_start and not _program_started:
-            try:
-                start_program()
-            except RuntimeError:
-                pass
-    return _on_main_return
-
-
 def _schedule_auto_start():
     """Set up auto-start when the user's script finishes.
 
     Walks the call stack to find the __main__ frame and installs a trace
     that fires start_program() when that frame returns. This runs on the
     main thread before interpreter shutdown — required for pygame on Windows.
+
+    Preserves any existing sys.settrace (debuggers, coverage, etc.) by
+    wrapping the frame trace instead of replacing the global trace.
     """
     global _should_auto_start
     _should_auto_start = True
@@ -45,9 +36,26 @@ def _schedule_auto_start():
     frame = _sys._getframe()  # pylint: disable=protected-access
     while frame is not None:
         if frame.f_globals.get("__name__") == "__main__":
-            _sys.settrace(lambda *_args: None)
+            existing_trace = _sys.gettrace()
+            existing_f_trace = frame.f_trace
+
+            def _on_main_return(_frame, event, _arg):  # pylint: disable=unused-argument
+                if event == "return":
+                    if existing_trace is None:
+                        _sys.settrace(None)
+                    if _should_auto_start and not _program_started:
+                        try:
+                            start_program()
+                        except RuntimeError:
+                            pass
+                if existing_f_trace is not None:
+                    existing_f_trace(_frame, event, _arg)
+                return _on_main_return
+
+            if existing_trace is None:
+                _sys.settrace(lambda *_args: None)
+                frame.f_trace_lines = False
             frame.f_trace = _on_main_return
-            frame.f_trace_lines = False  # suppress per-line trace calls
             break
         frame = frame.f_back
 
@@ -72,7 +80,6 @@ def start_program():
 
     _program_started = True
     _should_auto_start = False
-    _sys.settrace(None)
     callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
 
     _get_loop().create_task(_game_loop())

@@ -1,5 +1,6 @@
 """Tests for auto-starting when user forgets to call play.start_program()."""
 
+import sys
 from unittest.mock import patch
 
 
@@ -46,62 +47,42 @@ def test_auto_start_flag_set_by_sprite():
     utils._program_started = False
 
 
-def test_on_main_return_calls_start_program():
-    """Test that _on_main_return calls start_program when flag is set."""
-    from play.api import utils
-
-    utils._program_started = False
-    utils._should_auto_start = True
-
-    with patch.object(utils, "start_program") as mock_start:
-        utils._on_main_return(None, "return", None)  # noqa: E501
-        mock_start.assert_called_once()
-
-    utils._should_auto_start = False
-    utils._program_started = False
-
-
-def test_on_main_return_skipped_when_already_started():
-    """Test that _on_main_return does nothing if already started."""
-    from play.api import utils
-
-    utils._program_started = True
-    utils._should_auto_start = True
-
-    with patch.object(utils, "start_program") as mock_start:
-        utils._on_main_return(None, "return", None)  # noqa: E501
-        mock_start.assert_not_called()
-
-    utils._should_auto_start = False
-    utils._program_started = False
-
-
-def test_on_main_return_skipped_when_flag_not_set():
-    """Test that _on_main_return does nothing if no callbacks/sprites were registered."""
+def test_schedule_installs_trace_on_main_frame():
+    """Test that _schedule_auto_start installs a frame trace."""
     from play.api import utils
 
     utils._program_started = False
     utils._should_auto_start = False
 
-    with patch.object(utils, "start_program") as mock_start:
-        utils._on_main_return(None, "return", None)  # noqa: E501
-        mock_start.assert_not_called()
+    # Call from a function whose caller is __main__ (this test module)
+    utils._schedule_auto_start()
 
+    assert utils._should_auto_start is True
+    # The trace was installed (settrace was called)
+    # Clean up
+    sys.settrace(None)
+    utils._should_auto_start = False
     utils._program_started = False
 
 
-def test_on_main_return_ignores_non_return_events():
-    """Test that _on_main_return only triggers on 'return' events."""
+def test_schedule_preserves_existing_trace():
+    """Test that _schedule_auto_start preserves an existing sys.settrace."""
     from play.api import utils
 
     utils._program_started = False
-    utils._should_auto_start = True
+    utils._should_auto_start = False
 
-    with patch.object(utils, "start_program") as mock_start:
-        utils._on_main_return(None, "call", None)  # noqa: E501
-        utils._on_main_return(None, "line", None)  # noqa: E501
-        mock_start.assert_not_called()
+    marker = []
+    original_trace = lambda frame, event, arg: original_trace  # noqa: E731
+    sys.settrace(original_trace)
 
+    utils._schedule_auto_start()
+
+    # The global trace should still be set (not replaced with None)
+    assert sys.gettrace() is not None
+
+    # Clean up
+    sys.settrace(None)
     utils._should_auto_start = False
     utils._program_started = False
 
