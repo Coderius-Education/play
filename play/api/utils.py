@@ -20,6 +20,32 @@ _initial_pid = _os.getpid()  # pylint: disable=invalid-name
 _should_auto_start = False  # pylint: disable=invalid-name
 
 
+def _make_main_return_trace(existing_trace, existing_f_trace):
+    """Create a frame-trace function for the __main__ frame.
+
+    Fires start_program() when the frame returns, then restores the previous
+    global trace. Wraps any existing frame trace so debuggers/coverage survive.
+    """
+
+    def _on_main_return(_frame, event, _arg):  # pylint: disable=unused-argument
+        if event == "return":
+            if existing_trace is None:
+                _sys.settrace(None)
+            if _should_auto_start and not _program_started:
+                try:
+                    start_program()
+                except RuntimeError:
+                    pass
+            if existing_f_trace is not None:
+                existing_f_trace(_frame, event, _arg)
+            return None  # CPython ignores the return value on 'return' events
+        if existing_f_trace is not None:
+            existing_f_trace(_frame, event, _arg)
+        return _on_main_return
+
+    return _on_main_return
+
+
 def _schedule_auto_start():
     """Set up auto-start when the user's script finishes.
 
@@ -41,24 +67,9 @@ def _schedule_auto_start():
     while frame is not None:
         if frame.f_globals.get("__name__") == "__main__":
             existing_trace = _sys.gettrace()
-            existing_f_trace = frame.f_trace
-
-            def _on_main_return(_frame, event, _arg):  # pylint: disable=unused-argument
-                if event == "return":
-                    if existing_trace is None:
-                        _sys.settrace(None)
-                    if _should_auto_start and not _program_started:
-                        try:
-                            start_program()
-                        except RuntimeError:
-                            pass
-                if existing_f_trace is not None:
-                    existing_f_trace(_frame, event, _arg)
-                return _on_main_return
-
             if existing_trace is None:
                 _sys.settrace(lambda *_args: None)
-            frame.f_trace = _on_main_return
+            frame.f_trace = _make_main_return_trace(existing_trace, frame.f_trace)
             frame.f_trace_lines = False
             break
         frame = frame.f_back
