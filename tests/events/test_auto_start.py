@@ -53,6 +53,7 @@ def test_schedule_installs_trace_on_main_frame():
 
     utils._program_started = False
     utils._should_auto_start = False
+    original_trace = sys.gettrace()
 
     # Call from a function whose caller is __main__ (this test module)
     utils._schedule_auto_start()
@@ -60,8 +61,8 @@ def test_schedule_installs_trace_on_main_frame():
     assert utils._should_auto_start is True
     # The trace was installed (settrace was called)
     assert sys.gettrace() is not None
-    # Clean up
-    sys.settrace(None)
+    # Clean up — restore original trace so coverage tools are not disrupted
+    sys.settrace(original_trace)
     utils._should_auto_start = False
     utils._program_started = False
 
@@ -78,11 +79,11 @@ def test_schedule_preserves_existing_trace():
 
     utils._schedule_auto_start()
 
-    # The global trace should still be set (not replaced with None)
-    assert sys.gettrace() is not None
+    # The global trace should still be the original one (preserved, not replaced)
+    assert sys.gettrace() is original_trace
 
-    # Clean up
-    sys.settrace(None)
+    # Clean up — restore original trace so coverage tools are not disrupted
+    sys.settrace(original_trace)
     utils._should_auto_start = False
     utils._program_started = False
 
