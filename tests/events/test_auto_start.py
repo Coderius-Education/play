@@ -53,16 +53,21 @@ def test_schedule_installs_trace_on_main_frame():
 
     utils._program_started = False
     utils._should_auto_start = False
-    original_trace = sys.gettrace()
+
+    # Save and clear the real trace (e.g. pytest-cov) to get a known-None baseline
+    # so the assertion below is meaningful rather than trivially true.
+    real_trace = sys.gettrace()
+    sys.settrace(None)
+    original_trace = sys.gettrace()  # now guaranteed None
 
     # Call from a function whose caller is __main__ (this test module)
     utils._schedule_auto_start()
 
     assert utils._should_auto_start is True
-    # The trace was installed (settrace was called)
-    assert sys.gettrace() is not None
-    # Clean up — restore original trace so coverage tools are not disrupted
-    sys.settrace(original_trace)
+    # A new global trace was installed (original_trace is None, so this is a strict check)
+    assert sys.gettrace() is not original_trace
+    # Clean up — restore real trace so coverage tools are not disrupted
+    sys.settrace(real_trace)
     utils._should_auto_start = False
     utils._program_started = False
 
@@ -74,16 +79,17 @@ def test_schedule_preserves_existing_trace():
     utils._program_started = False
     utils._should_auto_start = False
 
-    original_trace = lambda frame, event, arg: original_trace  # noqa: E731
-    sys.settrace(original_trace)
+    real_original_trace = sys.gettrace()  # capture real trace (e.g. pytest-cov) first
+    custom_trace = lambda frame, event, arg: custom_trace  # noqa: E731
+    sys.settrace(custom_trace)
 
     utils._schedule_auto_start()
 
-    # The global trace should still be the original one (preserved, not replaced)
-    assert sys.gettrace() is original_trace
+    # The global trace should still be the custom one (preserved, not replaced)
+    assert sys.gettrace() is custom_trace
 
-    # Clean up — restore original trace so coverage tools are not disrupted
-    sys.settrace(original_trace)
+    # Clean up — restore real original trace so coverage tools are not disrupted
+    sys.settrace(real_original_trace)
     utils._should_auto_start = False
     utils._program_started = False
 
