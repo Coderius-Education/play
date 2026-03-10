@@ -29,13 +29,14 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
 
     def _on_main_return(_frame, event, _arg):  # pylint: disable=unused-argument
         if event == "return":
-            if existing_trace is None:
-                _sys.settrace(None)
             if _should_auto_start and not _program_started:
                 try:
                     start_program()
-                except RuntimeError:
-                    pass
+                except RuntimeError as exc:
+                    if "already started" not in str(exc):
+                        raise
+            if existing_trace is None:
+                _sys.settrace(None)
             if existing_f_trace is not None:
                 existing_f_trace(_frame, event, _arg)
             return None  # CPython ignores the return value on 'return' events
@@ -56,7 +57,7 @@ def _schedule_auto_start():
     Preserves any existing sys.settrace (debuggers, coverage, etc.) by
     wrapping the frame trace instead of replacing the global trace.
     """
-    global _should_auto_start
+    global _should_auto_start  # pylint: disable=global-statement
     if _should_auto_start:
         return  # already scheduled, don't install a second trace
     _should_auto_start = True
@@ -73,6 +74,9 @@ def _schedule_auto_start():
             frame.f_trace_lines = False
             break
         frame = frame.f_back
+    # If no __main__ frame was found (e.g. interactive REPL, embedded context),
+    # _should_auto_start is True but no trace is installed — start_program()
+    # won't fire automatically and the user must call it explicitly.
 
 
 callback_manager.on_first_callback = _schedule_auto_start
