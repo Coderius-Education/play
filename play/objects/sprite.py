@@ -50,7 +50,8 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
         super().__init__()
         globals_list.sprites_group.add(self)
-        hook, globals_list.on_first_sprite = globals_list.on_first_sprite, None
+        hook = globals_list.on_first_sprite
+        globals_list.on_first_sprite = None
         if hook is not None:
             hook()
 

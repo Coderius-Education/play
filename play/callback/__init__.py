@@ -63,7 +63,8 @@ class CallbackManager:
                 self.callbacks[callback_type][callback_discriminator] = []
             self.callbacks[callback_type][callback_discriminator].append(callback)
 
-        hook, self.on_first_callback = self.on_first_callback, None
+        hook = self.on_first_callback
+        self.on_first_callback = None
         if hook is not None:
             hook()  # pylint: disable=not-callable
 
