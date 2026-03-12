@@ -18,9 +18,10 @@ def test_auto_start_flag_set_by_callback():
 
     callback_manager.add_callback(CallbackType.WHEN_PROGRAM_START, dummy)
     assert utils._should_auto_start is True
-    assert callback_manager.on_first_callback is None
+    assert callback_manager.on_first_callback.has_run is True
 
     callback_manager.remove_callbacks(CallbackType.WHEN_PROGRAM_START)
+    utils._schedule_auto_start.has_run = False
     callback_manager.on_first_callback = utils._schedule_auto_start
     utils._should_auto_start = False
     utils._program_started = False
@@ -39,9 +40,10 @@ def test_auto_start_flag_set_by_sprite():
     box = play.new_box()
 
     assert utils._should_auto_start is True
-    assert globals_list.on_first_sprite is None
+    assert globals_list.on_first_sprite.has_run is True
 
     box.remove()
+    utils._schedule_auto_start.has_run = False
     globals_list.on_first_sprite = utils._schedule_auto_start
     utils._should_auto_start = False
     utils._program_started = False

@@ -13,7 +13,7 @@ from ..globals import globals_list
 from ..io.keypress import keyboard_state
 from ..loop import get_loop as _get_loop
 from ..physics import set_physics_simulation_steps as _set_physics_simulation_steps
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from ..utils import color_name_to_rgb as _color_name_to_rgb, run_once as _run_once
 
 _program_started = False  # pylint: disable=invalid-name
 _initial_pid = _os.getpid()  # pylint: disable=invalid-name
@@ -47,6 +47,7 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
     return _on_main_return
 
 
+@_run_once
 def _schedule_auto_start():
     """Set up auto-start when the user's script finishes.
 
@@ -58,8 +59,6 @@ def _schedule_auto_start():
     wrapping the frame trace instead of replacing the global trace.
     """
     global _should_auto_start  # pylint: disable=global-statement
-    if _should_auto_start:
-        return  # already scheduled, don't install a second trace
     _should_auto_start = True
 
     # CPython-specific: _getframe() is an implementation detail but fine here
