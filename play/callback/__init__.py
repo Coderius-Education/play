@@ -64,9 +64,9 @@ class CallbackManager:
             self.callbacks[callback_type][callback_discriminator].append(callback)
 
         if self.on_first_callback is not None:
-            callback = self.on_first_callback
+            hook = self.on_first_callback
             self.on_first_callback = None
-            callback()
+            hook()
 
     def remove_callbacks(self, callback_type, callback_discriminator=None) -> None:
         """
