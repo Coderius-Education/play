@@ -134,23 +134,8 @@ def clean_play_state():
 
     import play.api.utils
 
-    play.api.utils._program_started = False
+    play.api.utils._cleanup_auto_start()
     play.api.utils._initial_pid = -1
-    play.api.utils._should_auto_start = False
-    play.api.utils._schedule_auto_start.has_run = False
-    callback_manager.on_first_callback = play.api.utils._schedule_auto_start
-    play.globals.globals_list.on_first_sprite = play.api.utils._schedule_auto_start
-
-    # Clear any stale _on_main_return trace left on pytest's __main__ frame
-    # by a previous call to _schedule_auto_start.
-    import sys as _sys
-
-    _frame = _sys._getframe()  # pylint: disable=protected-access
-    while _frame is not None:
-        if _frame.f_globals.get("__name__") == "__main__":
-            _frame.f_trace = None
-            break
-        _frame = _frame.f_back
 
     play.globals.globals_list.gravity.vertical = -100
     play.globals.globals_list.gravity.horizontal = 0

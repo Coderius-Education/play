@@ -9,22 +9,13 @@ def test_auto_start_flag_set_by_callback():
     from play.api import utils
     from play.callback import callback_manager, CallbackType
 
-    utils._program_started = False
-    utils._should_auto_start = False
-    callback_manager.on_first_callback = utils._schedule_auto_start
-
     async def dummy():
         pass
 
     callback_manager.add_callback(CallbackType.WHEN_PROGRAM_START, dummy)
     assert utils._should_auto_start is True
-    assert callback_manager.on_first_callback.has_run is True
-
-    callback_manager.remove_callbacks(CallbackType.WHEN_PROGRAM_START)
-    utils._schedule_auto_start.has_run = False
-    callback_manager.on_first_callback = utils._schedule_auto_start
-    utils._should_auto_start = False
-    utils._program_started = False
+    # Hook self-clears after first call
+    assert callback_manager.on_first_callback is None
 
 
 def test_auto_start_flag_set_by_sprite():
@@ -33,28 +24,18 @@ def test_auto_start_flag_set_by_sprite():
     from play.globals import globals_list
     import play
 
-    utils._program_started = False
-    utils._should_auto_start = False
-    globals_list.on_first_sprite = utils._schedule_auto_start
-
     box = play.new_box()
 
     assert utils._should_auto_start is True
-    assert globals_list.on_first_sprite.has_run is True
+    # Hook self-clears after first call
+    assert globals_list.on_first_sprite is None
 
     box.remove()
-    utils._schedule_auto_start.has_run = False
-    globals_list.on_first_sprite = utils._schedule_auto_start
-    utils._should_auto_start = False
-    utils._program_started = False
 
 
 def test_schedule_installs_trace_on_main_frame():
     """Test that _schedule_auto_start installs a frame trace."""
     from play.api import utils
-
-    utils._program_started = False
-    utils._should_auto_start = False
 
     # Save and clear the real trace (e.g. pytest-cov) to get a known-None baseline
     # so the assertion below is meaningful rather than trivially true.
@@ -70,16 +51,11 @@ def test_schedule_installs_trace_on_main_frame():
     assert sys.gettrace() is not original_trace
     # Clean up — restore real trace so coverage tools are not disrupted
     sys.settrace(real_trace)
-    utils._should_auto_start = False
-    utils._program_started = False
 
 
 def test_schedule_preserves_existing_trace():
     """Test that _schedule_auto_start preserves an existing sys.settrace."""
     from play.api import utils
-
-    utils._program_started = False
-    utils._should_auto_start = False
 
     real_original_trace = sys.gettrace()  # capture real trace (e.g. pytest-cov) first
     custom_trace = lambda frame, event, arg: custom_trace  # noqa: E731
@@ -92,20 +68,15 @@ def test_schedule_preserves_existing_trace():
 
     # Clean up — restore real original trace so coverage tools are not disrupted
     sys.settrace(real_original_trace)
-    utils._should_auto_start = False
-    utils._program_started = False
 
 
 def test_start_program_clears_auto_start_flag():
     """Test that start_program() clears _should_auto_start."""
     from play.api import utils
 
-    utils._program_started = False
     utils._should_auto_start = True
 
     with patch.object(utils, "_get_loop"):
         utils.start_program()
 
     assert utils._should_auto_start is False
-
-    utils._program_started = False

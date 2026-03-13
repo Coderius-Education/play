@@ -64,7 +64,9 @@ class CallbackManager:
             self.callbacks[callback_type][callback_discriminator].append(callback)
 
         if self.on_first_callback is not None:
-            self.on_first_callback()  # pylint: disable=not-callable
+            callback = self.on_first_callback
+            self.on_first_callback = None
+            callback()
 
     def remove_callbacks(self, callback_type, callback_discriminator=None) -> None:
         """

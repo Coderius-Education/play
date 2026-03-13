@@ -40,6 +40,12 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
             if existing_f_trace is not None:
                 existing_f_trace(_frame, event, _arg)
             return None  # CPython ignores the return value on 'return' events
+        if event == "exception":
+            if existing_trace is None:
+                _sys.settrace(None)
+            if existing_f_trace is not None:
+                return existing_f_trace(_frame, event, _arg)
+            return None
         if existing_f_trace is not None:
             existing_f_trace(_frame, event, _arg)
         return _on_main_return
@@ -80,6 +86,26 @@ def _schedule_auto_start():
 
 callback_manager.on_first_callback = _schedule_auto_start
 globals_list.on_first_sprite = _schedule_auto_start
+
+
+def _cleanup_auto_start():
+    """Reset all auto-start state and remove any installed frame trace.
+
+    Used by test fixtures to prevent state leakage between tests.
+    """
+    global _program_started, _should_auto_start  # pylint: disable=global-statement
+    _program_started = False
+    _should_auto_start = False
+    _schedule_auto_start.has_run = False
+    callback_manager.on_first_callback = _schedule_auto_start
+    globals_list.on_first_sprite = _schedule_auto_start
+
+    frame = _sys._getframe()  # pylint: disable=protected-access
+    while frame is not None:
+        if frame.f_globals.get("__name__") == "__main__":
+            frame.f_trace = None
+            break
+        frame = frame.f_back
 
 
 def start_program():
