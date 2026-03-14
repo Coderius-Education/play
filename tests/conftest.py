@@ -74,8 +74,10 @@ def pytest_collection_finish(session):
     try:
         import pygame
 
-        if pygame.get_init():
+        try:
             pygame.quit()
+        except Exception:
+            pass
     except ImportError:
         pass
 
@@ -132,7 +134,7 @@ def clean_play_state():
 
     import play.api.utils
 
-    play.api.utils._program_started = False
+    play.api.utils._cleanup_auto_start()
     play.api.utils._initial_pid = -1
 
     play.globals.globals_list.gravity.vertical = -100

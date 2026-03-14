@@ -7,7 +7,6 @@ import pygame
 
 @dataclass
 class Globals:
-    all_sprites: list = field(default_factory=list)
     sprites_group: pygame.sprite.Group = field(default_factory=pygame.sprite.Group)
 
     walls: list = field(default_factory=list)
@@ -33,7 +32,6 @@ class Globals:
         is handled separately in the test conftest.  ``display`` needs an
         active pygame Surface and is managed by the screen module.
         """
-        self.all_sprites.clear()
         self.sprites_group.empty()
         self.walls.clear()
         self.controllers.clear()

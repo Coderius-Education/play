@@ -1,90 +1,97 @@
-"""Tests for the warning when user forgets to call play.start_program()."""
+"""Tests for auto-starting when user forgets to call play.start_program()."""
 
-import pytest
-
-
-def test_program_started_flag_initially_false():
-    """Test that _program_started is initially False."""
-    from play.api import utils
-
-    # Reset the flag for testing
-    utils._program_started = False
-    assert utils._program_started is False
+import subprocess
+import sys
+from unittest.mock import patch
 
 
-def test_program_started_flag_set_after_start():
-    """Test that _program_started is set to True when start_program sets it."""
-    from play.api import utils
-
-    # Directly set the flag (simulating what start_program does)
-    utils._program_started = True
-    assert utils._program_started is True
-
-    # Reset for other tests
-    utils._program_started = False
-
-
-def test_warn_if_not_started_registered_with_atexit():
-    """Test that _warn_if_not_started is registered with atexit."""
-    from play.api import utils
-
-    assert hasattr(utils, "_warn_if_not_started")
-    assert callable(utils._warn_if_not_started)
-
-
-def test_warn_if_not_started_silent_when_already_started():
-    """Test that _warn_if_not_started prints nothing if program already started."""
-    from play.api import utils
-
-    utils._program_started = True
-    # Should not print anything
-    utils._warn_if_not_started()
-
-    # Reset for other tests
-    utils._program_started = False
-
-
-def test_warn_if_not_started_prints_when_not_started(capsys):
-    """Test that _warn_if_not_started prints a warning if not started and callbacks exist."""
+def test_auto_start_flag_set_by_callback():
+    """Test that adding a callback sets _should_auto_start."""
     from play.api import utils
     from play.callback import callback_manager, CallbackType
-
-    utils._program_started = False
 
     async def dummy():
         pass
 
     callback_manager.add_callback(CallbackType.WHEN_PROGRAM_START, dummy)
-
-    utils._warn_if_not_started()
-
-    captured = capsys.readouterr()
-    assert "play.start_program()" in captured.out
-
-    # Cleanup
-    callback_manager.remove_callbacks(CallbackType.WHEN_PROGRAM_START)
-    utils._program_started = False
+    assert utils._should_auto_start is True
 
 
-def test_warn_if_not_started_silent_when_no_callbacks(capsys):
-    """Test that _warn_if_not_started prints nothing if no callbacks registered."""
+def test_auto_start_flag_set_by_sprite():
+    """Test that creating a real Sprite subclass sets _should_auto_start."""
+    from play.api import utils
+    from play.globals import globals_list
+    import play
+
+    box = play.new_box()
+
+    assert utils._should_auto_start is True
+
+    box.remove()
+
+
+def test_schedule_installs_trace_on_main_frame():
+    """Test that _schedule_auto_start installs a frame trace."""
     from play.api import utils
 
-    utils._program_started = False
-    utils._warn_if_not_started()
+    # Save and clear the real trace (e.g. pytest-cov) to get a known-None baseline
+    # so the assertion below is meaningful rather than trivially true.
+    real_trace = sys.gettrace()
+    sys.settrace(None)
+    original_trace = sys.gettrace()  # now guaranteed None
 
-    captured = capsys.readouterr()
-    assert captured.out == ""
+    # Call from a function whose caller is __main__ (this test module)
+    utils._schedule_auto_start()
 
-    utils._program_started = False
+    assert utils._should_auto_start is True
+    # A new global trace was installed (original_trace is None, so this is a strict check)
+    assert sys.gettrace() is not original_trace
+    # Clean up — restore real trace so coverage tools are not disrupted
+    sys.settrace(real_trace)
 
 
-def test_warn_if_not_started_survives_teardown():
-    """Test that _warn_if_not_started doesn't crash when globals are None."""
+def test_schedule_preserves_existing_trace():
+    """Test that _schedule_auto_start preserves an existing sys.settrace."""
     from play.api import utils
-    from unittest.mock import patch
 
-    # Simulate module teardown where callback_manager becomes None
-    with patch.object(utils, "callback_manager", None):
-        # Should not raise — the except guard catches AttributeError
-        utils._warn_if_not_started()
+    real_original_trace = sys.gettrace()  # capture real trace (e.g. pytest-cov) first
+    custom_trace = lambda frame, event, arg: custom_trace  # noqa: E731
+    sys.settrace(custom_trace)
+
+    utils._schedule_auto_start()
+
+    # The global trace should still be the custom one (preserved, not replaced)
+    assert sys.gettrace() is custom_trace
+
+    # Clean up — restore real original trace so coverage tools are not disrupted
+    sys.settrace(real_original_trace)
+
+
+def test_start_program_clears_auto_start_flag():
+    """Test that start_program() clears _should_auto_start."""
+    from play.api import utils
+
+    utils._should_auto_start = True
+
+    with patch.object(utils, "_get_loop"):
+        utils.start_program()
+
+    assert utils._should_auto_start is False
+
+
+def test_auto_start_end_to_end():
+    """End-to-end test: a script with a callback but no start_program() should auto-start."""
+    script = (
+        "import os, play\n"
+        "os.environ['SDL_VIDEODRIVER'] = 'dummy'\n"
+        "os.environ['SDL_AUDIODRIVER'] = 'dummy'\n"
+        "@play.when_program_starts\n"
+        "async def on_start():\n"
+        "    os._exit(0)\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        timeout=10,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stderr.decode()

@@ -8,6 +8,23 @@ from typing import Sequence
 import pygame
 
 
+def run_once(f):
+    """Decorator that ensures a function runs at most once.
+
+    After the first call, subsequent calls are silently ignored.
+    Reset by setting ``f.has_run = False``.
+    """
+
+    def wrapper(*args, **kwargs):
+        if not wrapper.has_run:
+            wrapper.has_run = True
+            return f(*args, **kwargs)
+        return None
+
+    wrapper.has_run = False
+    return wrapper
+
+
 def experimental(cls):
     """
     Decorator to mark a class as experimental.
