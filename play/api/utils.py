@@ -46,6 +46,10 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
             if existing_f_trace is not None:
                 return existing_f_trace(_frame, event, _arg)
             return None
+        # Return value of existing_f_trace is intentionally discarded: we
+        # always keep _on_main_return as the local trace so we can detect
+        # the 'return' event.  In practice, coverage tools (e.g. pytest-cov)
+        # return themselves, so they are not disrupted.
         if existing_f_trace is not None:
             existing_f_trace(_frame, event, _arg)
         return _on_main_return

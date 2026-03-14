@@ -1,5 +1,6 @@
 """Tests for auto-starting when user forgets to call play.start_program()."""
 
+import subprocess
 import sys
 from unittest.mock import patch
 
@@ -80,3 +81,21 @@ def test_start_program_clears_auto_start_flag():
         utils.start_program()
 
     assert utils._should_auto_start is False
+
+
+def test_auto_start_end_to_end():
+    """End-to-end test: a script with a callback but no start_program() should auto-start."""
+    script = (
+        "import os, play\n"
+        "os.environ['SDL_VIDEODRIVER'] = 'dummy'\n"
+        "os.environ['SDL_AUDIODRIVER'] = 'dummy'\n"
+        "@play.when_program_starts\n"
+        "async def on_start():\n"
+        "    os._exit(0)\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        timeout=10,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stderr.decode()
