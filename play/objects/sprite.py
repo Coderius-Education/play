@@ -51,9 +51,8 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         super().__init__()
         globals_list.sprites_group.add(self)
         if globals_list.on_first_sprite is not None:
-            callback = globals_list.on_first_sprite
+            globals_list.on_first_sprite()
             globals_list.on_first_sprite = None
-            callback()
 
     def __setattr__(self, name, value):
         # ignore if it's in the ignored list or if the variable doesn't change
