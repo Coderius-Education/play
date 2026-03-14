@@ -1,7 +1,6 @@
 """Global variables for the game"""
 
 from dataclasses import dataclass, field
-from typing import Callable
 
 import pygame
 
@@ -24,7 +23,6 @@ class Globals:
 
     display: object = None  # This will be set in the screen module
     controllers: list = field(default_factory=list)
-    on_first_sprite: Callable = field(default=lambda: None)
 
     def reset(self):
         """Reset mutable game state to defaults.
@@ -43,7 +41,6 @@ class Globals:
         self.width = 800
         self.height = 600
         self.num_sim_steps = 10
-        self.on_first_sprite = lambda: None
 
 
 globals_list = Globals()

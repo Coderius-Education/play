@@ -50,7 +50,10 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
         super().__init__()
         globals_list.sprites_group.add(self)
-        globals_list.on_first_sprite()
+        # pylint: disable-next=import-outside-toplevel,cyclic-import
+        from ..api.utils import _schedule_auto_start
+
+        _schedule_auto_start()
 
     def __setattr__(self, name, value):
         # ignore if it's in the ignored list or if the variable doesn't change

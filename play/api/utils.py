@@ -1,4 +1,4 @@
-"""Game functions and utilities."""
+"""Game functions and utilities."""  # pylint: disable=cyclic-import
 
 import asyncio as _asyncio
 import logging as _logging
@@ -89,7 +89,6 @@ def _schedule_auto_start():
 
 
 callback_manager.on_first_callback = _schedule_auto_start
-globals_list.on_first_sprite = _schedule_auto_start
 
 
 def _cleanup_auto_start():
@@ -102,7 +101,6 @@ def _cleanup_auto_start():
     _should_auto_start = False
     _schedule_auto_start.has_run = False
     callback_manager.on_first_callback = _schedule_auto_start
-    globals_list.on_first_sprite = _schedule_auto_start
 
     frame = _sys._getframe()  # pylint: disable=protected-access
     while frame is not None:
