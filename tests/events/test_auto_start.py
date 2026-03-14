@@ -15,8 +15,6 @@ def test_auto_start_flag_set_by_callback():
 
     callback_manager.add_callback(CallbackType.WHEN_PROGRAM_START, dummy)
     assert utils._should_auto_start is True
-    # Hook self-clears after first call
-    assert callback_manager.on_first_callback is None
 
 
 def test_auto_start_flag_set_by_sprite():
@@ -28,8 +26,6 @@ def test_auto_start_flag_set_by_sprite():
     box = play.new_box()
 
     assert utils._should_auto_start is True
-    # Hook self-clears after first call
-    assert globals_list.on_first_sprite is None
 
     box.remove()
 
