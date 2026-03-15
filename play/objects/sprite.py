@@ -6,6 +6,7 @@ import warnings as _warnings
 import pygame
 import pymunk as _pymunk
 
+from ..api.auto_start import _schedule_auto_start
 from ..callback import callback_manager, CallbackType
 from ..callback.collision_callbacks import collision_registry
 from ..globals import globals_list
@@ -50,6 +51,8 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
         super().__init__()
         globals_list.sprites_group.add(self)
+
+        _schedule_auto_start()
 
     def __setattr__(self, name, value):
         # ignore if it's in the ignored list or if the variable doesn't change

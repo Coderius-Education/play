@@ -32,5 +32,6 @@ from .utils import (
     key_is_pressed,
     set_physics_simulation_steps,
 )
+from . import auto_start as _auto_start  # noqa: F401 — trigger callback wiring
 from .random import random_number, random_color, random_position
 from ..callback.collision_callbacks import WallSide

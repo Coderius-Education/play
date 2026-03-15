@@ -52,7 +52,7 @@ def test_architecture_trap_double_start_program():
     If a user calls `play.start_program()` twice, it shouldn't crash
     the asyncio event loops, it should just throw a helpful Exception.
     """
-    play.api.utils._program_started = True
+    play.globals.globals_list.program_started = True
     try:
         with pytest.raises(Exception) as exc_info:
             play.start_program()
@@ -62,4 +62,4 @@ def test_architecture_trap_double_start_program():
             or "running" in str(exc_info.value).lower()
         )
     finally:
-        play.api.utils._program_started = False
+        play.globals.globals_list.program_started = False

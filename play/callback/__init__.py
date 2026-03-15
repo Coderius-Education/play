@@ -3,6 +3,7 @@ This module contains the CallbackManager class and CallbackType enum.
 """
 
 from enum import Enum
+from typing import Callable
 
 from .callback_helpers import run_callback, run_async_callback
 
@@ -32,6 +33,7 @@ class CallbackManager:
         A class to manage callbacks.
         """
         self.callbacks = {}
+        self.on_first_callback: Callable = lambda: None
 
     def add_callback(
         self, callback_type, callback, callback_discriminator=None
@@ -60,6 +62,8 @@ class CallbackManager:
             if callback_discriminator not in self.callbacks[callback_type]:
                 self.callbacks[callback_type][callback_discriminator] = []
             self.callbacks[callback_type][callback_discriminator].append(callback)
+
+        self.on_first_callback()
 
     def remove_callbacks(self, callback_type, callback_discriminator=None) -> None:
         """
