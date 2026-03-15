@@ -1,5 +1,6 @@
 """Global variables for the game"""
 
+import os as _os
 from dataclasses import dataclass, field
 
 import pygame
@@ -24,6 +25,10 @@ class Globals:
     display: object = None  # This will be set in the screen module
     controllers: list = field(default_factory=list)
 
+    program_started: bool = False
+    should_auto_start: bool = False
+    initial_pid: int = field(default_factory=_os.getpid)
+
     def reset(self):
         """Reset mutable game state to defaults.
 
@@ -41,6 +46,8 @@ class Globals:
         self.width = 800
         self.height = 600
         self.num_sim_steps = 10
+        self.program_started = False
+        self.should_auto_start = False
 
 
 globals_list = Globals()
