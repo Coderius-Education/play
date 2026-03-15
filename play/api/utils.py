@@ -109,3 +109,8 @@ def set_physics_simulation_steps(num_steps: int) -> None:
     :param num_steps: The number of simulation steps.
     """
     _set_physics_simulation_steps(num_steps)
+
+
+# Register start_program on globals_list so auto_start.py can call it without
+# importing this module (which would create a cyclic import via play.core).
+globals_list.start_program_fn = start_program

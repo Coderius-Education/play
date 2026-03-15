@@ -17,12 +17,8 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
     def _on_main_return(_frame, event, _arg):  # pylint: disable=unused-argument
         if event == "return":
             if globals_list.should_auto_start and not globals_list.program_started:
-                from .utils import (  # pylint: disable=import-outside-toplevel
-                    start_program,
-                )
-
                 try:
-                    start_program()
+                    globals_list.start_program_fn()
                 except RuntimeError as exc:
                     if "already started" not in str(exc):
                         raise

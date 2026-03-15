@@ -28,6 +28,7 @@ class Globals:
     program_started: bool = False
     should_auto_start: bool = False
     initial_pid: int = field(default_factory=_os.getpid)
+    start_program_fn: object = None  # set by play.api.utils to avoid cyclic import
 
     def reset(self):
         """Reset mutable game state to defaults.
