@@ -15,6 +15,7 @@ def run_once(f):
     Reset by setting ``f.has_run = False``.
     """
 
+    @wraps(f)
     def wrapper(*args, **kwargs):
         if not wrapper.has_run:
             wrapper.has_run = True

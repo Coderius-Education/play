@@ -17,7 +17,9 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
     def _on_main_return(_frame, event, _arg):  # pylint: disable=unused-argument
         if event == "return":
             if globals_list.should_auto_start and not globals_list.program_started:
-                from .utils import start_program  # lazy to avoid circular import
+                from .utils import (  # pylint: disable=import-outside-toplevel
+                    start_program,
+                )
 
                 try:
                     start_program()
@@ -30,6 +32,9 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
                 existing_f_trace(_frame, event, _arg)
             return None  # CPython ignores the return value on 'return' events
         if event == "exception":
+            # An unhandled exception is propagating through __main__ — don't
+            # auto-start since the script has crashed.  Clean up the trace and
+            # pass the event to any existing tracer.
             if existing_trace is None:
                 _sys.settrace(None)
             if existing_f_trace is not None:
