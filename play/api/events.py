@@ -1,13 +1,15 @@
 """All the events that can be triggered in the game."""
 
+import inspect
+
 from ..callback import callback_manager, CallbackType
+from ..callback.callback_helpers import run_async_callback, fire_async_callback
 from ..io.keypress import (
     when_key as _when_key,
     when_any_key as _when_any_key,
 )
 from ..io.mouse import mouse
 from ..utils.async_helpers import make_async
-from ..callback.callback_helpers import run_async_callback
 
 
 # @decorator
@@ -58,16 +60,34 @@ def repeat_forever(func):
     """
     async_callback = make_async(func)
 
-    async def repeat_wrapper():
-        repeat_wrapper.is_running = True
-        await run_async_callback(
-            async_callback,
-            [],
-            [],
-        )
+    if inspect.iscoroutinefunction(func):
+        # Truly async callback (contains await) — schedule as a task so it
+        # doesn't block the game loop or other callbacks while suspended.
+        # The is_running guard prevents re-entry; it's cleared when the task finishes.
+        async def _run_and_unlock():
+            try:
+                await async_callback()
+            finally:
+                repeat_wrapper.is_running = False
+
+        async def repeat_wrapper():
+            repeat_wrapper.is_running = True
+            fire_async_callback(_run_and_unlock, [], [])
+
+        repeat_wrapper.is_running = False
+    else:
+        # Sync callback — run inline so it sees the current frame's state.
+        async def repeat_wrapper():
+            repeat_wrapper.is_running = True
+            await run_async_callback(
+                async_callback,
+                [],
+                [],
+            )
+            repeat_wrapper.is_running = False
+
         repeat_wrapper.is_running = False
 
-    repeat_wrapper.is_running = False
     callback_manager.add_callback(CallbackType.REPEAT_FOREVER, repeat_wrapper)
     return func
 

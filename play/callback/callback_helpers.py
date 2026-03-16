@@ -4,6 +4,7 @@ This module contains helper functions for running callback functions.
 
 import inspect
 
+from ..io.logging import play_logger
 from ..loop import get_loop as _get_loop
 
 
@@ -89,6 +90,15 @@ async def run_async_callback(callback, required_args, optional_args, *args, **kw
     await callback(*callback_args, **kwargs)
 
 
+def _task_exception_handler(task):
+    """Log exceptions from fire-and-forget callback tasks."""
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc is not None:
+        play_logger.critical("Error in callback task: %s", exc)
+
+
 def fire_async_callback(callback, required_args, optional_args, *args, **kwargs):
     """Like run_async_callback but schedules the callback as a task (fire-and-forget).
 
@@ -98,7 +108,8 @@ def fire_async_callback(callback, required_args, optional_args, *args, **kwargs)
     _, callback_args = _resolve_callback_args(
         callback, required_args, optional_args, *args
     )
-    _get_loop().create_task(callback(*callback_args, **kwargs))
+    task = _get_loop().create_task(callback(*callback_args, **kwargs))
+    task.add_done_callback(_task_exception_handler)
 
 
 async def run_any_async_callback(callbacks, *args, **kwargs):

@@ -261,7 +261,6 @@ def test_button_pressed_callback_fires():
     )
     from play.callback import callback_manager, CallbackType
     from play.utils.async_helpers import make_async
-    from play.callback.callback_helpers import run_async_callback
 
     controller_state.buttons_pressed.clear()
     controller_state.buttons_released.clear()
