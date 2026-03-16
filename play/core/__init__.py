@@ -93,9 +93,8 @@ async def game_loop():
     # @repeat_forever callbacks
     # Awaited inline (not via create_task) so that on all platforms the
     # callbacks run deterministically within the game loop frame.
-    # Placed after flip to match the effective timing of the original
-    # create_task approach (task ran in the next event loop cycle).
+    # Schedule the next frame *before* awaiting callbacks so that
+    # async callbacks (e.g. await play.timer()) don't block rendering.
     #############################
-    await callback_manager.run_callbacks_inline(CallbackType.REPEAT_FOREVER)
-
     _get_loop().create_task(game_loop())
+    await callback_manager.run_callbacks_inline(CallbackType.REPEAT_FOREVER)

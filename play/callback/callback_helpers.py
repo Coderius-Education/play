@@ -42,17 +42,12 @@ def run_callback(callback, required_args, optional_args, *args, **kwargs):
         )
 
 
-async def run_async_callback(callback, required_args, optional_args, *args, **kwargs):
+def _resolve_callback_args(callback, required_args, optional_args, *args):
+    """Resolve the arguments for a callback, respecting original_function wrappers.
+
+    Returns the (actual_cb, callback_args) tuple, or raises ValueError if the
+    callback signature doesn't match.
     """
-    Run a callback function with the given arguments.
-    :param callback: The callback function to run.
-    :param required_args: The required arguments for the callback function.
-    :param optional_args: The optional arguments for the callback function.
-    :param args: The arguments to pass to the callback function.
-    :param kwargs: The keyword arguments to pass to the callback
-    :return: The result of the callback function.
-    """
-    # check if callback takes in the required number of arguments
     if not inspect.iscoroutinefunction(callback):
         raise ValueError("The callback function must be an async function.")
     actual_cb = callback
@@ -64,20 +59,46 @@ async def run_async_callback(callback, required_args, optional_args, *args, **kw
         <= len(actual_args)
         <= len(required_args) + len(optional_args)
     ):
-        callback_args = args[: len(actual_args)]
-        await callback(*callback_args, **kwargs)
-    else:
-        if len(required_args) == 0:
-            raise ValueError(
-                f"The callback function must not take in any arguments.\n"
-                f"On line {actual_cb.__code__.co_firstlineno} in {actual_cb.__code__.co_filename}"
-            )
+        return actual_cb, args[: len(actual_args)]
+    if len(required_args) == 0:
         raise ValueError(
-            f"The callback function must take in {len(required_args)} argument(s):\n"
-            f"Required: {required_args}\n"
-            f"{len(optional_args)} optional argument(s): {optional_args}\n"
+            f"The callback function must not take in any arguments.\n"
             f"On line {actual_cb.__code__.co_firstlineno} in {actual_cb.__code__.co_filename}"
         )
+    raise ValueError(
+        f"The callback function must take in {len(required_args)} argument(s):\n"
+        f"Required: {required_args}\n"
+        f"{len(optional_args)} optional argument(s): {optional_args}\n"
+        f"On line {actual_cb.__code__.co_firstlineno} in {actual_cb.__code__.co_filename}"
+    )
+
+
+async def run_async_callback(callback, required_args, optional_args, *args, **kwargs):
+    """
+    Run a callback function with the given arguments.
+    :param callback: The callback function to run.
+    :param required_args: The required arguments for the callback function.
+    :param optional_args: The optional arguments for the callback function.
+    :param args: The arguments to pass to the callback function.
+    :param kwargs: The keyword arguments to pass to the callback
+    :return: The result of the callback function.
+    """
+    _, callback_args = _resolve_callback_args(
+        callback, required_args, optional_args, *args
+    )
+    await callback(*callback_args, **kwargs)
+
+
+def fire_async_callback(callback, required_args, optional_args, *args, **kwargs):
+    """Like run_async_callback but schedules the callback as a task (fire-and-forget).
+
+    Use this for event callbacks (key press, mouse click, etc.) that should not
+    block the game loop when they contain awaits like play.timer().
+    """
+    _, callback_args = _resolve_callback_args(
+        callback, required_args, optional_args, *args
+    )
+    _get_loop().create_task(callback(*callback_args, **kwargs))
 
 
 async def run_any_async_callback(callbacks, *args, **kwargs):

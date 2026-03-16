@@ -274,7 +274,7 @@ class _Gravity:
 
 globals_list.gravity = _Gravity()
 physics_space = _pymunk.Space()
-physics_space.sleep_time_threshold = 0.5
+physics_space.sleep_time_threshold = float("inf")
 physics_space.idle_speed_threshold = 0
 physics_space.gravity = globals_list.gravity.horizontal, globals_list.gravity.vertical
 
