@@ -82,12 +82,14 @@ def repeat_forever(func):
 
         async def repeat_wrapper():
             repeat_wrapper.is_running = True
-            await run_async_callback(
-                async_callback,
-                [],
-                [],
-            )
-            repeat_wrapper.is_running = False
+            try:
+                await run_async_callback(
+                    async_callback,
+                    [],
+                    [],
+                )
+            finally:
+                repeat_wrapper.is_running = False
 
         repeat_wrapper.is_running = False
 
