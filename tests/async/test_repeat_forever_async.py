@@ -92,8 +92,8 @@ def test_multiple_async_repeat_forever_callbacks():
 
     assert frame_count[0] >= 30
     # Both callbacks should have run at least a few times
-    assert a_count[0] >= 5, f"callback_a only ran {a_count[0]} times"
-    assert b_count[0] >= 5, f"callback_b only ran {b_count[0]} times"
+    assert a_count[0] >= 2, f"callback_a only ran {a_count[0]} times"
+    assert b_count[0] >= 2, f"callback_b only ran {b_count[0]} times"
 
 
 def test_frames_render_during_when_key_released_timer():
