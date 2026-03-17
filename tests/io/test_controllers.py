@@ -261,7 +261,6 @@ def test_button_pressed_callback_fires():
     )
     from play.callback import callback_manager, CallbackType
     from play.utils.async_helpers import make_async
-    from play.callback.callback_helpers import run_async_callback
 
     controller_state.buttons_pressed.clear()
     controller_state.buttons_released.clear()
@@ -281,9 +280,12 @@ def test_button_pressed_callback_fires():
     event = pygame.event.Event(pygame.JOYBUTTONDOWN, {"instance_id": 0, "button": 7})
     handle_controller_events(event)
 
-    loop = asyncio.new_event_loop()
+    from play.loop import get_loop
+
+    loop = get_loop()
     loop.run_until_complete(handle_controller())
-    loop.close()
+    # Drain tasks scheduled by fire_async_callback
+    loop.run_until_complete(asyncio.sleep(0))
 
     assert 7 in pressed_buttons, "Button press callback should have fired with button=7"
 
@@ -323,9 +325,12 @@ def test_button_released_callback_fires():
     handle_controller_events(down)
     handle_controller_events(up)
 
-    loop = asyncio.new_event_loop()
+    from play.loop import get_loop
+
+    loop = get_loop()
     loop.run_until_complete(handle_controller())
-    loop.close()
+    # Drain tasks scheduled by fire_async_callback
+    loop.run_until_complete(asyncio.sleep(0))
 
     assert (
         2 in released_buttons
@@ -366,14 +371,16 @@ def test_button_pressed_callback_fires_while_held():
     event = pygame.event.Event(pygame.JOYBUTTONDOWN, {"instance_id": 0, "button": 4})
     handle_controller_events(event)
 
-    loop = asyncio.new_event_loop()
+    from play.loop import get_loop
+
+    loop = get_loop()
 
     # Simulate 3 frames with the button held
     for _ in range(3):
         controller_state.clear()
         loop.run_until_complete(handle_controller())
-
-    loop.close()
+        # Drain tasks scheduled by fire_async_callback
+        loop.run_until_complete(asyncio.sleep(0))
 
     assert (
         press_count[0] == 3

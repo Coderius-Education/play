@@ -5,7 +5,7 @@ This module contains the CallbackManager class and CallbackType enum.
 from enum import Enum
 from typing import Callable
 
-from .callback_helpers import run_callback, run_async_callback
+from .callback_helpers import run_callback, run_async_callback, fire_async_callback
 
 
 class CallbackType(Enum):
@@ -216,18 +216,18 @@ class CallbackManager:
         for state in activated_states:
             for callback in subscriptions.get(state, []):
                 if is_valid_callback(callback):
-                    await run_async_callback(
+                    fire_async_callback(
                         callback, required_args, optional_args, state, *args
                     )
             for callback in subscriptions.get("any", []):
                 if is_valid_callback(callback):
-                    await run_async_callback(
+                    fire_async_callback(
                         callback, required_args, optional_args, state, *args
                     )
         all_hash = hash(frozenset(activated_states))
         for callback in subscriptions.get(all_hash, []):
             if is_valid_callback(callback):
-                await run_async_callback(
+                fire_async_callback(
                     callback,
                     required_args,
                     optional_args,
