@@ -36,33 +36,44 @@ def test_angled_platform_collision():
     assert block.physics._pymunk_body.position.y > ramp.physics._pymunk_body.position.y
 
 
-def test_visual_angle_matches_physics_angle():
+@pytest.mark.parametrize(
+    "make_sprite",
+    [
+        pytest.param(lambda: play.new_box(width=100, height=10, angle=45), id="box"),
+        pytest.param(lambda: play.new_circle(radius=50, angle=45), id="circle"),
+        pytest.param(
+            lambda: play.new_image(
+                image="tests/objects_attributes/yellow.jpg", angle=45
+            ),
+            id="image",
+        ),
+    ],
+)
+def test_visual_angle_matches_physics_angle(make_sprite, monkeypatch):
     """The rendered sprite must be rotated in the same direction as the physics body.
 
     Regression test: the visual angle was previously negated, making the rendered
     ramp tilt the opposite way from its collision shape.
     """
-    import math
     import pygame
 
-    # A thin, wide box at 45° makes the direction of tilt easy to verify.
-    box = play.new_box(width=100, height=10, angle=45)
-    box._should_recompute = True
-    box.update()
+    captured_angles = []
+    original_rotate = pygame.transform.rotate
 
-    img = box.image
-    cx, cy = img.get_width() // 2, img.get_height() // 2
+    def spy_rotate(surface, angle):
+        captured_angles.append(angle)
+        return original_rotate(surface, angle)
 
-    # With correct +45° CCW rotation the bar runs from lower-left to upper-right,
-    # so a point offset (+20, -20) from centre (upper-right) should be opaque.
-    upper_right = img.get_at((cx + 20, cy - 20))
-    # And a point at (+20, +20) from centre (lower-right) should be transparent.
-    lower_right = img.get_at((cx + 20, cy + 20))
+    monkeypatch.setattr(pygame.transform, "rotate", spy_rotate)
 
-    assert (
-        upper_right.a > 0
-    ), "upper-right should be opaque (bar runs lower-left → upper-right)"
-    assert lower_right.a == 0, "lower-right should be transparent"
+    sprite = make_sprite()
+    sprite._should_recompute = True
+    sprite.update()
+
+    assert captured_angles, "expected pygame.transform.rotate to be called"
+    assert captured_angles[-1] == pytest.approx(
+        45.0
+    ), f"visual angle should be +45° (not negated), got {captured_angles[-1]}"
 
 
 def test_sleep_disabled_on_space():
