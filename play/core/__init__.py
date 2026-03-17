@@ -89,13 +89,6 @@ async def game_loop():
 
     pygame.display.flip()
 
-    #############################
     # @repeat_forever callbacks
-    # Sync callbacks are awaited inline so they see the current frame's state.
-    # Async callbacks (with await play.timer() etc.) are scheduled as tasks
-    # by repeat_forever so they don't block rendering.
-    # The next frame is scheduled *before* callbacks so that async callbacks
-    # don't prevent the game loop from advancing.
-    #############################
     _get_loop().create_task(game_loop())
     await callback_manager.run_callbacks_inline(CallbackType.REPEAT_FOREVER)

@@ -59,12 +59,7 @@ def repeat_forever(func):
     :return: The decorator function.
     """
     if inspect.iscoroutinefunction(func):
-        # Truly async callback (contains await) — schedule as a task so it
-        # doesn't block the game loop or other callbacks while suspended.
-        # The is_running guard prevents re-entry; it's cleared when the task finishes.
-        # Note: _run_and_unlock is defined once at decoration time and always
-        # calls func() with no arguments — this is correct because
-        # @repeat_forever callbacks never take parameters.
+
         async def _run_and_unlock():
             try:
                 await func()

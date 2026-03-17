@@ -274,8 +274,6 @@ class _Gravity:
 
 globals_list.gravity = _Gravity()
 physics_space = _pymunk.Space()
-# Disable body sleeping — sleeping bodies are excluded from collision detection,
-# which causes objects to pass through each other.
 physics_space.sleep_time_threshold = float("inf")
 physics_space.idle_speed_threshold = 0
 physics_space.gravity = globals_list.gravity.horizontal, globals_list.gravity.vertical
