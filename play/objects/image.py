@@ -43,7 +43,7 @@ class Image(Sprite):
                     max(round(self._original_height * self._size / 100), 1),
                 ),
             )
-            angle_deg = -_math.degrees(self.physics._pymunk_body.angle)
+            angle_deg = _math.degrees(self.physics._pymunk_body.angle)
             draw_image = pygame.transform.rotate(draw_image, angle_deg)
             draw_image.set_alpha(round(self._transparency * 255 / 100))
 
