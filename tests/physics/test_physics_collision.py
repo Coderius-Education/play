@@ -1,4 +1,6 @@
+import pygame
 import pytest
+
 import play
 from play.physics import physics_space
 
@@ -34,6 +36,48 @@ def test_angled_platform_collision():
 
     # The block should have landed on the ramp, not fallen through
     assert block.physics._pymunk_body.position.y > ramp.physics._pymunk_body.position.y
+
+
+@pytest.mark.parametrize(
+    "make_sprite",
+    [
+        pytest.param(lambda: play.new_box(width=100, height=10, angle=45), id="box"),
+        pytest.param(lambda: play.new_circle(radius=50, angle=45), id="circle"),
+        pytest.param(
+            lambda: play.new_image(
+                image="tests/objects_attributes/yellow.jpg", angle=45
+            ),
+            id="image",
+        ),
+    ],
+)
+def test_visual_angle_matches_physics_angle(make_sprite, monkeypatch):
+    """The rendered sprite must be rotated in the same direction as the physics body.
+
+    Regression test: the visual angle was previously negated, making the rendered
+    ramp tilt the opposite way from its collision shape.
+    """
+    captured_angles = []
+    original_rotate = pygame.transform.rotate
+
+    def spy_rotate(surface, angle):
+        captured_angles.append(angle)
+        return original_rotate(surface, angle)
+
+    monkeypatch.setattr(pygame.transform, "rotate", spy_rotate)
+
+    sprite = make_sprite()
+    # Force the rendering path — update() skips work when _should_recompute is False.
+    captured_angles.clear()
+    sprite._should_recompute = True
+    sprite.update()
+
+    assert (
+        len(captured_angles) == 1
+    ), f"expected exactly one rotate call, got {len(captured_angles)}"
+    assert captured_angles[0] == pytest.approx(
+        45.0
+    ), f"visual angle should be +45° (not negated), got {captured_angles[0]}"
 
 
 def test_sleep_disabled_on_space():
