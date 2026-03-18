@@ -23,6 +23,7 @@ class Physics:
         bounciness,
         mass,
         friction,
+        sensor=False,
     ):
         """
         Examples of objects with different parameters:
@@ -52,6 +53,7 @@ class Physics:
         self._bounciness = bounciness
         self._mass = mass
         self._friction = friction
+        self._sensor = sensor
         self._is_paused = False
 
         self._make_pymunk()
@@ -124,6 +126,7 @@ class Physics:
 
         self._pymunk_shape.elasticity = _clamp(self.bounciness, 0, 0.9999)
         self._pymunk_shape.friction = self._friction
+        self._pymunk_shape.sensor = self._sensor
 
         # Restore collision attributes so collision callbacks keep working
         if collision_type is not None:
@@ -148,6 +151,7 @@ class Physics:
             mass=self.mass,
             friction=self._friction,
             stable=self.stable,
+            sensor=self.sensor,
         )
 
     def pause(self):
@@ -248,6 +252,16 @@ class Physics:
         :param _mass: The mass of the object."""
         self._mass = _mass
         self._pymunk_body.mass = _mass
+
+    @property
+    def sensor(self):
+        """Check if the object is a sensor.
+        :return: True if the object is a sensor, False otherwise."""
+        return self._pymunk_shape.sensor
+
+    @sensor.setter
+    def sensor(self, value):
+        self._pymunk_shape.sensor = value
 
     @property
     def obeys_gravity(self):

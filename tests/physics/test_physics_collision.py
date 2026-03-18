@@ -36,6 +36,59 @@ def test_angled_platform_collision():
     assert block.physics._pymunk_body.position.y > ramp.physics._pymunk_body.position.y
 
 
+def test_sensor_via_start_physics():
+    """A sensor shape detects collisions but does not block movement."""
+    platform = play.new_box(y=-50, width=200, height=20)
+    platform.start_physics(can_move=False, sensor=True)
+
+    assert platform.physics.sensor is True
+    assert platform.physics._pymunk_shape.sensor is True
+
+
+def test_sensor_property_setter():
+    """The sensor property can be toggled at runtime."""
+    box = play.new_box()
+    box.start_physics(can_move=False)
+
+    assert box.physics.sensor is False
+    box.physics.sensor = True
+    assert box.physics.sensor is True
+    assert box.physics._pymunk_shape.sensor is True
+
+
+def test_sensor_does_not_block():
+    """A falling block should pass through a sensor platform."""
+    platform = play.new_box(y=-50, width=200, height=20)
+    platform.start_physics(can_move=False, sensor=True)
+
+    block = play.new_box(y=0, width=20, height=20)
+    block.start_physics(obeys_gravity=True)
+
+    # Step until the block has fallen past the platform
+    passed_through = False
+    for _ in range(120):
+        physics_space.step(1 / 60)
+        if (
+            block.physics._pymunk_body.position.y
+            < platform.physics._pymunk_body.position.y
+        ):
+            passed_through = True
+            break
+
+    assert passed_through, "block should fall through a sensor platform"
+
+
+def test_sensor_preserved_by_clone():
+    """Cloning a physics object should preserve the sensor flag."""
+    box = play.new_box()
+    box.start_physics(can_move=False, sensor=True)
+
+    other = play.new_box(x=50)
+    cloned = box.physics.clone(other)
+
+    assert cloned.sensor is True
+
+
 def test_sleep_disabled_on_space():
     """The physics space should not have body sleeping enabled."""
     assert physics_space.sleep_time_threshold == float("inf")

@@ -602,6 +602,7 @@ You might want to look in your code where you're setting transparency and make s
         bounciness=1.0,
         mass=10,
         friction=0,
+        sensor=False,
     ):
         """Start the physics simulation for this sprite.
         :param can_move: Whether the object can move.
@@ -612,6 +613,7 @@ You might want to look in your code where you're setting transparency and make s
         :param bounciness: The bounciness of the object.
         :param mass: The mass of the object.
         :param friction: The friction of the object.
+        :param sensor: Whether the object is a sensor (detects collisions without blocking).
         """
         saved_callbacks = self._save_and_clear_callbacks()
 
@@ -633,6 +635,7 @@ You might want to look in your code where you're setting transparency and make s
             bounciness,
             mass,
             friction,
+            sensor=sensor,
         )
 
         self._reregister_own_callbacks(saved_callbacks)
