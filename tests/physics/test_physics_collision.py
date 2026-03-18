@@ -1,4 +1,6 @@
+import pygame
 import pytest
+
 import play
 from play.physics import physics_space
 
@@ -55,8 +57,6 @@ def test_visual_angle_matches_physics_angle(make_sprite, monkeypatch):
     Regression test: the visual angle was previously negated, making the rendered
     ramp tilt the opposite way from its collision shape.
     """
-    import pygame
-
     captured_angles = []
     original_rotate = pygame.transform.rotate
 
@@ -67,13 +67,17 @@ def test_visual_angle_matches_physics_angle(make_sprite, monkeypatch):
     monkeypatch.setattr(pygame.transform, "rotate", spy_rotate)
 
     sprite = make_sprite()
+    # Force the rendering path — update() skips work when _should_recompute is False.
+    captured_angles.clear()
     sprite._should_recompute = True
     sprite.update()
 
-    assert captured_angles, "expected pygame.transform.rotate to be called"
-    assert captured_angles[-1] == pytest.approx(
+    assert (
+        len(captured_angles) == 1
+    ), f"expected exactly one rotate call, got {len(captured_angles)}"
+    assert captured_angles[0] == pytest.approx(
         45.0
-    ), f"visual angle should be +45° (not negated), got {captured_angles[-1]}"
+    ), f"visual angle should be +45° (not negated), got {captured_angles[0]}"
 
 
 def test_sleep_disabled_on_space():
