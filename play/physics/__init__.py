@@ -261,6 +261,7 @@ class Physics:
 
     @sensor.setter
     def sensor(self, value):
+        self._sensor = value
         self._pymunk_shape.sensor = value
 
     @property

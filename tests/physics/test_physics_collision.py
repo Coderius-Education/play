@@ -91,6 +91,15 @@ def test_sensor_preserved_by_clone():
     assert cloned.sensor is True
 
 
+def test_sensor_setter_survives_remake():
+    """Sensor flag set via property must persist when _make_pymunk() rebuilds the shape."""
+    box = play.new_box()
+    box.start_physics(can_move=False)
+    box.physics.sensor = True
+    box.physics.can_move = True  # triggers _make_pymunk()
+    assert box.physics.sensor is True
+
+
 def test_sleep_disabled_on_space():
     """The physics space should not have body sleeping enabled."""
     assert physics_space.sleep_time_threshold == float("inf")
