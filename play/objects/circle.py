@@ -85,7 +85,7 @@ class Circle(Sprite):
             self.rect.x = pos[0] - self.rect.width // 2
             self.rect.y = pos[1] - self.rect.height // 2
 
-            angle_deg = -_math.degrees(self.physics._pymunk_body.angle)
+            angle_deg = _math.degrees(self.physics._pymunk_body.angle)
             self._image = pygame.transform.rotate(draw_image, angle_deg)
             self.rect = self._image.get_rect(center=self.rect.center)
 

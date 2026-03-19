@@ -1,4 +1,6 @@
+import pygame
 import pytest
+
 import play
 from play.physics import physics_space
 
