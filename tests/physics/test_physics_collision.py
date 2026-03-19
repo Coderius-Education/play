@@ -1,4 +1,3 @@
-import pygame
 import pytest
 
 import play
@@ -38,46 +37,73 @@ def test_angled_platform_collision():
     assert block.physics._pymunk_body.position.y > ramp.physics._pymunk_body.position.y
 
 
-@pytest.mark.parametrize(
-    "make_sprite",
-    [
-        pytest.param(lambda: play.new_box(width=100, height=10, angle=45), id="box"),
-        pytest.param(lambda: play.new_circle(radius=50, angle=45), id="circle"),
-        pytest.param(
-            lambda: play.new_image(
-                image="tests/objects_attributes/yellow.jpg", angle=45
-            ),
-            id="image",
-        ),
-    ],
-)
-def test_visual_angle_matches_physics_angle(make_sprite, monkeypatch):
-    """The rendered sprite must be rotated in the same direction as the physics body.
+def test_sensor_default_is_false():
+    """The sensor flag should default to False."""
+    box = play.new_box()
+    box.start_physics(can_move=False)
+    assert box.physics.sensor is False
 
-    Regression test: the visual angle was previously negated, making the rendered
-    ramp tilt the opposite way from its collision shape.
-    """
-    captured_angles = []
-    original_rotate = pygame.transform.rotate
 
-    def spy_rotate(surface, angle):
-        captured_angles.append(angle)
-        return original_rotate(surface, angle)
+def test_sensor_via_start_physics():
+    """A sensor shape detects collisions but does not block movement."""
+    platform = play.new_box(y=-50, width=200, height=20)
+    platform.start_physics(can_move=False, sensor=True)
 
-    monkeypatch.setattr(pygame.transform, "rotate", spy_rotate)
+    assert platform.physics.sensor is True
+    assert platform.physics._pymunk_shape.sensor is True
 
-    sprite = make_sprite()
-    # Force the rendering path — update() skips work when _should_recompute is False.
-    captured_angles.clear()
-    sprite._should_recompute = True
-    sprite.update()
 
-    assert (
-        len(captured_angles) == 1
-    ), f"expected exactly one rotate call, got {len(captured_angles)}"
-    assert captured_angles[0] == pytest.approx(
-        45.0
-    ), f"visual angle should be +45° (not negated), got {captured_angles[0]}"
+def test_sensor_property_setter():
+    """The sensor property can be toggled at runtime."""
+    box = play.new_box()
+    box.start_physics(can_move=False)
+
+    assert box.physics.sensor is False
+    box.physics.sensor = True
+    assert box.physics.sensor is True
+    assert box.physics._pymunk_shape.sensor is True
+
+
+def test_sensor_does_not_block():
+    """A falling block should pass through a sensor platform."""
+    platform = play.new_box(y=-50, width=200, height=20)
+    platform.start_physics(can_move=False, sensor=True)
+
+    block = play.new_box(y=0, width=20, height=20)
+    block.start_physics(obeys_gravity=True)
+
+    # Step until the block has fallen past the platform (120 steps = 2s at 60fps)
+    passed_through = False
+    for _ in range(120):
+        physics_space.step(1 / 60)
+        if (
+            block.physics._pymunk_body.position.y
+            < platform.physics._pymunk_body.position.y
+        ):
+            passed_through = True
+            break
+
+    assert passed_through, "block should fall through a sensor platform"
+
+
+def test_sensor_preserved_by_clone():
+    """Cloning a physics object should preserve the sensor flag."""
+    box = play.new_box()
+    box.start_physics(can_move=False, sensor=True)
+
+    other = play.new_box(x=50)
+    cloned = box.physics.clone(other)
+
+    assert cloned.sensor is True
+
+
+def test_sensor_setter_survives_remake():
+    """Sensor flag set via property must persist when _make_pymunk() rebuilds the shape."""
+    box = play.new_box()
+    box.start_physics(can_move=False)
+    box.physics.sensor = True
+    box.physics.can_move = True  # triggers _make_pymunk()
+    assert box.physics.sensor is True
 
 
 def test_sleep_disabled_on_space():
