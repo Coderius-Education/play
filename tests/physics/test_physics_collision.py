@@ -1,4 +1,3 @@
-import pygame
 import pytest
 
 import play
@@ -38,6 +37,13 @@ def test_angled_platform_collision():
     assert block.physics._pymunk_body.position.y > ramp.physics._pymunk_body.position.y
 
 
+def test_sensor_default_is_false():
+    """The sensor flag should default to False."""
+    box = play.new_box()
+    box.start_physics(can_move=False)
+    assert box.physics.sensor is False
+
+
 def test_sensor_via_start_physics():
     """A sensor shape detects collisions but does not block movement."""
     platform = play.new_box(y=-50, width=200, height=20)
@@ -66,7 +72,7 @@ def test_sensor_does_not_block():
     block = play.new_box(y=0, width=20, height=20)
     block.start_physics(obeys_gravity=True)
 
-    # Step until the block has fallen past the platform
+    # Step until the block has fallen past the platform (120 steps = 2s at 60fps)
     passed_through = False
     for _ in range(120):
         physics_space.step(1 / 60)

@@ -43,6 +43,8 @@ class Physics:
             Stationary platform:
                 can_move = False
                 (others don't matter)
+            Sensor (detects collisions without blocking):
+                sensor = True
         """
         self.sprite = sprite
         self._can_move = can_move
