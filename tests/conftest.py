@@ -8,6 +8,7 @@ between tests to prevent state bleed.
 
 import logging
 import os
+import time
 import pytest
 
 # ---------------------------------------------------------------------------
@@ -186,5 +187,15 @@ def clean_play_state():
     if pygame.display.get_init():
         pygame.event.pump()
         pygame.event.clear()
+
+    # Safety timeout: automatically stop the game loop after 30 s so that
+    # any test whose stop_program() path never fires will fail with a clear
+    # timeout error rather than hanging the entire test suite.
+    _deadline = time.monotonic() + 30
+
+    @play.repeat_forever
+    def _safety_stop():
+        if time.monotonic() >= _deadline:
+            play.stop_program()
 
     yield
