@@ -66,7 +66,6 @@ async def handle_controller():
                 required_args=["button"],
                 property_filter={"controller": controller_id},
             )
-        controller_state.buttons_released.clear()
 
     ############################################################
     # @controller.when_axis_moved

@@ -47,6 +47,12 @@ def _handle_pygame_events():
         _handle_mouse_events(event)
         _handle_controller_events(event)
 
+        if event.type == pygame.VIDEORESIZE:
+            screen.width = event.w
+            screen.height = event.h
+            screen.update_display()
+            callback_manager.run_callbacks(CallbackType.WHEN_RESIZED)
+
     return True
 
 

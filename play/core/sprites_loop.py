@@ -89,13 +89,14 @@ async def update_sprites(do_events: bool = True):
             update_sprite_physics(sprite)
 
         sprite.events.is_clicked = False
+
+        await run_sprite_callbacks(sprite)
+
         if sprite.is_hidden:
             continue
 
         if not do_events and not sprite.physics:
             continue
-
-        await run_sprite_callbacks(sprite)
 
         if do_events:
             handle_sprite_click(sprite)

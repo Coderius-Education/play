@@ -242,7 +242,7 @@ class EventComponent:
         for callback, shape_b in callback_manager.get_callback(
             [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING], id(sprite)
         ):
-            if sprite.physics and shape_b.physics:
+            if not sprite.physics or not shape_b.physics:
                 continue
 
             if sprite.is_hidden or shape_b.is_hidden:

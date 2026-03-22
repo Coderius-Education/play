@@ -46,7 +46,7 @@ def when_button(index: int, released: bool, *buttons: list[int | list[int]] | No
 
         async def wrapper(button_cb):
             wrapper.is_running = True
-            await run_async_callback(async_callback, [], [], ["button"], button_cb)
+            await run_async_callback(async_callback, ["button"], [], button_cb)
             wrapper.is_running = False
 
         wrapper.is_running = False
@@ -169,7 +169,7 @@ class _Controllers:
         """A decorator that runs a function when any button on a controller is pressed.
         :param index: The index of the controller.
         :return: The function to run."""
-        buttons = {"any": None}
+        buttons = ("any",)
         return when_button(index, False, *buttons)
 
     # @decorator

@@ -47,7 +47,7 @@ class Database:
         target = self.data
         for k in keys[:-1]:
             if k not in target:
-                raise KeyError(f"Key {k} not found in {target}")
+                target[k] = {}
             target = target[k]
         target[keys[-1]] = value
 

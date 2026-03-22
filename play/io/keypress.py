@@ -19,6 +19,7 @@ class KeyboardState:  # pylint: disable=too-few-public-methods
 
     def clear(self):
         """Clear the state of the keyboard."""
+        self.pressed.clear()
         self.released.clear()
 
 
