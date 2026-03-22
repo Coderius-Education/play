@@ -41,6 +41,11 @@ def test_schedule_installs_trace_on_main_frame():
     sys.settrace(None)
     original_trace = sys.gettrace()  # now guaranteed None
 
+    # The clean_play_state fixture triggers _schedule_auto_start() once (via the
+    # safety-stop repeat_forever registration), so has_run is True by the time this
+    # test body runs.  Reset it so the explicit call below actually executes.
+    auto_start._schedule_auto_start.has_run = False
+
     # Call from a function whose caller is __main__ (this test module)
     auto_start._schedule_auto_start()
 

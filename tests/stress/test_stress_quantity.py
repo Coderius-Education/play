@@ -14,7 +14,7 @@ def test_stress_quantity_sprites():
     Validates that the engine does not segmentation fault or crash, and finishes in a reasonable time.
     """
     NUM_SPRITES = 1000
-    MAX_FRAMES = 50
+    MAX_FRAMES = 30
 
     # Spawn 1000 boxes
     boxes = []

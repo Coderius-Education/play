@@ -95,8 +95,8 @@ def test_database_set_persists_to_file(db_path):
     assert data["highscore"] == 500
 
 
-def test_database_set_nested_key_raises_on_missing(db_path):
-    """set_data with nested keys should raise KeyError if intermediate key missing."""
+def test_database_set_nested_key_creates_intermediate_dicts(db_path):
+    """set_data with nested keys should create intermediate dicts when missing."""
     db = play.new_database(db_filename=db_path)
-    with pytest.raises(KeyError):
-        db.set_data("player:stats:score", 100)
+    db.set_data("player:stats:score", 100)
+    assert db.get_data("player:stats:score") == 100

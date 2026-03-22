@@ -17,6 +17,7 @@ def handle_keyboard_events(event):
             name = _pygame_key_to_name(event)
             if name not in keyboard_state.pressed:
                 keyboard_state.pressed.append(name)
+                keyboard_state.pressed_this_frame.append(name)
     if event.type == pygame.KEYUP:
         name = _pygame_key_to_name(event)
         if not (event.key in KEYS_TO_SKIP) and name in keyboard_state.pressed:
@@ -28,9 +29,10 @@ async def handle_keyboard():
     """Handle keyboard events in the game loop."""
     ############################################################
     # @when_any_key_pressed and @when_key_pressed callbacks
+    # Fire only for keys newly pressed this frame (not held keys) — BUG 34
     ############################################################
     await callback_manager.run_callbacks_with_filter(
-        CallbackType.PRESSED_KEYS, keyboard_state.pressed, required_args=["key"]
+        CallbackType.PRESSED_KEYS, keyboard_state.pressed_this_frame, required_args=["key"]
     )
 
     ############################################################

@@ -174,6 +174,7 @@ def clean_play_state():
     from play.core import keyboard_state, mouse_state
 
     keyboard_state.pressed.clear()
+    keyboard_state.pressed_this_frame.clear()
     mouse_state.click_happened = False
     mouse_state.click_release_happened = False
 
