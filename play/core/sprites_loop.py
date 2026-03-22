@@ -90,10 +90,13 @@ async def update_sprites(do_events: bool = True):
 
         sprite.events.is_clicked = False
 
-        await run_sprite_callbacks(sprite)
-
         if sprite.is_hidden:
+            # Fire stopped_touching callbacks even for hidden sprites, but not touching callbacks
+            await run_any_async_callback(sprite.events.stopped_callbacks(), [], [])
+            sprite.events.clear_all_stopped()
             continue
+
+        await run_sprite_callbacks(sprite)
 
         if not do_events and not sprite.physics:
             continue

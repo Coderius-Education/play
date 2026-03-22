@@ -35,8 +35,8 @@ def start_program():
         await callback_manager.run_callbacks_inline(CallbackType.WHEN_PROGRAM_START)
         _get_loop().create_task(_game_loop())
 
-    _get_loop().run_until_complete(_run_start_then_loop())
     try:
+        _get_loop().run_until_complete(_run_start_then_loop())
         _get_loop().run_forever()
     finally:
         logger = _logging.getLogger("asyncio")
@@ -52,8 +52,6 @@ def stop_program():
     play.stop_program() should almost certainly go at the very end of your program.
     """
     _get_loop().stop()
-    if _os.getpid() == globals_list.initial_pid:
-        pygame.display.quit()
 
 
 async def animate():
