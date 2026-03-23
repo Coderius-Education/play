@@ -43,13 +43,17 @@ class Sound:
             self.is_paused = False
             return
 
+        # Stop any existing playback before starting a new one so we don't
+        # leak an untracked channel.
+        if self.channel is not None and self.channel.get_busy():
+            self.channel.stop()
+
         self.channel = pygame.mixer.find_channel()
         if self.channel is None:
             logger.warning("No available channels to play the sound.")
             return
 
-        if not self.playing:
-            self.channel.play(self.sound, loops=self.loops)
+        self.channel.play(self.sound, loops=self.loops)
 
     def pause(self):
         """Pause the sound."""
