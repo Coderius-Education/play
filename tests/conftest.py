@@ -84,7 +84,7 @@ def pytest_collection_finish(session):
 
 
 @pytest.fixture(autouse=True)
-def clean_play_state():
+def clean_play_state(request):
     """Flush play globals, physics, callbacks, and groups before every test.
     This prevents state bleed across tests and resolves random hanging test loops.
     """
@@ -189,10 +189,12 @@ def clean_play_state():
         pygame.event.pump()
         pygame.event.clear()
 
-    # Safety timeout: automatically stop the game loop after 30 s so that
-    # any test whose stop_program() path never fires will fail with a clear
-    # timeout error rather than hanging the entire test suite.
-    _deadline = time.monotonic() + 30
+    # Safety timeout: automatically stop the game loop so that any test
+    # whose stop_program() path never fires will fail rather than hang.
+    # Tests marked @pytest.mark.slow get a longer deadline.
+    marker = request.node.get_closest_marker("slow")
+    _seconds = marker.args[0] if marker and marker.args else 30
+    _deadline = time.monotonic() + _seconds
 
     @play.repeat_forever
     def _safety_stop():
