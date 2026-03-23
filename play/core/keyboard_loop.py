@@ -32,7 +32,9 @@ async def handle_keyboard():
     # Fire only for keys newly pressed this frame (not held keys) — BUG 34
     ############################################################
     await callback_manager.run_callbacks_with_filter(
-        CallbackType.PRESSED_KEYS, keyboard_state.pressed_this_frame, required_args=["key"]
+        CallbackType.PRESSED_KEYS,
+        keyboard_state.pressed_this_frame,
+        required_args=["key"],
     )
 
     ############################################################

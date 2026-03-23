@@ -14,9 +14,9 @@ class KeyboardState:  # pylint: disable=too-few-public-methods
 
     def __init__(self):
         """Initialize the keyboard state."""
-        self.pressed = []              # keys currently held down
-        self.released = []             # keys released this frame
-        self.pressed_this_frame = []   # keys newly pressed via KEYDOWN this frame
+        self.pressed = []  # keys currently held down
+        self.released = []  # keys released this frame
+        self.pressed_this_frame = []  # keys newly pressed via KEYDOWN this frame
 
     def clear(self):
         """Clear per-frame state (newly pressed and released this frame).
