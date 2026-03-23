@@ -104,9 +104,8 @@ async def update_sprites(do_events: bool = True):
         if not do_events:
             continue
 
-        if do_events:
-            handle_sprite_click(sprite)
-            handle_sprite_click_released(sprite)
+        handle_sprite_click(sprite)
+        handle_sprite_click_released(sprite)
 
     if do_events and mouse_state.click_release_happened:
         clear_click_tracking()

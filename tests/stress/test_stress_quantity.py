@@ -11,7 +11,7 @@ def setup_play(clean_play_state):
 @pytest.mark.slow(120)
 def test_stress_quantity_sprites():
     """
-    Stress test: Spawning 1000 physics-enabled sprites and running 100 frames.
+    Stress test: Spawning 1000 physics-enabled sprites and running 30 frames.
     Validates that the engine does not segmentation fault or crash, and finishes in a reasonable time.
     """
     NUM_SPRITES = 1000
