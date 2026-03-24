@@ -178,11 +178,12 @@ def test_while_mouse_pressed_fires_on_held_frames():
     This verifies the game loop condition includes mouse._is_clicked so that
     handle_mouse_loop is called even when mouse_state.click_happened is False.
     """
-    import asyncio
     import play
+    from play.loop import get_loop
     from play.core.mouse_loop import handle_mouse_events, handle_mouse_loop, mouse_state
     from play.io.mouse import mouse
 
+    loop = get_loop()
     fired_count = 0
 
     @play.mouse.while_pressed
@@ -198,7 +199,7 @@ def test_while_mouse_pressed_fires_on_held_frames():
     )
     handle_mouse_events(event_down)
     assert mouse._is_clicked is True
-    asyncio.get_event_loop().run_until_complete(handle_mouse_loop())
+    loop.run_until_complete(handle_mouse_loop())
     assert fired_count == 1
 
     # Simulate next frame: clear per-frame state (click_happened becomes False)
@@ -207,7 +208,7 @@ def test_while_mouse_pressed_fires_on_held_frames():
     assert mouse._is_clicked is True  # still held
 
     # Frame 2: no new event — but _is_clicked is True, so loop should still call handle_mouse_loop
-    asyncio.get_event_loop().run_until_complete(handle_mouse_loop())
+    loop.run_until_complete(handle_mouse_loop())
     assert fired_count == 2  # fired again on held frame
 
     # Clean up
