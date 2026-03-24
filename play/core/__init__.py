@@ -71,7 +71,11 @@ async def game_loop():
 
     await _handle_keyboard()
 
-    if mouse_state.click_happened or mouse_state.click_release_happened or mouse._is_clicked:
+    if (
+        mouse_state.click_happened
+        or mouse_state.click_release_happened
+        or mouse._is_clicked
+    ):
         await _handle_mouse_loop()
 
     if controller_state.any():

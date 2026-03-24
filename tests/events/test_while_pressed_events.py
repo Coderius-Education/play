@@ -193,7 +193,9 @@ def test_while_mouse_pressed_fires_on_held_frames():
     import pygame
 
     # Frame 1: MOUSEBUTTONDOWN — click_happened=True, _is_clicked=True
-    event_down = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (0, 0), "button": 1})
+    event_down = pygame.event.Event(
+        pygame.MOUSEBUTTONDOWN, {"pos": (0, 0), "button": 1}
+    )
     handle_mouse_events(event_down)
     assert mouse._is_clicked is True
     asyncio.get_event_loop().run_until_complete(handle_mouse_loop())
