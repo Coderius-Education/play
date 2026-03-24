@@ -96,7 +96,7 @@ async def update_sprites(do_events: bool = True):
                 sprite.events.clear_all_stopped()
             continue
 
-        if not do_events:
+        if not do_events and not sprite.physics:
             continue
 
         await run_sprite_callbacks(sprite)
