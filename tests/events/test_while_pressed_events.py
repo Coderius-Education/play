@@ -119,6 +119,10 @@ def test_while_key_pressed_uses_pressed_not_pressed_this_frame():
     # WHILE_KEY_PRESSED would STILL fire — pressed is not empty
     # This is the intended behavior difference
 
+    # Clean up simulated keyboard state so it doesn't leak into subsequent tests
+    keyboard_state.pressed.clear()
+    keyboard_state.pressed_this_frame.clear()
+
 
 def test_while_mouse_pressed_decorator():
     """Test play.while_mouse_pressed decorator registers callback."""

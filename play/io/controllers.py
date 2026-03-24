@@ -20,7 +20,7 @@ def when_button(index: int, released: bool, *buttons: list[int | list[int]] | No
     :param released: Whether the button is released (True) or pressed (False).
     :param buttons: The index of the button or a list of indices.
     :return: The function to run."""
-    if isinstance(buttons, list):
+    if isinstance(buttons, (list, tuple)):
         for button in buttons:
             if not isinstance(button, int) and not (
                 isinstance(button, list) and (not released)
@@ -210,6 +210,14 @@ class _Controllers:
         def decorator(func):
             async_callback = make_async(func)
 
+            async def any_wrapper(button_cb):
+                any_wrapper.is_running = True
+                await run_async_callback(async_callback, ["button"], [], button_cb)
+                any_wrapper.is_running = False
+
+            any_wrapper.is_running = False
+            any_wrapper.controller = index
+
             async def wrapper(button_cb):
                 wrapper.is_running = True
                 await run_async_callback(async_callback, ["button"], [], button_cb)
@@ -221,7 +229,7 @@ class _Controllers:
             for button in buttons:
                 if button == "any":
                     callback_manager.add_callback(
-                        CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED, wrapper, "any"
+                        CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED, any_wrapper, "any"
                     )
                     continue
                 if isinstance(button, list):
