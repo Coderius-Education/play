@@ -342,8 +342,9 @@ def test_button_released_callback_fires():
     callback_manager.remove_callbacks(CallbackType.WHEN_CONTROLLER_BUTTON_RELEASED, 2)
 
 
-def test_button_pressed_callback_fires_while_held():
-    """Test that WHEN_CONTROLLER_BUTTON_PRESSED fires every frame while held."""
+def test_button_pressed_callback_fires_once_on_press():
+    """Test that WHEN_CONTROLLER_BUTTON_PRESSED fires only on the initial press frame,
+    not every frame while held (analogous to keyboard when_key_pressed behavior)."""
     import asyncio
     import pygame
     from play.core.controller_loop import (
@@ -354,6 +355,7 @@ def test_button_pressed_callback_fires_while_held():
     from play.callback import callback_manager, CallbackType
 
     controller_state.buttons_pressed.clear()
+    controller_state.buttons_pressed_this_frame.clear()
     controller_state.buttons_released.clear()
 
     press_count = [0]
@@ -375,19 +377,24 @@ def test_button_pressed_callback_fires_while_held():
 
     loop = get_loop()
 
-    # Simulate 3 frames with the button held
-    for _ in range(3):
+    # Frame 1: process the initial press (buttons_pressed_this_frame is populated)
+    loop.run_until_complete(handle_controller())
+    loop.run_until_complete(asyncio.sleep(0))
+
+    # Frames 2 and 3: clear per-frame state then run callbacks (button still held,
+    # but buttons_pressed_this_frame is empty — WHEN callback should NOT fire again)
+    for _ in range(2):
         controller_state.clear()
         loop.run_until_complete(handle_controller())
-        # Drain tasks scheduled by fire_async_callback
         loop.run_until_complete(asyncio.sleep(0))
 
     assert (
-        press_count[0] == 3
-    ), f"Callback should fire every frame while held, got {press_count[0]} instead of 3"
+        press_count[0] == 1
+    ), f"Callback should fire once (on initial press), got {press_count[0]} instead of 1"
 
     # Clean up
     controller_state.buttons_pressed.clear()
+    controller_state.buttons_pressed_this_frame.clear()
     callback_manager.remove_callbacks(CallbackType.WHEN_CONTROLLER_BUTTON_PRESSED, 4)
 
 
