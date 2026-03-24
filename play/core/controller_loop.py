@@ -22,7 +22,11 @@ class ControllerState:
         self.axes_moved.clear()
 
     def any(self):
-        """Check if any controller event has occurred this frame."""
+        """Check if any controller activity is present.
+
+        Note: `buttons_pressed` persists across frames (held state), so this
+        returns True every frame a button is held — not just on the press frame.
+        Use `buttons_pressed_this_frame` to check for new presses only."""
         return self.buttons_pressed or self.buttons_released or self.axes_moved
 
 

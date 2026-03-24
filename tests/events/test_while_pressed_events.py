@@ -171,6 +171,48 @@ def test_while_mouse_pressed_is_tied_to_is_clicked():
     assert mouse._is_clicked is False
 
 
+def test_while_mouse_pressed_fires_on_held_frames():
+    """Test that WHILE_MOUSE_PRESSED fires on frames where mouse is held
+    but no new click event occurred (click_happened is False).
+
+    This verifies the game loop condition includes mouse._is_clicked so that
+    handle_mouse_loop is called even when mouse_state.click_happened is False.
+    """
+    import asyncio
+    import play
+    from play.core.mouse_loop import handle_mouse_events, handle_mouse_loop, mouse_state
+    from play.io.mouse import mouse
+
+    fired_count = 0
+
+    @play.mouse.while_pressed
+    def on_held():
+        nonlocal fired_count
+        fired_count += 1
+
+    import pygame
+
+    # Frame 1: MOUSEBUTTONDOWN — click_happened=True, _is_clicked=True
+    event_down = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (0, 0), "button": 1})
+    handle_mouse_events(event_down)
+    assert mouse._is_clicked is True
+    asyncio.get_event_loop().run_until_complete(handle_mouse_loop())
+    assert fired_count == 1
+
+    # Simulate next frame: clear per-frame state (click_happened becomes False)
+    mouse_state.clear()
+    assert mouse_state.click_happened is False
+    assert mouse._is_clicked is True  # still held
+
+    # Frame 2: no new event — but _is_clicked is True, so loop should still call handle_mouse_loop
+    asyncio.get_event_loop().run_until_complete(handle_mouse_loop())
+    assert fired_count == 2  # fired again on held frame
+
+    # Clean up
+    event_up = pygame.event.Event(pygame.MOUSEBUTTONUP, {"pos": (0, 0), "button": 1})
+    handle_mouse_events(event_up)
+
+
 def test_controllers_while_button_pressed_decorator():
     """Test controllers.while_button_pressed decorator registers callback."""
     from play.io.controllers import controllers
