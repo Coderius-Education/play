@@ -194,6 +194,18 @@ class _Controllers:
         :param index: The index of the controller.
         :param buttons: The index of the button(s) or a list of indices.
         :return: The function to run."""
+        if isinstance(buttons, (list, tuple)):
+            for button in buttons:
+                if button == "any":
+                    continue
+                if not isinstance(button, int) and not isinstance(button, list):
+                    raise ValueError("Button must be an integer or a list of integers.")
+                if isinstance(button, list):
+                    for sub_button in button:
+                        if not isinstance(sub_button, int):
+                            raise ValueError(
+                                "Button must be an integer or a list of integers."
+                            )
 
         def decorator(func):
             async_callback = make_async(func)

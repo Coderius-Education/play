@@ -3,6 +3,20 @@
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def clear_while_pressed_callbacks():
+    """Clear while_pressed callback state before and after each test."""
+    from play.callback import callback_manager, CallbackType
+
+    callback_manager.remove_callbacks(CallbackType.WHILE_KEY_PRESSED)
+    callback_manager.remove_callbacks(CallbackType.WHILE_MOUSE_PRESSED)
+    callback_manager.remove_callbacks(CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED)
+    yield
+    callback_manager.remove_callbacks(CallbackType.WHILE_KEY_PRESSED)
+    callback_manager.remove_callbacks(CallbackType.WHILE_MOUSE_PRESSED)
+    callback_manager.remove_callbacks(CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED)
+
+
 def test_while_key_pressed_decorator():
     """Test play.while_key_pressed decorator registers callback."""
     import play

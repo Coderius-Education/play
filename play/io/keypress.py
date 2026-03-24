@@ -91,6 +91,8 @@ def while_key(*keys):
     for control_key in keys:
         if not isinstance(control_key, str) and not isinstance(control_key, list):
             raise ValueError("Key must be a string or a list of strings.")
+        if isinstance(control_key, str):
+            continue
         if isinstance(control_key, list):
             for sub_key in control_key:
                 if not isinstance(sub_key, str):

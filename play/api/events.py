@@ -224,7 +224,10 @@ def while_any_key_pressed(func):
             text.words = key
     """
     if not callable(func):
-        raise ValueError("""@play.while_any_key_pressed doesn't use a list of keys.""")
+        raise ValueError(
+            "@play.while_any_key_pressed doesn't use a list of keys. "
+            "To listen for specific keys, use @play.while_key_pressed('a') instead."
+        )
     return _while_any_key(func)
 
 
