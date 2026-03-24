@@ -64,6 +64,28 @@ class Mouse:
         )
         return wrapper
 
+    # @decorator
+    def while_pressed(self, func):
+        """Run a function every frame while the mouse button is held down.
+        :param func: The function to run."""
+        async_callback = make_async(func)
+
+        async def wrapper():
+            wrapper.is_running = True
+            await run_async_callback(
+                async_callback,
+                [],
+                [],
+            )
+            wrapper.is_running = False
+
+        wrapper.is_running = False
+        callback_manager.add_callback(
+            CallbackType.WHILE_MOUSE_PRESSED,
+            wrapper,
+        )
+        return wrapper
+
     def distance_to(self, x: int | float, y: int | float):
         """Get the distance from the mouse to a point.
         :param x: The x-coordinate of the point.

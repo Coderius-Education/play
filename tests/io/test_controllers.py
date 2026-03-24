@@ -137,6 +137,8 @@ def test_controllers_has_required_methods():
             "when_any_button_released",
             "when_axis_moved",
             "when_any_axis_moved",
+            "while_button_pressed",
+            "while_any_button_pressed",
         ]
         for method in methods:
             result.append((method, hasattr(play.controllers, method)))
@@ -177,22 +179,30 @@ def test_controller_state_any():
 
 def test_controller_state_any_after_release():
     """Test that any() returns False after all buttons are released and frame clears."""
-    from play.core.controller_loop import ControllerState
+    import pygame
+    from play.core.controller_loop import controller_state, handle_controller_events
 
-    state = ControllerState()
-    state.buttons_pressed[0].add(1)
-    # Simulate button release
-    state.buttons_released[0].add(1)
-    state.buttons_pressed[0].discard(1)
+    controller_state.buttons_pressed.clear()
+    controller_state.buttons_released.clear()
 
-    state.clear()  # next frame
+    # Press then release via event handler so the cleanup path runs
+    down = pygame.event.Event(pygame.JOYBUTTONDOWN, {"instance_id": 0, "button": 1})
+    handle_controller_events(down)
+    assert controller_state.any(), "any() should be True while button is held"
 
-    # buttons_pressed[0] is now an empty set, but the key still exists in the defaultdict
-    # any() checks truthiness: an empty defaultdict is falsy, but one with empty set values...
-    # defaultdict with keys but empty set values is truthy! This is a known edge case.
-    # For now, just document the actual behavior:
-    has_pressed = any(len(v) > 0 for v in state.buttons_pressed.values())
-    assert not has_pressed, "No buttons should be pressed"
+    up = pygame.event.Event(pygame.JOYBUTTONUP, {"instance_id": 0, "button": 1})
+    handle_controller_events(up)
+
+    controller_state.clear()  # next frame — clears buttons_released
+
+    # After release + clear, the empty set key is removed from buttons_pressed,
+    # so any() correctly returns False.
+    assert (
+        not controller_state.any()
+    ), "any() should be False after button released and frame cleared"
+
+    # Clean up
+    controller_state.buttons_pressed.clear()
 
 
 def test_handle_controller_events_button_down():
@@ -342,8 +352,9 @@ def test_button_released_callback_fires():
     callback_manager.remove_callbacks(CallbackType.WHEN_CONTROLLER_BUTTON_RELEASED, 2)
 
 
-def test_button_pressed_callback_fires_while_held():
-    """Test that WHEN_CONTROLLER_BUTTON_PRESSED fires every frame while held."""
+def test_button_pressed_callback_fires_once_on_press():
+    """Test that WHEN_CONTROLLER_BUTTON_PRESSED fires only on the initial press frame,
+    not every frame while held (analogous to keyboard when_key_pressed behavior)."""
     import asyncio
     import pygame
     from play.core.controller_loop import (
@@ -354,6 +365,7 @@ def test_button_pressed_callback_fires_while_held():
     from play.callback import callback_manager, CallbackType
 
     controller_state.buttons_pressed.clear()
+    controller_state.buttons_pressed_this_frame.clear()
     controller_state.buttons_released.clear()
 
     press_count = [0]
@@ -375,19 +387,24 @@ def test_button_pressed_callback_fires_while_held():
 
     loop = get_loop()
 
-    # Simulate 3 frames with the button held
-    for _ in range(3):
+    # Frame 1: process the initial press (buttons_pressed_this_frame is populated)
+    loop.run_until_complete(handle_controller())
+    loop.run_until_complete(asyncio.sleep(0))
+
+    # Frames 2 and 3: clear per-frame state then run callbacks (button still held,
+    # but buttons_pressed_this_frame is empty — WHEN callback should NOT fire again)
+    for _ in range(2):
         controller_state.clear()
         loop.run_until_complete(handle_controller())
-        # Drain tasks scheduled by fire_async_callback
         loop.run_until_complete(asyncio.sleep(0))
 
     assert (
-        press_count[0] == 3
-    ), f"Callback should fire every frame while held, got {press_count[0]} instead of 3"
+        press_count[0] == 1
+    ), f"Callback should fire once (on initial press), got {press_count[0]} instead of 1"
 
     # Clean up
     controller_state.buttons_pressed.clear()
+    controller_state.buttons_pressed_this_frame.clear()
     callback_manager.remove_callbacks(CallbackType.WHEN_CONTROLLER_BUTTON_PRESSED, 4)
 
 

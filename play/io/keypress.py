@@ -86,6 +86,51 @@ def when_key(*keys, released=False):
     return decorator
 
 
+def while_key(*keys):
+    """Run a function every frame while a key is held down."""
+    for control_key in keys:
+        if not isinstance(control_key, str) and not isinstance(control_key, list):
+            raise ValueError("Key must be a string or a list of strings.")
+        if isinstance(control_key, str):
+            continue
+        for sub_key in control_key:
+            if not isinstance(sub_key, str):
+                raise ValueError("Key must be a string or a list of strings.")
+
+    def decorator(func):
+        async_callback = make_async(func)
+
+        async def wrapper(active_key):
+            wrapper.is_running = True
+            await run_async_callback(async_callback, [], ["key"], active_key)
+            wrapper.is_running = False
+
+        wrapper.is_running = False
+
+        for key in keys:
+            if isinstance(key, list):
+                key = hash(frozenset(key))
+            callback_manager.add_callback(CallbackType.WHILE_KEY_PRESSED, wrapper, key)
+        return wrapper
+
+    return decorator
+
+
+def while_any_key(func):
+    """Run a function every frame while any key is held down."""
+    async_callback = make_async(func)
+
+    async def wrapper(key):
+        wrapper.is_running = True
+        await run_async_callback(async_callback, ["key"], [], key)
+        wrapper.is_running = False
+
+    wrapper.keys = None
+    wrapper.is_running = False
+    callback_manager.add_callback(CallbackType.WHILE_KEY_PRESSED, wrapper, "any")
+    return wrapper
+
+
 def key_num_to_name(pygame_key_event):
     """Convert a pygame key event to a human-readable string."""
     return pygame.key.name(pygame_key_event.key)

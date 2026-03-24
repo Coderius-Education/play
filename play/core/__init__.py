@@ -17,6 +17,7 @@ from .mouse_loop import (
     handle_mouse_events as _handle_mouse_events,
     mouse_state,
 )
+from ..io.mouse import mouse
 from .physics_loop import simulate_physics
 from .sprites_loop import update_sprites as _update_sprites
 from ..callback import callback_manager, CallbackType
@@ -70,7 +71,11 @@ async def game_loop():
 
     await _handle_keyboard()
 
-    if mouse_state.click_happened or mouse_state.click_release_happened:
+    if (
+        mouse_state.click_happened
+        or mouse_state.click_release_happened
+        or mouse._is_clicked
+    ):
         await _handle_mouse_loop()
 
     if controller_state.any():

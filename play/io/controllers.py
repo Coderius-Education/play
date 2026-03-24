@@ -20,7 +20,7 @@ def when_button(index: int, released: bool, *buttons: list[int | list[int]] | No
     :param released: Whether the button is released (True) or pressed (False).
     :param buttons: The index of the button or a list of indices.
     :return: The function to run."""
-    if isinstance(buttons, list):
+    if isinstance(buttons, (list, tuple)):
         for button in buttons:
             if not isinstance(button, int) and not (
                 isinstance(button, list) and (not released)
@@ -187,6 +187,67 @@ class _Controllers:
         :return: The function to run."""
         buttons = {"any": None}
         return when_button(index, True, *buttons)
+
+    # @decorator
+    def while_button_pressed(self, index, *buttons):
+        """A decorator that runs a function every frame while a button on a controller is held down.
+        :param index: The index of the controller.
+        :param buttons: The index of the button(s) or a list of indices.
+        :return: The function to run."""
+        if isinstance(buttons, (list, tuple)):
+            for button in buttons:
+                if button == "any":
+                    continue
+                if not isinstance(button, int) and not isinstance(button, list):
+                    raise ValueError("Button must be an integer or a list of integers.")
+                if isinstance(button, list):
+                    for sub_button in button:
+                        if not isinstance(sub_button, int):
+                            raise ValueError(
+                                "Button must be an integer or a list of integers."
+                            )
+
+        def decorator(func):
+            async_callback = make_async(func)
+
+            async def any_wrapper(button_cb):
+                any_wrapper.is_running = True
+                await run_async_callback(async_callback, ["button"], [], button_cb)
+                any_wrapper.is_running = False
+
+            any_wrapper.is_running = False
+            any_wrapper.controller = index
+
+            async def wrapper(button_cb):
+                wrapper.is_running = True
+                await run_async_callback(async_callback, ["button"], [], button_cb)
+                wrapper.is_running = False
+
+            wrapper.is_running = False
+            wrapper.controller = index
+
+            for button in buttons:
+                if button == "any":
+                    callback_manager.add_callback(
+                        CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED, any_wrapper, "any"
+                    )
+                    continue
+                if isinstance(button, list):
+                    button = hash(frozenset(button))
+                callback_manager.add_callback(
+                    CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED, wrapper, button
+                )
+            return wrapper
+
+        return decorator
+
+    # @decorator
+    def while_any_button_pressed(self, index):
+        """A decorator that runs a function every frame while any button on a controller is held down.
+        :param index: The index of the controller.
+        :return: The function to run."""
+        buttons = ("any",)
+        return self.while_button_pressed(index, *buttons)
 
     # @decorator
     def when_axis_moved(self, index, axis):

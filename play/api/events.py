@@ -7,6 +7,8 @@ from ..callback.callback_helpers import run_async_callback, fire_async_callback
 from ..io.keypress import (
     when_key as _when_key,
     when_any_key as _when_any_key,
+    while_key as _while_key,
+    while_any_key as _while_any_key,
 )
 from ..io.mouse import mouse
 from ..utils.async_helpers import make_async
@@ -206,6 +208,58 @@ def when_key_released(*keys):
             text.words = key
     """
     return _when_key(*keys, released=True)
+
+
+# @decorator
+def while_any_key_pressed(func):
+    """
+    Calls the given function every frame while any key is held down.
+
+    Example:
+
+        text = play.new_text(words='hi there!')
+
+        @play.while_any_key_pressed
+        def show(key):
+            text.words = key
+    """
+    if not callable(func):
+        raise ValueError(
+            "@play.while_any_key_pressed doesn't use a list of keys. "
+            "To listen for specific keys, use @play.while_key_pressed('a') instead."
+        )
+    return _while_any_key(func)
+
+
+# @decorator
+def while_key_pressed(*keys):
+    """
+    Calls the given function every frame while any of the specified keys are held down.
+
+    Example:
+
+        text = play.new_text(words='hi there!')
+
+        @play.while_key_pressed('left', 'right')
+        def move(key):
+            sprite.x += 5 if key == 'right' else -5
+    """
+    return _while_key(*keys)
+
+
+# @decorator
+def while_mouse_pressed(func):
+    """
+    Calls the given function every frame while the mouse button is held down.
+
+    Example:
+        text = play.new_text(words='hi there!')
+
+        @play.while_mouse_pressed
+        def show():
+            text.words = 'mouse held'
+    """
+    return mouse.while_pressed(func)
 
 
 # @decorator

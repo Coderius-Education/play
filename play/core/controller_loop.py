@@ -11,16 +11,22 @@ class ControllerState:
 
     def __init__(self):
         self.buttons_pressed = defaultdict(set)
+        self.buttons_pressed_this_frame = defaultdict(set)
         self.buttons_released = defaultdict(set)
         self.axes_moved = defaultdict(list)
 
     def clear(self):
         """Clear the per-frame controller events for the next frame."""
+        self.buttons_pressed_this_frame.clear()
         self.buttons_released.clear()
         self.axes_moved.clear()
 
     def any(self):
-        """Check if any controller event has occurred this frame."""
+        """Check if any controller activity is present.
+
+        Note: `buttons_pressed` persists across frames (held state), so this
+        returns True every frame a button is held — not just on the press frame.
+        Use `buttons_pressed_this_frame` to check for new presses only."""
         return self.buttons_pressed or self.buttons_released or self.axes_moved
 
 
@@ -36,11 +42,15 @@ def handle_controller_events(event):
         )
     if event.type == pygame.JOYBUTTONDOWN:
         controller_state.buttons_pressed[event.instance_id].add(event.button)
+        controller_state.buttons_pressed_this_frame[event.instance_id].add(event.button)
     if event.type == pygame.JOYBUTTONUP:
         controller_state.buttons_released[event.instance_id].add(event.button)
         controller_state.buttons_pressed[event.instance_id].discard(event.button)
+        if not controller_state.buttons_pressed[event.instance_id]:
+            del controller_state.buttons_pressed[event.instance_id]
     if event.type == pygame.JOYDEVICEREMOVED:
         controller_state.buttons_pressed.pop(event.instance_id, None)
+        controller_state.buttons_pressed_this_frame.pop(event.instance_id, None)
 
 
 async def handle_controller():
@@ -48,8 +58,11 @@ async def handle_controller():
     ############################################################
     # @controller.when_button_pressed and @controller.when_any_button_pressed
     ############################################################
-    if controller_state.buttons_pressed:
-        for controller_id, buttons in controller_state.buttons_pressed.items():
+    if controller_state.buttons_pressed_this_frame:
+        for (
+            controller_id,
+            buttons,
+        ) in controller_state.buttons_pressed_this_frame.items():
             await callback_manager.run_callbacks_with_filter(
                 callback_type=CallbackType.WHEN_CONTROLLER_BUTTON_PRESSED,
                 activated_states=buttons,
@@ -64,6 +77,19 @@ async def handle_controller():
         for controller_id, buttons in controller_state.buttons_released.items():
             await callback_manager.run_callbacks_with_filter(
                 callback_type=CallbackType.WHEN_CONTROLLER_BUTTON_RELEASED,
+                activated_states=buttons,
+                required_args=["button"],
+                property_filter={"controller": controller_id},
+            )
+
+    ############################################################
+    # @controller.while_button_pressed callbacks
+    # Fire every frame for all currently held buttons
+    ############################################################
+    if controller_state.buttons_pressed:
+        for controller_id, buttons in controller_state.buttons_pressed.items():
+            await callback_manager.run_callbacks_with_filter(
+                callback_type=CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED,
                 activated_states=buttons,
                 required_args=["button"],
                 property_filter={"controller": controller_id},
