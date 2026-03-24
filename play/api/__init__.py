@@ -19,6 +19,9 @@ from .events import (
     when_key_pressed,
     when_any_key_released,
     when_key_released,
+    while_any_key_pressed,
+    while_key_pressed,
+    while_mouse_pressed,
     when_mouse_clicked,
     when_click_released,
 )

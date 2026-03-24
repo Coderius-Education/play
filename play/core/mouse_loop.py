@@ -49,3 +49,9 @@ async def handle_mouse_loop():
     ########################################
     if mouse_state.click_release_happened:
         callback_manager.run_callbacks(CallbackType.WHEN_CLICK_RELEASED)
+
+    ########################################
+    # @mouse.while_pressed callbacks
+    ########################################
+    if mouse._is_clicked:
+        callback_manager.run_callbacks(CallbackType.WHILE_MOUSE_PRESSED)

@@ -70,6 +70,19 @@ async def handle_controller():
             )
 
     ############################################################
+    # @controller.while_button_pressed callbacks
+    # Fire every frame for all currently held buttons
+    ############################################################
+    if controller_state.buttons_pressed:
+        for controller_id, buttons in controller_state.buttons_pressed.items():
+            await callback_manager.run_callbacks_with_filter(
+                callback_type=CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED,
+                activated_states=buttons,
+                required_args=["button"],
+                property_filter={"controller": controller_id},
+            )
+
+    ############################################################
     # @controller.when_axis_moved
     ############################################################
     if controller_state.axes_moved:

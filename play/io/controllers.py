@@ -189,6 +189,47 @@ class _Controllers:
         return when_button(index, True, *buttons)
 
     # @decorator
+    def while_button_pressed(self, index, *buttons):
+        """A decorator that runs a function every frame while a button on a controller is held down.
+        :param index: The index of the controller.
+        :param buttons: The index of the button(s) or a list of indices.
+        :return: The function to run."""
+
+        def decorator(func):
+            async_callback = make_async(func)
+
+            async def wrapper(button_cb):
+                wrapper.is_running = True
+                await run_async_callback(async_callback, ["button"], [], button_cb)
+                wrapper.is_running = False
+
+            wrapper.is_running = False
+            wrapper.controller = index
+
+            for button in buttons:
+                if button == "any":
+                    callback_manager.add_callback(
+                        CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED, wrapper, "any"
+                    )
+                    continue
+                if isinstance(button, list):
+                    button = hash(frozenset(button))
+                callback_manager.add_callback(
+                    CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED, wrapper, button
+                )
+            return wrapper
+
+        return decorator
+
+    # @decorator
+    def while_any_button_pressed(self, index):
+        """A decorator that runs a function every frame while any button on a controller is held down.
+        :param index: The index of the controller.
+        :return: The function to run."""
+        buttons = ("any",)
+        return self.while_button_pressed(index, *buttons)
+
+    # @decorator
     def when_axis_moved(self, index, axis):
         """A decorator that runs a function when an axis on a controller is moved.
         :param index: The index of the controller.
