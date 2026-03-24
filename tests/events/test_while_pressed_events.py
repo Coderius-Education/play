@@ -178,7 +178,9 @@ def test_while_mouse_pressed_fires_on_held_frames():
     This verifies the game loop condition includes mouse._is_clicked so that
     handle_mouse_loop is called even when mouse_state.click_happened is False.
     """
+    import asyncio
     import play
+    import pygame
     from play.loop import get_loop
     from play.core.mouse_loop import handle_mouse_events, handle_mouse_loop, mouse_state
     from play.io.mouse import mouse
@@ -191,8 +193,6 @@ def test_while_mouse_pressed_fires_on_held_frames():
         nonlocal fired_count
         fired_count += 1
 
-    import pygame
-
     # Frame 1: MOUSEBUTTONDOWN — click_happened=True, _is_clicked=True
     event_down = pygame.event.Event(
         pygame.MOUSEBUTTONDOWN, {"pos": (0, 0), "button": 1}
@@ -200,6 +200,7 @@ def test_while_mouse_pressed_fires_on_held_frames():
     handle_mouse_events(event_down)
     assert mouse._is_clicked is True
     loop.run_until_complete(handle_mouse_loop())
+    loop.run_until_complete(asyncio.sleep(0))
     assert fired_count == 1
 
     # Simulate next frame: clear per-frame state (click_happened becomes False)
@@ -209,6 +210,7 @@ def test_while_mouse_pressed_fires_on_held_frames():
 
     # Frame 2: no new event — but _is_clicked is True, so loop should still call handle_mouse_loop
     loop.run_until_complete(handle_mouse_loop())
+    loop.run_until_complete(asyncio.sleep(0))
     assert fired_count == 2  # fired again on held frame
 
     # Clean up
@@ -246,3 +248,128 @@ def test_controllers_while_any_button_pressed_decorator():
         )
     )
     assert len(callbacks) > 0
+
+
+def test_while_button_pressed_chord_registers_with_frozenset_hash():
+    """Test that while_button_pressed with a list of buttons registers using
+    hash(frozenset(button)) as the discriminator key."""
+    from play.io.controllers import controllers
+    from play.callback import callback_manager, CallbackType
+
+    chord = [1, 2]
+
+    @controllers.while_button_pressed(0, chord)
+    def on_chord_held(button=None):
+        pass
+
+    expected_key = hash(frozenset(chord))
+    callbacks = list(
+        callback_manager.get_callback(
+            [CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED], expected_key
+        )
+    )
+    assert len(callbacks) > 0, "Chord callback should be registered with frozenset hash"
+
+
+def test_while_button_pressed_chord_fires_only_on_exact_match():
+    """Test that a chord (list[int]) while_button_pressed callback fires only when
+    exactly those buttons are held — not a superset, not a subset.
+
+    Chord semantics: the callback fires when hash(frozenset(held_buttons)) ==
+    hash(frozenset(registered_chord)), i.e. held == {1, 2} exactly.
+    """
+    import asyncio
+    import pygame
+    from play.io.controllers import controllers
+    from play.core.controller_loop import (
+        controller_state,
+        handle_controller_events,
+        handle_controller,
+    )
+    from play.callback import callback_manager, CallbackType
+
+    controller_state.buttons_pressed.clear()
+    controller_state.buttons_pressed_this_frame.clear()
+    controller_state.buttons_released.clear()
+
+    fired_buttons = []
+
+    @controllers.while_button_pressed(0, [1, 2])
+    def on_chord_held(button=None):
+        fired_buttons.append(button)
+
+    from play.loop import get_loop
+
+    loop = get_loop()
+
+    # --- Exact match: only buttons 1 and 2 held ---
+    for btn in (1, 2):
+        e = pygame.event.Event(pygame.JOYBUTTONDOWN, {"instance_id": 0, "button": btn})
+        handle_controller_events(e)
+
+    loop.run_until_complete(handle_controller())
+    loop.run_until_complete(asyncio.sleep(0))
+    assert len(fired_buttons) > 0, "Chord callback should fire when exactly {1,2} held"
+
+    fired_buttons.clear()
+    controller_state.clear()
+
+    # --- Superset: buttons 1, 2, and 3 held — chord should NOT fire ---
+    e3 = pygame.event.Event(pygame.JOYBUTTONDOWN, {"instance_id": 0, "button": 3})
+    handle_controller_events(e3)
+
+    loop.run_until_complete(handle_controller())
+    loop.run_until_complete(asyncio.sleep(0))
+    assert (
+        len(fired_buttons) == 0
+    ), "Chord callback should NOT fire when a superset of buttons is held"
+
+    # Clean up
+    controller_state.buttons_pressed.clear()
+    controller_state.buttons_pressed_this_frame.clear()
+    chord_key = hash(frozenset([1, 2]))
+    callback_manager.remove_callbacks(
+        CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED, chord_key
+    )
+
+
+def test_while_button_pressed_invalid_button_raises():
+    """Test that while_button_pressed raises ValueError for non-int button types."""
+    from play.io.controllers import controllers
+
+    with pytest.raises(ValueError, match="Button must be an integer"):
+
+        @controllers.while_button_pressed(0, "bad_button")
+        def on_held(button=None):
+            pass
+
+
+def test_controller_state_any_false_after_all_buttons_released():
+    """Test that ControllerState.any() returns False once all held buttons are
+    released and the frame is cleared — verifying the empty-set cleanup fix."""
+    import pygame
+    from play.core.controller_loop import controller_state, handle_controller_events
+
+    controller_state.buttons_pressed.clear()
+    controller_state.buttons_released.clear()
+
+    # Press two buttons
+    for btn in (0, 1):
+        e = pygame.event.Event(pygame.JOYBUTTONDOWN, {"instance_id": 0, "button": btn})
+        handle_controller_events(e)
+
+    assert controller_state.any(), "any() should be True while buttons held"
+
+    # Release both buttons
+    for btn in (0, 1):
+        e = pygame.event.Event(pygame.JOYBUTTONUP, {"instance_id": 0, "button": btn})
+        handle_controller_events(e)
+
+    controller_state.clear()  # next frame — clears buttons_released
+
+    assert (
+        not controller_state.any()
+    ), "any() should be False after all buttons released and frame cleared"
+
+    # Clean up
+    controller_state.buttons_pressed.clear()
