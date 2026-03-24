@@ -30,10 +30,18 @@ def start_program():
 
     globals_list.program_started = True
     globals_list.should_auto_start = False
-    callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
 
-    _get_loop().create_task(_game_loop())
+    async def _run_start_then_loop():
+        # Schedule all when_program_starts callbacks as concurrent tasks so they
+        # run alongside the game loop (not blocking it).  A single yield lets each
+        # callback execute its initial synchronous portion (e.g. setting starting
+        # positions) before the first game frame renders, fixing the 1-frame flash.
+        callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
+        await _asyncio.sleep(0)
+        _get_loop().create_task(_game_loop())
+
     try:
+        _get_loop().run_until_complete(_run_start_then_loop())
         _get_loop().run_forever()
     finally:
         logger = _logging.getLogger("asyncio")
@@ -49,9 +57,6 @@ def stop_program():
     play.stop_program() should almost certainly go at the very end of your program.
     """
     _get_loop().stop()
-    if _os.getpid() == globals_list.initial_pid:
-        pygame.display.quit()
-        pygame.quit()
 
 
 async def animate():

@@ -26,7 +26,7 @@ def listen_to_failure():
             except Exception as e:
                 _get_loop().stop()
                 play_logger.critical("Error in %s: %s", f.__name__, e)
-                raise e
+                raise
 
         return applicator
 

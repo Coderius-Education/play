@@ -13,9 +13,11 @@ class Image(Sprite):
         if isinstance(image, str):
             if not os.path.isfile(image):
                 raise FileNotFoundError(f"Image file '{image}' not found.")
+            self._image_filename = image
             # Keep the original, loaded image safe from modifications.
             self._source_image = pygame.image.load(image)
         else:
+            self._image_filename = None
             self._source_image = image
 
         # Initialize the parent sprite with this image.
@@ -62,14 +64,15 @@ class Image(Sprite):
 
     @property
     def image_filename(self):
-        """Return the image filename. This is a dummy property since we store the surface."""
-        return None
+        """Return the image filename."""
+        return self._image_filename
 
     @image_filename.setter
     def image_filename(self, image: str):
         """Set the image from a file."""
         if not os.path.isfile(image):
             raise FileNotFoundError(f"Image file '{image}' not found.")
+        self._image_filename = image
         self._source_image = pygame.image.load(image)
         self._original_width = self._source_image.get_width()
         self._original_height = self._source_image.get_height()

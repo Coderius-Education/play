@@ -1,5 +1,9 @@
 [tool.pytest.ini_options]
 pythonpath = [".", "tests"]
+timeout = 60
+markers = [
+    "slow(seconds): mark test with a longer safety-stop deadline (default 30s)",
+]
 filterwarnings = [
     "ignore:This process .* is multi-threaded, use of fork\\(\\) may lead to deadlocks in the child:DeprecationWarning",
 ]

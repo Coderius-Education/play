@@ -48,8 +48,8 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         # check for walls
         if any(
             [
-                self.shape_registry[shape_a.collision_type] is None,
-                self.shape_registry[shape_b.collision_type] is None,
+                self.shape_registry.get(shape_a.collision_type) is None,
+                self.shape_registry.get(shape_b.collision_type) is None,
             ]
         ):
             return True
@@ -94,8 +94,8 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         # so the caller skips the reverse direction check.
         if any(
             [
-                self.shape_registry[shape_a.collision_type] is None,
-                self.shape_registry[shape_b.collision_type] is None,
+                self.shape_registry.get(shape_a.collision_type) is None,
+                self.shape_registry.get(shape_b.collision_type) is None,
             ]
         ):
             return True

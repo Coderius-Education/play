@@ -31,9 +31,6 @@ class Circle(Sprite):
         self._transparency = transparency
         self._size = size
         self._angle = angle
-        self._is_clicked = False
-        self._is_hidden = False
-        self.physics = None
 
         self.rect = pygame.Rect(0, 0, 0, 0)
         self.start_physics(stable=True, obeys_gravity=False)

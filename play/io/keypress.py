@@ -14,12 +14,20 @@ class KeyboardState:  # pylint: disable=too-few-public-methods
 
     def __init__(self):
         """Initialize the keyboard state."""
-        self.pressed = []
-        self.released = []
+        self.pressed = []  # keys currently held down
+        self.released = []  # keys released this frame
+        self.pressed_this_frame = []  # keys newly pressed via KEYDOWN this frame
 
     def clear(self):
-        """Clear the state of the keyboard."""
+        """Clear per-frame state (newly pressed and released this frame).
+
+        ``pressed`` is intentionally NOT cleared here — it tracks held-key state
+        across frames so that ``key_is_pressed()`` works correctly.
+        Per-frame pressed callbacks are fired only for ``pressed_this_frame`` to
+        avoid firing ``when_key_pressed`` every frame for held keys (BUG 34).
+        """
         self.released.clear()
+        self.pressed_this_frame.clear()
 
 
 keyboard_state = KeyboardState()

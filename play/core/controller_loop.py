@@ -39,6 +39,8 @@ def handle_controller_events(event):
     if event.type == pygame.JOYBUTTONUP:
         controller_state.buttons_released[event.instance_id].add(event.button)
         controller_state.buttons_pressed[event.instance_id].discard(event.button)
+    if event.type == pygame.JOYDEVICEREMOVED:
+        controller_state.buttons_pressed.pop(event.instance_id, None)
 
 
 async def handle_controller():
@@ -66,7 +68,6 @@ async def handle_controller():
                 required_args=["button"],
                 property_filter={"controller": controller_id},
             )
-        controller_state.buttons_released.clear()
 
     ############################################################
     # @controller.when_axis_moved

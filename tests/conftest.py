@@ -8,6 +8,7 @@ between tests to prevent state bleed.
 
 import logging
 import os
+import time
 import pytest
 
 # ---------------------------------------------------------------------------
@@ -83,7 +84,7 @@ def pytest_collection_finish(session):
 
 
 @pytest.fixture(autouse=True)
-def clean_play_state():
+def clean_play_state(request):
     """Flush play globals, physics, callbacks, and groups before every test.
     This prevents state bleed across tests and resolves random hanging test loops.
     """
@@ -173,6 +174,7 @@ def clean_play_state():
     from play.core import keyboard_state, mouse_state
 
     keyboard_state.pressed.clear()
+    keyboard_state.pressed_this_frame.clear()
     mouse_state.click_happened = False
     mouse_state.click_release_happened = False
 
@@ -186,5 +188,17 @@ def clean_play_state():
     if pygame.display.get_init():
         pygame.event.pump()
         pygame.event.clear()
+
+    # Safety timeout: automatically stop the game loop so that any test
+    # whose stop_program() path never fires will fail rather than hang.
+    # Tests marked @pytest.mark.slow get a longer deadline.
+    marker = request.node.get_closest_marker("slow")
+    _seconds = marker.args[0] if marker and marker.args else 30
+    _deadline = time.monotonic() + _seconds
+
+    @play.repeat_forever
+    def _safety_stop():
+        if time.monotonic() >= _deadline:
+            play.stop_program()
 
     yield

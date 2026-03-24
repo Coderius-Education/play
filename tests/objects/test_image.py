@@ -54,7 +54,7 @@ def test_image_filename_setter(mock_image_file, tmp_path):
 
     img.image_filename = str(new_path)
     assert img._original_width == 30
-    assert img.image_filename is None  # Property returns None by design
+    assert img.image_filename == str(new_path)
 
     # Test setting invalid file
     with pytest.raises(FileNotFoundError):

@@ -37,16 +37,19 @@ def test_when_program_starts():
 
 def test_repeat_forever():
     """Test that repeat_forever registers a callback and sets is_running properly."""
+    # The clean_play_state fixture pre-registers a safety-stop callback, so count
+    # the existing entries before registering ours.
+    before = len(callback_manager.callbacks.get(CallbackType.REPEAT_FOREVER, []))
 
     @repeat_forever
     def dummy_func():
         pass
 
     assert CallbackType.REPEAT_FOREVER in callback_manager.callbacks
-    assert len(callback_manager.callbacks[CallbackType.REPEAT_FOREVER]) == 1
+    assert len(callback_manager.callbacks[CallbackType.REPEAT_FOREVER]) == before + 1
 
-    # Check that the wrapper has the is_running attribute initialized to False
-    wrapper = callback_manager.callbacks[CallbackType.REPEAT_FOREVER][0]
+    # Check that our wrapper has the is_running attribute initialized to False
+    wrapper = callback_manager.callbacks[CallbackType.REPEAT_FOREVER][-1]
     assert hasattr(wrapper, "is_running")
     assert wrapper.is_running is False
 

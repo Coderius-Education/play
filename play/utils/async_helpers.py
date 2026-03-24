@@ -35,7 +35,7 @@ def _raise_on_await_warning(func):
                         warning.filename,
                         func.__name__,
                     )
-                play_logger.warning(warning.message)
+                play_logger.warning(str(warning.message))
 
     raise_on_warning.original_function = func
     return raise_on_warning
