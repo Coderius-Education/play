@@ -13,7 +13,9 @@ def test_while_key_pressed_decorator():
 
     from play.callback import callback_manager, CallbackType
 
-    callbacks = list(callback_manager.get_callback([CallbackType.WHILE_KEY_PRESSED], "a"))
+    callbacks = list(
+        callback_manager.get_callback([CallbackType.WHILE_KEY_PRESSED], "a")
+    )
     assert len(callbacks) > 0
 
 
@@ -130,7 +132,9 @@ def test_while_mouse_pressed_is_tied_to_is_clicked():
     from play.core.mouse_loop import handle_mouse_events, mouse_state
 
     # Simulate click down
-    event_down = pygame.event.Event(pygame.MOUSEBUTTONDOWN, {"pos": (400, 300), "button": 1})
+    event_down = pygame.event.Event(
+        pygame.MOUSEBUTTONDOWN, {"pos": (400, 300), "button": 1}
+    )
     handle_mouse_events(event_down)
     assert mouse._is_clicked is True
 
@@ -142,7 +146,9 @@ def test_while_mouse_pressed_is_tied_to_is_clicked():
     assert mouse._is_clicked is True
 
     # Simulate release
-    event_up = pygame.event.Event(pygame.MOUSEBUTTONUP, {"pos": (400, 300), "button": 1})
+    event_up = pygame.event.Event(
+        pygame.MOUSEBUTTONUP, {"pos": (400, 300), "button": 1}
+    )
     handle_mouse_events(event_up)
     assert mouse._is_clicked is False
 
