@@ -132,7 +132,7 @@ def color_name_to_rgb(
 
     try:
         color = pygame.color.THECOLORS[
-            name.lower().strip().replace("-", "").replace(" ", "")
+            stripped.lower().replace("-", "").replace(" ", "")
         ]
         # Make the last item of the tuple the transparency value
         color = (color[0], color[1], color[2], transparency)
