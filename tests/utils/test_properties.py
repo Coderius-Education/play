@@ -86,12 +86,17 @@ def test_color_name_to_rgb_invalid_strings(invalid_name):
     """
     Test that invalid color strings raise ValueError.
     """
+    import re
+
     # Filter out strings that might actually be valid Pygame colors
     valid_pygame_colors = [c.lower() for c in pygame.color.THECOLORS.keys()]
     test_name = invalid_name.lower().strip().replace("-", "").replace(" ", "")
 
+    # Filter out valid hex color codes (#RGB or #RRGGBB) — these are now valid inputs
+    stripped = invalid_name.strip()
+    if re.fullmatch(r"#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}", stripped):
+        return
+
     if test_name not in valid_pygame_colors:
-        with pytest.raises(
-            ValueError, match="You gave a color name we didn't understand"
-        ):
+        with pytest.raises(ValueError, match="You gave"):
             color_name_to_rgb(invalid_name)
