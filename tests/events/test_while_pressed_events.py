@@ -123,6 +123,9 @@ def test_while_key_pressed_fires_every_frame_without_keydown_repeat():
     down = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_RIGHT})
     handle_keyboard_events(down)
     assert "right" in keyboard_state.pressed
+    assert (
+        fired_count[0] == 0
+    )  # handle_keyboard_events alone does not fire the callback
 
     # Run handle_keyboard multiple times WITHOUT any new KEYDOWN events
     # (simulating held key across multiple game frames)

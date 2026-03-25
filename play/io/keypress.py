@@ -6,6 +6,7 @@ from ..callback import callback_manager, CallbackType
 from ..utils.async_helpers import make_async
 from ..callback.callback_helpers import run_async_callback
 
+
 class KeyboardState:  # pylint: disable=too-few-public-methods
     """Class to manage the state of the keyboard."""
 
