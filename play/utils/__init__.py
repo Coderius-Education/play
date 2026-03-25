@@ -97,16 +97,39 @@ def color_name_to_rgb(
     name: str, transparency: int = 255
 ) -> tuple[int, int, int, int] | tuple | str:
     """
-    Turn an English color name into an RGB value.
+    Turn an English color name or hex code into an RGB value.
 
     lightBlue
     light-blue
     light blue
+    #FF0000
+    #f00
 
-    are all valid and will produce the rgb value for lightblue.
+    are all valid and will produce an RGB value.
     """
     if isinstance(name, tuple):
         return name
+
+    # Handle hex color codes (#RGB or #RRGGBB)
+    stripped = name.strip()
+    if stripped.startswith("#"):
+        hex_val = stripped[1:]
+        if len(hex_val) == 3:
+            # Expand shorthand: #F00 -> FF0000
+            hex_val = hex_val[0] * 2 + hex_val[1] * 2 + hex_val[2] * 2
+        if len(hex_val) == 6:
+            try:
+                r = int(hex_val[0:2], 16)
+                g = int(hex_val[2:4], 16)
+                b = int(hex_val[4:6], 16)
+                return (r, g, b, transparency)
+            except ValueError:
+                pass
+        raise ValueError(
+            f"You gave an invalid hex color code: '{name}'\n"
+            "Hex codes should be 3 or 6 hex digits after '#', like '#FF0000' or '#F00'.\n"
+        )
+
     try:
         color = pygame.color.THECOLORS[
             name.lower().strip().replace("-", "").replace(" ", "")

@@ -166,3 +166,87 @@ def test_color_name_to_rgb_case_insensitive():
     red3 = color_name_to_rgb("Red")
 
     assert red1[:3] == red2[:3] == red3[:3]
+
+
+def test_color_name_to_rgb_hex_six_digit():
+    """Test color_name_to_rgb with 6-digit hex codes."""
+    from play.utils import color_name_to_rgb
+
+    red = color_name_to_rgb("#FF0000")
+    assert red[0] == 255
+    assert red[1] == 0
+    assert red[2] == 0
+    assert red[3] == 255  # default transparency
+
+    green = color_name_to_rgb("#00FF00")
+    assert green[0] == 0
+    assert green[1] == 255
+    assert green[2] == 0
+
+    blue = color_name_to_rgb("#0000FF")
+    assert blue[0] == 0
+    assert blue[1] == 0
+    assert blue[2] == 255
+
+
+def test_color_name_to_rgb_hex_three_digit():
+    """Test color_name_to_rgb with 3-digit shorthand hex codes."""
+    from play.utils import color_name_to_rgb
+
+    red = color_name_to_rgb("#F00")
+    assert red[0] == 255
+    assert red[1] == 0
+    assert red[2] == 0
+
+    white = color_name_to_rgb("#FFF")
+    assert white[0] == 255
+    assert white[1] == 255
+    assert white[2] == 255
+
+    black = color_name_to_rgb("#000")
+    assert black[0] == 0
+    assert black[1] == 0
+    assert black[2] == 0
+
+
+def test_color_name_to_rgb_hex_lowercase():
+    """Test that hex codes are case insensitive."""
+    from play.utils import color_name_to_rgb
+
+    upper = color_name_to_rgb("#FF8800")
+    lower = color_name_to_rgb("#ff8800")
+    mixed = color_name_to_rgb("#Ff8800")
+
+    assert upper[:3] == lower[:3] == mixed[:3]
+
+
+def test_color_name_to_rgb_hex_with_transparency():
+    """Test hex codes with custom transparency."""
+    from play.utils import color_name_to_rgb
+
+    red = color_name_to_rgb("#FF0000", transparency=128)
+    assert red[0] == 255
+    assert red[1] == 0
+    assert red[2] == 0
+    assert red[3] == 128
+
+
+def test_color_name_to_rgb_hex_invalid():
+    """Test that invalid hex codes raise ValueError."""
+    from play.utils import color_name_to_rgb
+
+    with pytest.raises(ValueError, match="invalid hex color code"):
+        color_name_to_rgb("#GGGGGG")
+
+    with pytest.raises(ValueError, match="invalid hex color code"):
+        color_name_to_rgb("#12345")  # 5 digits — invalid length
+
+
+def test_color_name_to_rgb_hex_whitespace():
+    """Test that hex codes with surrounding whitespace are handled."""
+    from play.utils import color_name_to_rgb
+
+    red = color_name_to_rgb("  #FF0000  ")
+    assert red[0] == 255
+    assert red[1] == 0
+    assert red[2] == 0
