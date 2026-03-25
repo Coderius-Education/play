@@ -91,6 +91,56 @@ def test_while_key_pressed_invalid_key_type():
             pass
 
 
+def test_while_key_pressed_fires_every_frame_without_keydown_repeat():
+    """Test that while_key_pressed fires on every game frame while a key is held,
+    NOT just when KEYDOWN events occur.
+
+    Previously, pygame.key.set_repeat(200, 16) was used to drive while_key_pressed
+    via repeated KEYDOWN events. This caused a 200ms delay before the first repeat,
+    then 16ms intervals — so 'key press 1 to key press 2' took 200ms while
+    'key press 2 to key press 3' only took 16ms (issue #160).
+
+    The fix: while_key_pressed is driven by keyboard_state.pressed (frame-based),
+    not by KEYDOWN repeat events. This test verifies the callback fires on every
+    handle_keyboard() call while a key remains in keyboard_state.pressed.
+    """
+    import asyncio
+    import pygame
+    from play.io.keypress import keyboard_state
+    from play.core.keyboard_loop import handle_keyboard_events, handle_keyboard
+    from play.callback import callback_manager, CallbackType
+    from play.loop import get_loop
+    import play
+
+    loop = get_loop()
+    fired_count = [0]
+
+    @play.while_key_pressed("right")
+    def on_right_held(key=None):
+        fired_count[0] += 1
+
+    # Simulate initial KEYDOWN
+    down = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_RIGHT})
+    handle_keyboard_events(down)
+    assert "right" in keyboard_state.pressed
+
+    # Run handle_keyboard multiple times WITHOUT any new KEYDOWN events
+    # (simulating held key across multiple game frames)
+    for _ in range(5):
+        loop.run_until_complete(handle_keyboard())
+        loop.run_until_complete(asyncio.sleep(0))  # let fire_async_callback tasks run
+        keyboard_state.pressed_this_frame.clear()
+        keyboard_state.released.clear()
+
+    assert fired_count[0] == 5, (
+        f"while_key_pressed should fire every frame while key is held, "
+        f"got {fired_count[0]} fires in 5 frames"
+    )
+
+    # Clean up
+    keyboard_state.pressed.clear()
+
+
 def test_while_key_pressed_uses_pressed_not_pressed_this_frame():
     """Test that WHILE_KEY_PRESSED uses keyboard_state.pressed (held keys),
     whereas PRESSED_KEYS uses keyboard_state.pressed_this_frame (new keys only).
