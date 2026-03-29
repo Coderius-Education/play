@@ -110,39 +110,28 @@ def color_name_to_rgb(
     if isinstance(name, tuple):
         return name
 
-    # Handle hex color codes (#RGB or #RRGGBB)
     stripped = name.strip()
-    if stripped.startswith("#"):
-        hex_val = stripped[1:]
-        if len(hex_val) == 3:
-            # Expand shorthand: #F00 -> FF0000
-            hex_val = hex_val[0] * 2 + hex_val[1] * 2 + hex_val[2] * 2
-        if len(hex_val) == 6:
-            try:
-                r = int(hex_val[0:2], 16)
-                g = int(hex_val[2:4], 16)
-                b = int(hex_val[4:6], 16)
-                return (r, g, b, transparency)
-            except ValueError:
-                pass
-        raise ValueError(
-            f"You gave an invalid hex color code: '{name}'\n"
-            "Hex codes should be 3 or 6 hex digits after '#', like '#FF0000' or '#F00'.\n"
-        )
+    # Expand shorthand hex: #F00 -> #FF0000
+    if stripped.startswith("#") and len(stripped) == 4:
+        stripped = "#" + stripped[1] * 2 + stripped[2] * 2 + stripped[3] * 2
+
+    # Normalize color names: "light blue", "light-blue", "lightBlue" -> "lightblue"
+    color_str = (
+        stripped
+        if stripped.startswith("#")
+        else stripped.lower().replace("-", "").replace(" ", "")
+    )
 
     try:
-        color = pygame.color.THECOLORS[
-            stripped.lower().replace("-", "").replace(" ", "")
-        ]
-        # Make the last item of the tuple the transparency value
-        color = (color[0], color[1], color[2], transparency)
-        return color
-    except KeyError as exception:
+        c = pygame.Color(color_str)
+        return (c.r, c.g, c.b, transparency)
+    except ValueError:
         raise ValueError(
             f"""You gave a color name we didn't understand: '{name}'
-Try using the RGB number form of the color e.g. '(0, 255, 255)'.
+Try using a hex code like '#FF0000' or '#F00',
+or the RGB number form e.g. '(0, 255, 255)'.
 You can find the RGB form of a color on websites like this: https://www.rapidtables.com/web/color/RGB_Color.html\n"""
-        ) from exception
+        )
 
 
 def is_called_from_pygame():

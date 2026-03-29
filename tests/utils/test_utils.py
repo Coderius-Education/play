@@ -235,16 +235,16 @@ def test_color_name_to_rgb_hex_invalid():
     """Test that invalid hex codes raise ValueError."""
     from play.utils import color_name_to_rgb
 
-    with pytest.raises(ValueError, match="invalid hex color code"):
+    with pytest.raises(ValueError, match="color name we didn't understand"):
         color_name_to_rgb("#GGGGGG")
 
-    with pytest.raises(ValueError, match="invalid hex color code"):
+    with pytest.raises(ValueError, match="color name we didn't understand"):
         color_name_to_rgb("#12345")  # 5 digits — invalid length
 
-    with pytest.raises(ValueError, match="invalid hex color code"):
+    with pytest.raises(ValueError, match="color name we didn't understand"):
         color_name_to_rgb("#GGG")  # 3-digit shorthand with invalid hex chars
 
-    with pytest.raises(ValueError, match="invalid hex color code"):
+    with pytest.raises(ValueError, match="color name we didn't understand"):
         color_name_to_rgb("#")  # just the hash, no digits
 
 
