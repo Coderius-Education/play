@@ -125,13 +125,13 @@ def color_name_to_rgb(
     try:
         c = pygame.Color(color_str)
         return (c.r, c.g, c.b, transparency)
-    except ValueError:
+    except ValueError as exc:
         raise ValueError(
             f"""You gave a color name we didn't understand: '{name}'
 Try using a hex code like '#FF0000' or '#F00',
 or the RGB number form e.g. '(0, 255, 255)'.
 You can find the RGB form of a color on websites like this: https://www.rapidtables.com/web/color/RGB_Color.html\n"""
-        )
+        ) from exc
 
 
 def is_called_from_pygame():
