@@ -2,7 +2,9 @@
 
 import pygame
 import pytest
-from hypothesis import given, strategies as st
+import re
+
+from hypothesis import assume, given, strategies as st
 
 from play.utils import clamp, color_name_to_rgb
 
@@ -86,16 +88,13 @@ def test_color_name_to_rgb_invalid_strings(invalid_name):
     """
     Test that invalid color strings raise ValueError.
     """
-    import re
-
     # Filter out strings that might actually be valid Pygame colors
     valid_pygame_colors = [c.lower() for c in pygame.color.THECOLORS.keys()]
     test_name = invalid_name.lower().strip().replace("-", "").replace(" ", "")
 
     # Filter out valid hex color codes (#RGB or #RRGGBB) — these are now valid inputs
     stripped = invalid_name.strip()
-    if re.fullmatch(r"#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}", stripped):
-        return
+    assume(not re.fullmatch(r"#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}", stripped))
 
     if test_name not in valid_pygame_colors:
         with pytest.raises(ValueError, match="You gave"):
