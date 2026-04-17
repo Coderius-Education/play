@@ -6,7 +6,6 @@ from dataclasses import dataclass
 import pymunk as _pymunk
 
 from ..globals import globals_list
-from ..io.logging import play_logger
 from ..utils import clamp as _clamp
 
 

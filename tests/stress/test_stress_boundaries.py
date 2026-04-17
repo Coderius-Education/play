@@ -8,6 +8,7 @@ def setup_play(clean_play_state):
     pass
 
 
+@pytest.mark.xdist_group("stress")
 def test_stress_extreme_sizes():
     """
     Stress test: Extraordinary sizes.

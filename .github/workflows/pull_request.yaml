@@ -39,4 +39,5 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest ./tests -n auto -v
+        pytest ./tests --ignore=tests/stress -n auto -v
+        pytest ./tests/stress -v

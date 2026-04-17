@@ -12,6 +12,7 @@ def setup_play(clean_play_state):
     strict=False,
     reason="Pymunk discrete stepping may not prevent tunneling at extreme velocities",
 )
+@pytest.mark.xdist_group("stress")
 def test_stress_velocity_tunneling():
     """
     Stress test: Very high velocity to ensure discrete step logic doesn't allow tunneling.
