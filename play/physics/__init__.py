@@ -166,18 +166,13 @@ class Physics:
         if not self._is_paused:
             return
         self._is_paused = False
-        if self._pymunk_body and self._pymunk_shape:
-            physics_space.add(self._pymunk_body, self._pymunk_shape)
-        else:
-            play_logger.error("Cannot unpause object, it has not been created yet.")
+        physics_space.add(self._pymunk_body, self._pymunk_shape)
 
     def _remove(self):
         if self._is_paused:
             return  # Already removed from space
-        if self._pymunk_body:
-            physics_space.remove(self._pymunk_body)
-        if self._pymunk_shape:
-            physics_space.remove(self._pymunk_shape)
+        physics_space.remove(self._pymunk_body)
+        physics_space.remove(self._pymunk_shape)
 
     @property
     def can_move(self):
