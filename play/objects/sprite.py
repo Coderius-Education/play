@@ -41,9 +41,9 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         self._transparency = None
 
         self.events = EventComponent(self)
+        self.physics = None
 
         self._image = image
-        self.physics = None
         self._is_hidden = False
         self._should_recompute = True
 
@@ -306,10 +306,6 @@ You might want to look in your code where you're setting transparency and make s
 
     def physics_info(self):
         """Print a summary of this sprite's physics properties."""
-        if not self.physics:
-            print("This sprite has no physics enabled.")
-            return
-
         body_type = self.physics._pymunk_body.body_type
 
         # Dutch names for body types
@@ -569,8 +565,6 @@ You might want to look in your code where you're setting transparency and make s
             CallbackType.WHEN_STOPPED_TOUCHING,
         ]
         for dependent in list(self.events._dependent_sprites):
-            if not dependent.physics:
-                continue
             dep_id = id(dependent)
             dep_saved = {
                 callback_type: list(
@@ -583,10 +577,9 @@ You might want to look in your code where you're setting transparency and make s
                 continue
             for callback_type in sprite_callback_types:
                 callback_manager.remove_callbacks(callback_type, dep_id)
-            dep_collision_type = getattr(
-                dependent.physics._pymunk_shape, "collision_type", None
+            self._cleanup_collision_registry(
+                dependent.physics._pymunk_shape.collision_type
             )
-            self._cleanup_collision_registry(dep_collision_type)
             for cb, sprite in dep_saved[CallbackType.WHEN_TOUCHING]:
                 dependent.when_touching(sprite)(cb)
             for cb, sprite in dep_saved[CallbackType.WHEN_STOPPED_TOUCHING]:
@@ -617,12 +610,8 @@ You might want to look in your code where you're setting transparency and make s
         """
         saved_callbacks = self._save_and_clear_callbacks()
 
-        old_collision_type = None
-        if self.physics and hasattr(self.physics._pymunk_shape, "collision_type"):
-            old_collision_type = self.physics._pymunk_shape.collision_type
-        self._cleanup_collision_registry(old_collision_type)
-
-        if self.physics:
+        if self.physics is not None:
+            self._cleanup_collision_registry(self.physics._pymunk_shape.collision_type)
             self.physics._remove()
 
         self.physics = _Physics(

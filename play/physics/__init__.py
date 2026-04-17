@@ -84,9 +84,7 @@ class Physics:
     def _make_pymunk(self):
         # Save collision attributes so the collision registry stays valid
         prev_shape = getattr(self, "_pymunk_shape", None)
-        collision_type = (
-            getattr(prev_shape, "collision_type", None) if prev_shape else None
-        )
+        collision_type = prev_shape.collision_type if prev_shape else None
         collision_id = getattr(prev_shape, "collision_id", None) if prev_shape else None
 
         mass = self.mass if self.can_move else 0

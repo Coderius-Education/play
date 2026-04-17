@@ -85,7 +85,7 @@ async def update_sprites(do_events: bool = True):
     :param do_events: If True, run events for sprites. If False, only update positions.
     """
     for sprite in globals_list.sprites_group.sprites():
-        if sprite.physics and sprite.physics.can_move:
+        if sprite.physics.can_move:
             update_sprite_physics(sprite)
 
         sprite.events.is_clicked = False
@@ -94,9 +94,6 @@ async def update_sprites(do_events: bool = True):
             if do_events:
                 await run_any_async_callback(sprite.events.stopped_callbacks(), [], [])
                 sprite.events.clear_all_stopped()
-            continue
-
-        if not do_events and not sprite.physics:
             continue
 
         await run_sprite_callbacks(sprite)

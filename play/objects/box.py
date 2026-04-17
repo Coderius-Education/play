@@ -94,9 +94,8 @@ class Box(Sprite):
         :param _width: The new width of the box."""
         self._width = _width
         self._should_recompute = True
-        if self.physics:
-            self.physics._remove()
-            self.physics._make_pymunk()
+        self.physics._remove()
+        self.physics._make_pymunk()
 
     ##### height #####
     @property
@@ -111,9 +110,8 @@ class Box(Sprite):
         :param _height: The new height of the box."""
         self._height = _height
         self._should_recompute = True
-        if self.physics:
-            self.physics._remove()
-            self.physics._make_pymunk()
+        self.physics._remove()
+        self.physics._make_pymunk()
 
     ##### color #####
     @property

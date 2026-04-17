@@ -38,7 +38,6 @@ class Text(Sprite):
 
         self._is_clicked = False
         self._is_hidden = False
-        self.physics = None
 
         self.rect = pygame.Rect(0, 0, 0, 0)
         self.update()  # Must compute rect size before start_physics

@@ -236,5 +236,32 @@ def test_other_sprite_start_physics_preserves_dependent_callbacks():
     play.stop_program()
 
 
+def test_collision_type_stable_across_make_pymunk():
+    """collision_type must survive _make_pymunk() calls on the same physics object.
+
+    _make_pymunk is re-run when properties like can_move change. The collision
+    registry relies on the type being stable so registered handlers keep firing.
+    """
+    import play
+
+    ball = play.new_circle(x=0, y=0, radius=20)
+    wall = play.new_box(x=200, y=0, width=10, height=100)
+
+    @ball.when_touching(wall)
+    async def on_touch():
+        pass
+
+    ct_before = ball.physics._pymunk_shape.collision_type
+
+    # Toggling can_move triggers _make_pymunk on the same _Physics instance
+    ball.physics.can_move = not ball.physics.can_move
+
+    ct_after = ball.physics._pymunk_shape.collision_type
+
+    assert ct_before == ct_after
+
+    play.stop_program()
+
+
 if __name__ == "__main__":
     test_when_touching_callbacks_not_duplicated()

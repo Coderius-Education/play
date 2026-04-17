@@ -236,32 +236,6 @@ class EventComponent:
             return decorator(callback)
         return decorator
 
-    def _update_sprite_collisions(self):
-        """Update sprite collisions. Called automatically on every frame."""
-        sprite = self._sprite
-        for callback, shape_b in callback_manager.get_callback(
-            [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING], id(sprite)
-        ):
-            if sprite.physics and shape_b.physics:
-                continue
-
-            if sprite.is_hidden or shape_b.is_hidden:
-                continue
-
-            collision_key = id(shape_b)
-
-            if sprite.is_touching(shape_b):
-                if collision_key not in self._touching_callback:
-                    if callback.type == CallbackType.WHEN_TOUCHING:
-                        self._touching_callback[collision_key] = callback
-                    else:
-                        self._touching_callback[collision_key] = True
-                continue
-            if collision_key in self._touching_callback:
-                del self._touching_callback[collision_key]
-                if callback.type == CallbackType.WHEN_STOPPED_TOUCHING:
-                    self._stopped_callback[collision_key] = callback
-
     def _update_wall_collisions(self):
         """Update wall collisions. Called automatically on every frame."""
         sprite = self._sprite
@@ -287,6 +261,5 @@ class EventComponent:
                     self._stopped_callback[collision_key] = callback
 
     def update_collisions(self):
-        """Update sprite and wall collisions manually."""
-        self._update_sprite_collisions()
+        """Update wall collisions manually."""
         self._update_wall_collisions()
