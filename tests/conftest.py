@@ -202,3 +202,21 @@ def clean_play_state(request):
             play.stop_program()
 
     yield
+
+    # Teardown: remove all pymunk bodies/shapes so C destructors don't race
+    # with interpreter shutdown and cause a segfault on process exit.
+    for body in list(physics_space.bodies):
+        try:
+            physics_space.remove(body)
+        except Exception:
+            pass
+    for shape in list(physics_space.shapes):
+        try:
+            physics_space.remove(shape)
+        except Exception:
+            pass
+    for constraint in list(physics_space.constraints):
+        try:
+            physics_space.remove(constraint)
+        except Exception:
+            pass
