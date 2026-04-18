@@ -38,6 +38,4 @@ jobs:
         pylint $(git ls-files 'play/*.py' 'play/**/*.py')
 
     - name: Run tests
-      run: |
-        pytest ./tests --ignore=tests/stress -n auto -v
-        pytest ./tests/stress -v
+      run: pytest ./tests -n auto -v
