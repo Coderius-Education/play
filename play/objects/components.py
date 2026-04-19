@@ -235,31 +235,3 @@ class EventComponent:
         if callback is not None:
             return decorator(callback)
         return decorator
-
-    def _update_wall_collisions(self):
-        """Update wall collisions. Called automatically on every frame."""
-        sprite = self._sprite
-        touching_walls = sprite.get_touching_walls()
-
-        for callback_data in callback_manager.get_callback(
-            [CallbackType.WHEN_TOUCHING_WALL, CallbackType.WHEN_STOPPED_TOUCHING_WALL],
-            id(sprite),
-        ):
-            callback, wall_side = callback_data
-            collision_key = (CollisionType.WALL, wall_side)
-
-            if wall_side in touching_walls:
-                if collision_key not in self._touching_callback:
-                    if callback.type == CallbackType.WHEN_TOUCHING_WALL:
-                        self._touching_callback[collision_key] = callback
-                    else:
-                        self._touching_callback[collision_key] = True
-                continue
-            if collision_key in self._touching_callback:
-                del self._touching_callback[collision_key]
-                if callback.type == CallbackType.WHEN_STOPPED_TOUCHING_WALL:
-                    self._stopped_callback[collision_key] = callback
-
-    def update_collisions(self):
-        """Update wall collisions manually."""
-        self._update_wall_collisions()

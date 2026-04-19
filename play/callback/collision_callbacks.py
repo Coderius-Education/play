@@ -42,20 +42,32 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
     def _handle_collision(self, arbiter, _, __):
         shape_a, shape_b = arbiter.shapes
 
+        # Wall collision: one shape has wall_side set by create_wall
+        if hasattr(shape_a, "wall_side") or hasattr(shape_b, "wall_side"):
+            wall_shape = shape_a if hasattr(shape_a, "wall_side") else shape_b
+            sprite_shape = shape_b if hasattr(shape_a, "wall_side") else shape_a
+            sprite = self.shape_registry.get(sprite_shape.collision_type)
+            if sprite is not None and (
+                sprite_shape.collision_type in self.callbacks[True]
+                and wall_shape.collision_type
+                in self.callbacks[True][sprite_shape.collision_type]
+            ):
+                callback = self.callbacks[True][sprite_shape.collision_type][
+                    wall_shape.collision_type
+                ]
+                sprite.events.set_touching(wall_shape.collision_type, callback)
+            return True
+
+        # Sprite-sprite collision
         if not hasattr(shape_a, "collision_id") or not hasattr(shape_b, "collision_id"):
             return True
 
-        # check for walls
-        if any(
-            [
-                self.shape_registry.get(shape_a.collision_type) is None,
-                self.shape_registry.get(shape_b.collision_type) is None,
-            ]
-        ):
+        sprite_a = self.shape_registry.get(shape_a.collision_type)
+        sprite_b = self.shape_registry.get(shape_b.collision_type)
+        if sprite_a is None or sprite_b is None:
             return True
 
         # Only add callback to shape_a to avoid duplicate execution
-        # (both sprites would execute the same callback otherwise)
         if (
             shape_a.collision_type in self.callbacks[True]
             and shape_b.collision_type in self.callbacks[True][shape_a.collision_type]
@@ -63,10 +75,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             callback = self.callbacks[True][shape_a.collision_type][
                 shape_b.collision_type
             ]
-            self.shape_registry[shape_a.collision_type].events.set_touching(
-                shape_b.collision_id, callback
-            )
-        # If callback is only registered in the reverse direction, use that
+            sprite_a.events.set_touching(shape_b.collision_id, callback)
         elif (
             shape_b.collision_type in self.callbacks[True]
             and shape_a.collision_type in self.callbacks[True][shape_b.collision_type]
@@ -74,38 +83,47 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             callback = self.callbacks[True][shape_b.collision_type][
                 shape_a.collision_type
             ]
-            self.shape_registry[shape_a.collision_type].events.set_touching(
-                shape_b.collision_id, callback
-            )
+            sprite_a.events.set_touching(shape_b.collision_id, callback)
         return True
 
     def _handle_end_collision_shape(self, shape_a: Shape, shape_b: Shape):
         """Check and fire the stopped-touching callback for shape_a → shape_b.
 
         Returns True if the second direction should be skipped:
-        - a wall is involved (wall callbacks are handled separately), or
-        - a callback was found and queued for this collision pair.
+        - a wall separation was handled here, or
+        - a sprite-sprite callback was found and queued.
         Returns False if no relevant callback was found.
         """
+        # Wall separation: shape_b is the wall
+        if hasattr(shape_b, "wall_side"):
+            sprite = self.shape_registry.get(shape_a.collision_type)
+            if sprite is None:
+                return False
+            if sprite.events.get_touching(shape_b.collision_type):
+                sprite.events.clear_touching(shape_b.collision_type)
+            if (
+                shape_a.collision_type in self.callbacks[False]
+                and shape_b.collision_type
+                in self.callbacks[False][shape_a.collision_type]
+            ):
+                callback = self.callbacks[False][shape_a.collision_type][
+                    shape_b.collision_type
+                ]
+                sprite.events.set_stopped(shape_b.collision_type, callback)
+                return True
+            return False
+
+        # Sprite-sprite separation
         if not hasattr(shape_a, "collision_id") or not hasattr(shape_b, "collision_id"):
             return False
 
-        # check for walls — wall callbacks are handled separately; return True
-        # so the caller skips the reverse direction check.
-        if any(
-            [
-                self.shape_registry.get(shape_a.collision_type) is None,
-                self.shape_registry.get(shape_b.collision_type) is None,
-            ]
-        ):
+        sprite_a = self.shape_registry.get(shape_a.collision_type)
+        sprite_b = self.shape_registry.get(shape_b.collision_type)
+        if sprite_a is None or sprite_b is None:
             return True
 
-        if shape_a.collision_type in self.shape_registry and self.shape_registry[
-            shape_a.collision_type
-        ].events.get_touching(shape_b.collision_id):
-            self.shape_registry[shape_a.collision_type].events.clear_touching(
-                shape_b.collision_id
-            )
+        if sprite_a.events.get_touching(shape_b.collision_id):
+            sprite_a.events.clear_touching(shape_b.collision_id)
         fired = False
         if (
             shape_a.collision_type in self.callbacks[False]
@@ -114,9 +132,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             callback = self.callbacks[False][shape_a.collision_type][
                 shape_b.collision_type
             ]
-            self.shape_registry[shape_a.collision_type].events.set_stopped(
-                shape_b.collision_id, callback
-            )
+            sprite_a.events.set_stopped(shape_b.collision_id, callback)
             fired = True
         return fired
 
@@ -187,9 +203,10 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         self._register_shape(
             sprite_a, shape_a, shape_b, callback, collision_type, begin
         )
-        self._register_shape(
-            sprite_b, shape_b, shape_a, callback, collision_type, begin
-        )
+        if sprite_b is not None:
+            self._register_shape(
+                sprite_b, shape_b, shape_a, callback, collision_type, begin
+            )
 
 
 collision_registry = CollisionCallbackRegistry()

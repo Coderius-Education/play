@@ -34,23 +34,42 @@ _should_ignore_update = [
 
 class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def __init__(self, image=None):
-        self._size = None
-        self._x = None
-        self._y = None
-        self._angle = None
-        self._transparency = None
+        if not hasattr(self, "_size"):
+            self._size = 100
+        if not hasattr(self, "_x"):
+            self._x = 0
+        if not hasattr(self, "_y"):
+            self._y = 0
+        if not hasattr(self, "_angle"):
+            self._angle = 0
+        if not hasattr(self, "_transparency"):
+            self._transparency = 100
 
-        self.events = EventComponent(self)
+        if getattr(self, "events", None) is None:
+            self.events = EventComponent(self)
         self.physics = None
 
-        self._image = image
-        self._is_hidden = False
+        if getattr(self, "_image", None) is None:
+            self._image = image
+        if not hasattr(self, "_is_hidden"):
+            self._is_hidden = False
         self._should_recompute = True
 
-        self.rect = None
+        if getattr(self, "rect", None) is None:
+            self.rect = pygame.Rect(0, 0, 0, 0)
+
+        # Pygame sprite initializes internal variables but clobbers rect and image, so we back it up
+        _backup_rect = self.rect
+        _backup_image = getattr(self, "_image", None)
 
         super().__init__()
         globals_list.sprites_group.add(self)
+
+        self.rect = _backup_rect
+        if _backup_image is not None:
+            self._image = _backup_image
+
+        self.start_physics(stable=True, obeys_gravity=False)
 
         _schedule_auto_start()
 
@@ -83,11 +102,6 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
     def update(self):
         """Update the sprite."""
-        # Collision checks must run every frame, even if no properties changed,
-        # because another sprite may have moved into or away from this one.
-
-        self.events.update_collisions()
-
         if not self._should_recompute:
             return
 

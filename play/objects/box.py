@@ -22,7 +22,6 @@ class Box(Sprite):
         size=100,
         angle=0,
     ):
-        super().__init__()
         self._color = color
         self._x = x
         self._y = y
@@ -35,7 +34,8 @@ class Box(Sprite):
         self._size = size
         self._angle = angle
         self.rect = pygame.Rect(0, 0, 0, 0)
-        self.start_physics(stable=True, obeys_gravity=False)
+
+        super().__init__()
         self.update()
 
     def update(self):
