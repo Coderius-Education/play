@@ -63,8 +63,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             return True
 
         sprite_a = self.shape_registry.get(shape_a.collision_type)
-        sprite_b = self.shape_registry.get(shape_b.collision_type)
-        if sprite_a is None or sprite_b is None:
+        if sprite_a is None:
             return True
 
         # Only add callback to shape_a to avoid duplicate execution
