@@ -34,6 +34,9 @@ _should_ignore_update = [
 
 class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def __init__(self, image=None):
+        # Subclasses set their own field values BEFORE calling super().__init__() so
+        # that start_physics() can use the correct dimensions.  The hasattr guards
+        # provide fallback defaults when Sprite is instantiated directly.
         if not hasattr(self, "_size"):
             self._size = 100
         if not hasattr(self, "_x"):
@@ -45,7 +48,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         if not hasattr(self, "_transparency"):
             self._transparency = 100
 
-        if getattr(self, "events", None) is None:
+        if not hasattr(self, "events"):
             self.events = EventComponent(self)
         self.physics = None
 
@@ -102,6 +105,8 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
     def update(self):
         """Update the sprite."""
+        # Do NOT access self.physics here: Text.__init__ calls this method
+        # before super().__init__() has had a chance to create physics.
         if not self._should_recompute:
             return
 

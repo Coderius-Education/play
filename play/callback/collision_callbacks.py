@@ -118,9 +118,8 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             return False
 
         sprite_a = self.shape_registry.get(shape_a.collision_type)
-        sprite_b = self.shape_registry.get(shape_b.collision_type)
-        if sprite_a is None or sprite_b is None:
-            return True
+        if sprite_a is None:
+            return False  # let caller try the reverse direction
 
         if sprite_a.events.get_touching(shape_b.collision_id):
             sprite_a.events.clear_touching(shape_b.collision_id)
