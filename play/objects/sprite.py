@@ -130,6 +130,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def x(self, _x):
         """Set the x-coordinate of the sprite.
         :param _x: The x-coordinate of the sprite."""
+        # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._x = _x
         self.physics._pymunk_body.position = self._x, self._y
         if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:
@@ -145,6 +146,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def y(self, _y):
         """Set the y-coordinate of the sprite.
         :param _y: The y-coordinate of the sprite."""
+        # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._y = _y
         self.physics._pymunk_body.position = self._x, self._y
         if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:

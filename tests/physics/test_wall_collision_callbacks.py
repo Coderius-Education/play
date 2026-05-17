@@ -42,7 +42,10 @@ def test_when_stopped_touching_wall_callback_queued_on_separation():
 
     physics_space.step(1 / 60)  # contact: begin fires
 
-    box.y = 0  # move away from wall
-    physics_space.step(1 / 60)  # separate fires
+    # Drive separation with upward velocity rather than teleporting,
+    # so the test doesn't rely on pymunk's teleport-detection behavior.
+    box.physics.y_speed = 300
+    for _ in range(10):
+        physics_space.step(1 / 60)
 
     assert len(box.events.stopped_callbacks()) > 0
