@@ -199,6 +199,7 @@ You might want to look in your code where you're setting transparency and make s
     def angle(self, _angle):
         """Set the angle of the sprite.
         :param _angle: The angle of the sprite."""
+        # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._angle = _angle
         self.physics._pymunk_body.angle = _math.radians(_angle)
 
@@ -212,6 +213,7 @@ You might want to look in your code where you're setting transparency and make s
     def size(self, percent):
         """Set the size of the sprite.
         :param percent: The size of the sprite as a percentage."""
+        # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._should_recompute = True
         self._size = percent
         self.physics._remove()
