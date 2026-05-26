@@ -63,9 +63,9 @@ class CallbackManager:
 
     def remove_callbacks(self, callback_type, callback_discriminator=None) -> None:
         """
-        Remove all callbacks of a certain type.
+        Clear the callback bucket for a specific (callback_type, discriminator) pair.
         :param callback_type: The type of callback.
-        :param callback_discriminator: The discriminator for the callback.
+        :param callback_discriminator: The discriminator for the bucket to clear (None = unkeyed callbacks).
         :return: None
         """
         if callback_type not in self.callbacks:

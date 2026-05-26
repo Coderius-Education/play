@@ -368,10 +368,14 @@ You might want to look in your code where you're setting transparency and make s
         if not self.alive():
             return
         saved = self._save_and_clear_callbacks()
+        # Wall callback types don't register in _dependent_sprites, so only
+        # WHEN_TOUCHING / WHEN_STOPPED_TOUCHING need cleanup here.
         for cb_type in [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING]:
-            for _, target in saved.get(cb_type, []):
-                if hasattr(target, "events"):
-                    target.events._dependent_sprites.discard(self)
+            for item in saved.get(cb_type, []):
+                if isinstance(item, tuple) and len(item) == 2:
+                    _, target = item
+                    if hasattr(target, "events"):
+                        target.events._dependent_sprites.discard(self)
         self.physics._remove()
         globals_list.sprites_group.remove(self)
 
