@@ -3,6 +3,7 @@ pythonpath = [".", "tests"]
 timeout = 60
 markers = [
     "slow(seconds): mark test with a longer safety-stop deadline (default 30s)",
+    "xdist_group(name): assign test to a named xdist worker group to prevent concurrent execution",
 ]
 filterwarnings = [
     "ignore:This process .* is multi-threaded, use of fork\\(\\) may lead to deadlocks in the child:DeprecationWarning",

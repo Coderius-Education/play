@@ -34,23 +34,45 @@ _should_ignore_update = [
 
 class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def __init__(self, image=None):
-        self._size = None
-        self._x = None
-        self._y = None
-        self._angle = None
-        self._transparency = None
+        # Subclasses set their own field values BEFORE calling super().__init__() so
+        # that start_physics() can use the correct dimensions.  The hasattr guards
+        # provide fallback defaults when Sprite is instantiated directly.
+        if not hasattr(self, "_size"):
+            self._size = 100
+        if not hasattr(self, "_x"):
+            self._x = 0
+        if not hasattr(self, "_y"):
+            self._y = 0
+        if not hasattr(self, "_angle"):
+            self._angle = 0
+        if not hasattr(self, "_transparency"):
+            self._transparency = 100
 
-        self.events = EventComponent(self)
-
-        self._image = image
+        if not hasattr(self, "events"):
+            self.events = EventComponent(self)
         self.physics = None
-        self._is_hidden = False
+
+        if getattr(self, "_image", None) is None:
+            self._image = image
+        if not hasattr(self, "_is_hidden"):
+            self._is_hidden = False
         self._should_recompute = True
 
-        self.rect = None
+        if getattr(self, "rect", None) is None:
+            self.rect = pygame.Rect(0, 0, 0, 0)
+
+        # Pygame sprite initializes internal variables but clobbers rect and image, so we back it up
+        _backup_rect = self.rect
+        _backup_image = getattr(self, "_image", None)
 
         super().__init__()
         globals_list.sprites_group.add(self)
+
+        self.rect = _backup_rect
+        if _backup_image is not None:
+            self._image = _backup_image
+
+        self.start_physics(stable=True, obeys_gravity=False)
 
         _schedule_auto_start()
 
@@ -83,11 +105,8 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
     def update(self):
         """Update the sprite."""
-        # Collision checks must run every frame, even if no properties changed,
-        # because another sprite may have moved into or away from this one.
-
-        self.events.update_collisions()
-
+        # Do NOT access self.physics here: Text.__init__ calls this method
+        # before super().__init__() has had a chance to create physics.
         if not self._should_recompute:
             return
 
@@ -111,6 +130,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def x(self, _x):
         """Set the x-coordinate of the sprite.
         :param _x: The x-coordinate of the sprite."""
+        # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._x = _x
         self.physics._pymunk_body.position = self._x, self._y
         if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:
@@ -126,6 +146,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def y(self, _y):
         """Set the y-coordinate of the sprite.
         :param _y: The y-coordinate of the sprite."""
+        # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._y = _y
         self.physics._pymunk_body.position = self._x, self._y
         if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:
@@ -178,6 +199,7 @@ You might want to look in your code where you're setting transparency and make s
     def angle(self, _angle):
         """Set the angle of the sprite.
         :param _angle: The angle of the sprite."""
+        # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._angle = _angle
         self.physics._pymunk_body.angle = _math.radians(_angle)
 
@@ -191,6 +213,7 @@ You might want to look in your code where you're setting transparency and make s
     def size(self, percent):
         """Set the size of the sprite.
         :param percent: The size of the sprite as a percentage."""
+        # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._should_recompute = True
         self._size = percent
         self.physics._remove()
@@ -306,10 +329,6 @@ You might want to look in your code where you're setting transparency and make s
 
     def physics_info(self):
         """Print a summary of this sprite's physics properties."""
-        if not self.physics:
-            print("This sprite has no physics enabled.")
-            return
-
         body_type = self.physics._pymunk_body.body_type
 
         # Dutch names for body types
@@ -569,8 +588,6 @@ You might want to look in your code where you're setting transparency and make s
             CallbackType.WHEN_STOPPED_TOUCHING,
         ]
         for dependent in list(self.events._dependent_sprites):
-            if not dependent.physics:
-                continue
             dep_id = id(dependent)
             dep_saved = {
                 callback_type: list(
@@ -583,10 +600,9 @@ You might want to look in your code where you're setting transparency and make s
                 continue
             for callback_type in sprite_callback_types:
                 callback_manager.remove_callbacks(callback_type, dep_id)
-            dep_collision_type = getattr(
-                dependent.physics._pymunk_shape, "collision_type", None
+            self._cleanup_collision_registry(
+                dependent.physics._pymunk_shape.collision_type
             )
-            self._cleanup_collision_registry(dep_collision_type)
             for cb, sprite in dep_saved[CallbackType.WHEN_TOUCHING]:
                 dependent.when_touching(sprite)(cb)
             for cb, sprite in dep_saved[CallbackType.WHEN_STOPPED_TOUCHING]:
@@ -617,12 +633,8 @@ You might want to look in your code where you're setting transparency and make s
         """
         saved_callbacks = self._save_and_clear_callbacks()
 
-        old_collision_type = None
-        if self.physics and hasattr(self.physics._pymunk_shape, "collision_type"):
-            old_collision_type = self.physics._pymunk_shape.collision_type
-        self._cleanup_collision_registry(old_collision_type)
-
-        if self.physics:
+        if self.physics is not None:
+            self._cleanup_collision_registry(self.physics._pymunk_shape.collision_type)
             self.physics._remove()
 
         self.physics = _Physics(

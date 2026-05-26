@@ -20,9 +20,6 @@ class Image(Sprite):
             self._image_filename = None
             self._source_image = image
 
-        # Initialize the parent sprite with this image.
-        super().__init__(image=self._source_image)
-
         self._original_width = self._source_image.get_width()
         self._original_height = self._source_image.get_height()
         self._x = x
@@ -31,7 +28,9 @@ class Image(Sprite):
         self._size = size
         self._transparency = transparency
         self.rect = self._source_image.get_rect()
-        self.start_physics(stable=True, obeys_gravity=False)
+
+        # Initialize the parent sprite with this image, which starts physics using rect
+        super().__init__(image=self._source_image)
         self.update()
 
     def update(self):

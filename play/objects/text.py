@@ -21,7 +21,6 @@ class Text(Sprite):
         transparency=100,
         size=100,
     ):
-        super().__init__()
         self._font = font
         self._font_size = font_size
 
@@ -38,11 +37,11 @@ class Text(Sprite):
 
         self._is_clicked = False
         self._is_hidden = False
-        self.physics = None
 
         self.rect = pygame.Rect(0, 0, 0, 0)
+        self._should_recompute = True
         self.update()  # Must compute rect size before start_physics
-        self.start_physics(stable=True, obeys_gravity=False)
+        super().__init__()
 
     def update(self):
         """Update the text object."""

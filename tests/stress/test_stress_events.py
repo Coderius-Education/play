@@ -7,6 +7,7 @@ def setup_play(clean_play_state):
     pass
 
 
+@pytest.mark.xdist_group("stress")
 def test_stress_events():
     """
     Stress test: Overlapping Event execution.

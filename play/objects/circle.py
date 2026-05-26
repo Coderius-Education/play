@@ -20,7 +20,6 @@ class Circle(Sprite):
         size=100,
         angle=0,
     ):
-        super().__init__()
         self._x = x
         self._y = y
         self._color = color
@@ -33,7 +32,8 @@ class Circle(Sprite):
         self._angle = angle
 
         self.rect = pygame.Rect(0, 0, 0, 0)
-        self.start_physics(stable=True, obeys_gravity=False)
+
+        super().__init__()
         self.update()
 
     def clone(self):

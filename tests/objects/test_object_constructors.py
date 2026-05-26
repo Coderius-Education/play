@@ -175,3 +175,24 @@ def test_text_words_setter():
     text = play.new_text(words="hi", x=0, y=0)
     text.words = 42
     assert text.words == "42"
+
+
+# --- Physics always-on guarantee ---
+
+
+def test_box_has_physics_after_construction():
+    """Box must have physics initialized immediately after creation."""
+    box = play.new_box()
+    assert box.physics is not None
+
+
+def test_circle_has_physics_after_construction():
+    """Circle must have physics initialized immediately after creation."""
+    circle = play.new_circle()
+    assert circle.physics is not None
+
+
+def test_text_has_physics_after_construction():
+    """Text must have physics initialized immediately after creation."""
+    text = play.new_text()
+    assert text.physics is not None

@@ -6,7 +6,6 @@ from dataclasses import dataclass
 import pymunk as _pymunk
 
 from ..globals import globals_list
-from ..io.logging import play_logger
 from ..utils import clamp as _clamp
 
 
@@ -84,9 +83,7 @@ class Physics:
     def _make_pymunk(self):
         # Save collision attributes so the collision registry stays valid
         prev_shape = getattr(self, "_pymunk_shape", None)
-        collision_type = (
-            getattr(prev_shape, "collision_type", None) if prev_shape else None
-        )
+        collision_type = prev_shape.collision_type if prev_shape else None
         collision_id = getattr(prev_shape, "collision_id", None) if prev_shape else None
 
         mass = self.mass if self.can_move else 0
@@ -168,18 +165,13 @@ class Physics:
         if not self._is_paused:
             return
         self._is_paused = False
-        if self._pymunk_body and self._pymunk_shape:
-            physics_space.add(self._pymunk_body, self._pymunk_shape)
-        else:
-            play_logger.error("Cannot unpause object, it has not been created yet.")
+        physics_space.add(self._pymunk_body, self._pymunk_shape)
 
     def _remove(self):
         if self._is_paused:
             return  # Already removed from space
-        if self._pymunk_body:
-            physics_space.remove(self._pymunk_body)
-        if self._pymunk_shape:
-            physics_space.remove(self._pymunk_shape)
+        physics_space.remove(self._pymunk_body)
+        physics_space.remove(self._pymunk_shape)
 
     @property
     def can_move(self):

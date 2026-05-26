@@ -41,6 +41,20 @@ def test_sprite_clone():
     assert s2.height == 50
 
 
+def test_sprite_clone_has_physics():
+    """Cloned sprite must have physics initialized."""
+    s1 = play.new_box(color="red", x=10, y=20, width=50, height=50)
+    s2 = s1.clone()
+    assert s2.physics is not None
+
+
+def test_sprite_clone_physics_is_independent():
+    """Cloned sprite gets its own independent physics object."""
+    s1 = play.new_box(color="red", x=10, y=20, width=50, height=50)
+    s2 = s1.clone()
+    assert s2.physics is not s1.physics
+
+
 def test_sprite_hide_show():
     s1 = play.new_box(color="red", x=0, y=0, width=10, height=10)
 
@@ -119,20 +133,13 @@ def test_sprite_physics_info_output():
 
     stdout = io.StringIO()
     with contextlib.redirect_stdout(stdout):
-        # Without physics
-        s1.physics = None
-        s1.physics_info()
-
-        # With physics
         s1.start_physics(can_move=True, stable=False)
         s1.physics_info()
 
-        # Physics stop
         s1.stop_physics()
         s1.physics_info()
 
     output = stdout.getvalue()
-    assert "This sprite has no physics" in output
     assert "DYNAMIC" in output
     assert "KINEMATIC" in output
 

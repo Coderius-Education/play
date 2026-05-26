@@ -9,6 +9,7 @@ def setup_play(clean_play_state):
 
 
 @pytest.mark.slow(120)
+@pytest.mark.xdist_group("stress")
 def test_stress_quantity_sprites():
     """
     Stress test: Spawning 1000 physics-enabled sprites and running 30 frames.

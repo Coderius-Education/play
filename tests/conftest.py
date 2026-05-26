@@ -11,6 +11,26 @@ import os
 import time
 import pytest
 
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--runslow", action="store_true", default=False, help="run slow tests"
+    )
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "slow: mark test as slow to run")
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--runslow"):
+        return
+    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    for item in items:
+        if "slow" in item.keywords or "stress" in str(item.path):
+            item.add_marker(skip_slow)
+
+
 # ---------------------------------------------------------------------------
 # Shared mouse-event helpers (used by tests/events/ and tests/projects/)
 # ---------------------------------------------------------------------------
@@ -202,3 +222,21 @@ def clean_play_state(request):
             play.stop_program()
 
     yield
+
+    # Teardown: remove all pymunk bodies/shapes so C destructors don't race
+    # with interpreter shutdown and cause a segfault on process exit.
+    for body in list(physics_space.bodies):
+        try:
+            physics_space.remove(body)
+        except Exception:
+            pass
+    for shape in list(physics_space.shapes):
+        try:
+            physics_space.remove(shape)
+        except Exception:
+            pass
+    for constraint in list(physics_space.constraints):
+        try:
+            physics_space.remove(constraint)
+        except Exception:
+            pass

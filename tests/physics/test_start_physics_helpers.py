@@ -264,27 +264,3 @@ def test_reregister_dependent_callbacks_refreshes_when_stopped_touching():
     assert count_before == count_after
 
     play.stop_program()
-
-
-def test_reregister_dependent_callbacks_skips_no_physics():
-    """_reregister_dependent_callbacks should skip dependents without physics."""
-    import play
-
-    ball = play.new_circle(x=0, y=0, radius=20)
-    ball.start_physics(obeys_gravity=False)
-
-    target = play.new_box(x=200, y=0, width=10, height=100)
-    target.start_physics(obeys_gravity=False, can_move=False)
-
-    @ball.when_touching(target)
-    async def on_touch():
-        pass
-
-    # Remove ball's physics to simulate a dependent without physics
-    ball.physics._remove()
-    ball.physics = None
-
-    # Should not raise even though dependent has no physics
-    target._reregister_dependent_callbacks()
-
-    play.stop_program()

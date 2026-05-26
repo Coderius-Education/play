@@ -246,7 +246,8 @@ class TestUpdateSprites:
         self, mock_callbacks, mock_click, mock_click_released, mock_globals, mock_state
     ):
         sprite = MagicMock()
-        sprite.physics = False
+        sprite.physics = MagicMock()
+        sprite.physics.can_move = False
         sprite.is_hidden = False
         mock_globals.sprites_group.sprites.return_value = [sprite]
         mock_state.click_release_happened = False
