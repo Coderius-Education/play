@@ -131,7 +131,9 @@ class Text(Sprite):
             if matched:
                 self._pygame_font = pygame.font.Font(matched, font_size)
             else:
-                play_logger.warning(f"Font '{font_name}' not found, using default font")
+                play_logger.warning(
+                    "Font '%s' not found, using default font", font_name
+                )
                 self._pygame_font = pygame.font.Font(
                     pygame.font.get_default_font(), font_size
                 )
