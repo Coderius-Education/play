@@ -38,4 +38,4 @@ jobs:
         pylint $(git ls-files 'play/*.py' 'play/**/*.py')
 
     - name: Run tests
-      run: pytest ./tests -n auto -v
+      run: pytest ./tests -n auto -v --runslow
