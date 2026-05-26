@@ -72,7 +72,8 @@ class CallbackManager:
             return
         # Clears only the bucket for callback_discriminator (None = unkeyed callbacks).
         # Does NOT wipe other discriminator buckets for this type.
-        self.callbacks[callback_type][callback_discriminator] = []
+        if callback_discriminator in self.callbacks[callback_type]:
+            self.callbacks[callback_type][callback_discriminator] = []
 
     def get_callbacks(self, callback_type) -> dict:
         """
