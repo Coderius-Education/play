@@ -404,7 +404,8 @@ def test_text_angle_visually_applied():
 
 
 def test_text_font_setter():
-    """Verify the font setter reloads the pygame font object."""
+    """Verify the font setter reloads _pygame_font with the correct metrics."""
+    import pygame
     import play
 
     results = {}
@@ -416,15 +417,19 @@ def test_text_font_setter():
         if frames[0] > 0:
             return
         frames[0] += 1
-        first_font = text._pygame_font
+        # Corrupt _pygame_font with a wrong size so a no-op setter would be detectable.
+        text._pygame_font = pygame.font.Font(pygame.font.get_default_font(), 999)
         text.font = "default"
         results["font_name"] = text.font
-        results["font_reloaded"] = text._pygame_font is not first_font
+        expected = pygame.font.Font(pygame.font.get_default_font(), text._font_size)
+        results["metrics_match"] = text._pygame_font.size("Hello") == expected.size(
+            "Hello"
+        )
         play.stop_program()
 
     play.start_program()
     assert results["font_name"] == "default"
-    assert results["font_reloaded"]
+    assert results["metrics_match"]
 
 
 def test_text_font_invalid_name_falls_back(caplog):
@@ -451,18 +456,27 @@ def test_text_font_invalid_name_falls_back(caplog):
 
 
 def _find_non_default_font():
-    """Return the name of any available system font that differs from pygame's built-in default.
-
-    pygame's built-in is 'freesansbold.ttf'; skipping it ensures the chosen font
-    produces different glyph metrics.  Returns None if no system fonts are available.
+    """Return the name of any available system font whose glyph metrics differ from
+    pygame's built-in default (freesansbold.ttf) at size 40.
+    Returns None if no such font is available.
     """
     import pygame
+
+    pygame.font.init()
+    probe = "AaBbCcDdEeFf"
+    default_w = pygame.font.Font(pygame.font.get_default_font(), 40).size(probe)[0]
 
     for name in pygame.font.get_fonts():
         if name == "freesansbold":
             continue
-        if pygame.font.match_font(name):
-            return name
+        path = pygame.font.match_font(name)
+        if not path:
+            continue
+        try:
+            if pygame.font.Font(path, 40).size(probe)[0] != default_w:
+                return name
+        except Exception:
+            continue
     return None
 
 
