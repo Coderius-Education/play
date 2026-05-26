@@ -174,8 +174,8 @@ def test_keyboard_state_initial():
     from play.io.keypress import keyboard_state
 
     # Initially empty
-    assert isinstance(keyboard_state.pressed, list)
-    assert isinstance(keyboard_state.released, list)
+    assert isinstance(keyboard_state.pressed, set)
+    assert isinstance(keyboard_state.released, set)
 
 
 def test_keyboard_state_clear():
@@ -183,8 +183,8 @@ def test_keyboard_state_clear():
     from play.io.keypress import keyboard_state
 
     # Add some released keys
-    keyboard_state.released.append("a")
-    keyboard_state.released.append("b")
+    keyboard_state.released.add("a")
+    keyboard_state.released.add("b")
 
     # Clear
     keyboard_state.clear()

@@ -72,8 +72,8 @@ def test_keyboard_state_instance_isolation():
     kb2 = KeyboardState()
 
     # Modify one instance
-    kb1.pressed.append("a")
-    kb1.released.append("b")
+    kb1.pressed.add("a")
+    kb1.released.add("b")
 
     # Verify the other instance is not affected
     assert "a" not in kb2.pressed

@@ -54,36 +54,25 @@ class CallbackManager:
             callback[0].type = callback_type
 
         if callback_type not in self.callbacks:
-            if callback_discriminator is None:
-                self.callbacks[callback_type] = []
-            else:
-                self.callbacks[callback_type] = {}
-
-        if callback_discriminator is None:
-            self.callbacks[callback_type].append(callback)
-        else:
-            if callback_discriminator not in self.callbacks[callback_type]:
-                self.callbacks[callback_type][callback_discriminator] = []
-            self.callbacks[callback_type][callback_discriminator].append(callback)
+            self.callbacks[callback_type] = {}
+        self.callbacks[callback_type].setdefault(callback_discriminator, []).append(
+            callback
+        )
 
         self.on_first_callback()
 
     def remove_callbacks(self, callback_type, callback_discriminator=None) -> None:
         """
-        Remove all callbacks of a certain type.
+        Clear the callback bucket for a specific (callback_type, discriminator) pair.
         :param callback_type: The type of callback.
-        :param callback_discriminator: The discriminator for the callback.
+        :param callback_discriminator: The discriminator for the bucket to clear (None = unkeyed callbacks).
         :return: None
         """
         if callback_type not in self.callbacks:
             return
-        if callback_discriminator is None:
-            existing = self.callbacks[callback_type]
-            self.callbacks[callback_type] = [] if isinstance(existing, list) else {}
-        elif (
-            isinstance(self.callbacks[callback_type], dict)
-            and callback_discriminator in self.callbacks[callback_type]
-        ):
+        # Clears only the bucket for callback_discriminator (None = unkeyed callbacks).
+        # Does NOT wipe other discriminator buckets for this type.
+        if callback_discriminator in self.callbacks[callback_type]:
             self.callbacks[callback_type][callback_discriminator] = []
 
     def get_callbacks(self, callback_type) -> dict:
@@ -105,15 +94,10 @@ class CallbackManager:
             callbacks = []
             for ctype in callback_type:
                 if ctype in self.callbacks:
-                    if callback_discriminator is None:
-                        callbacks.extend(self.callbacks[ctype])
-                    else:
-                        callbacks.extend(
-                            self.callbacks[ctype].get(callback_discriminator, [])
-                        )
+                    callbacks.extend(
+                        self.callbacks[ctype].get(callback_discriminator, [])
+                    )
             return callbacks
-        if callback_discriminator is None:
-            return self.callbacks.get(callback_type, None)
         return self.callbacks.get(callback_type, {}).get(callback_discriminator, None)
 
     def run_callbacks(
@@ -141,17 +125,9 @@ class CallbackManager:
                 return False
             return True
 
-        if callback_discriminator is not None:
-            if callback_discriminator not in self.callbacks[callback_type]:
-                return
-
-            for callback in self.callbacks[callback_type][callback_discriminator]:
-                if is_valid_callback(callback):
-                    run_callback(callback, [], [], *args, **kwargs)
-        else:
-            for callback in self.callbacks[callback_type]:
-                if is_valid_callback(callback):
-                    run_callback(callback, [], [], *args, **kwargs)
+        for callback in self.callbacks[callback_type].get(callback_discriminator, []):
+            if is_valid_callback(callback):
+                run_callback(callback, [], [], *args, **kwargs)
 
     async def run_callbacks_inline(self, callback_type):
         """Run all callbacks of a type inline (awaited directly), not as separate tasks.
@@ -160,15 +136,14 @@ class CallbackManager:
         scheduling order differs) callbacks always run synchronously within the caller's
         frame, seeing fully up-to-date state.
 
-        NOTE: Only safe for callback types whose storage is a list (e.g. REPEAT_FOREVER).
-        Dict-based callback types (e.g. PRESSED_KEYS) store callbacks under discriminator
-        keys, so iterating self.callbacks[callback_type] would yield keys, not callables.
-        Use run_callbacks_with_filter() for those types instead.
+        NOTE: Only fires callbacks registered without a discriminator (e.g. REPEAT_FOREVER).
+        Callback types that use discriminator keys (e.g. PRESSED_KEYS) should use
+        run_callbacks_with_filter() instead.
         """
         if callback_type not in self.callbacks:
             return
 
-        for callback in list(self.callbacks[callback_type]):
+        for callback in list(self.callbacks[callback_type].get(None, [])):
             if callable(callback) and not (
                 hasattr(callback, "is_running") and callback.is_running
             ):

@@ -24,7 +24,7 @@ def test_handle_keydown_no_duplicates():
     event = pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_b})
     handle_keyboard_events(event)
     handle_keyboard_events(event)
-    assert keyboard_state.pressed.count("b") == 1
+    assert "b" in keyboard_state.pressed
 
 
 def test_handle_keyup_removes_from_pressed():

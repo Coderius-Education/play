@@ -25,11 +25,13 @@ def point_touching_sprite(point, sprite):
     return point_info.distance <= 0
 
 
-_should_ignore_update = [
-    "_should_recompute",
-    "rect",
-    "_image",
-]
+_should_ignore_update = frozenset(
+    {
+        "_should_recompute",
+        "rect",
+        "_image",
+    }
+)
 
 
 class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
@@ -365,6 +367,15 @@ You might want to look in your code where you're setting transparency and make s
         """Remove the sprite from the screen."""
         if not self.alive():
             return
+        saved = self._save_and_clear_callbacks()
+        # Wall callback types don't register in _dependent_sprites, so only
+        # WHEN_TOUCHING / WHEN_STOPPED_TOUCHING need cleanup here.
+        for cb_type in [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING]:
+            for item in saved.get(cb_type, []):
+                if isinstance(item, tuple) and len(item) == 2:
+                    _, target = item
+                    if hasattr(target, "events"):
+                        target.events._dependent_sprites.discard(self)
         self.physics._remove()
         globals_list.sprites_group.remove(self)
 
