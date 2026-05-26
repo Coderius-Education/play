@@ -1,5 +1,6 @@
 """This module contains the Text class, which is a text string in the game."""
 
+import math as _math
 import os
 import pygame
 from .sprite import Sprite
@@ -47,19 +48,23 @@ class Text(Sprite):
         """Update the text object."""
         if self._should_recompute:
             pos = convert_pos(self.x, self.y)
-            self._image = self._pygame_font.render(
+            draw_image = self._pygame_font.render(
                 self._words, True, _color_name_to_rgb(self._color)
             )
             if self._size != 100:
-                new_w = max(round(self._image.get_width() * self._size / 100), 1)
-                new_h = max(round(self._image.get_height() * self._size / 100), 1)
-                self._image = pygame.transform.scale(self._image, (new_w, new_h))
-            self._image.set_alpha(round(self._transparency * 255 / 100))
-            self.rect = self._image.get_rect()
-            self.rect.topleft = (
-                pos[0] - self.rect.width // 2,
-                pos[1] - self.rect.height // 2,
-            )
+                new_w = max(round(draw_image.get_width() * self._size / 100), 1)
+                new_h = max(round(draw_image.get_height() * self._size / 100), 1)
+                draw_image = pygame.transform.scale(draw_image, (new_w, new_h))
+            if hasattr(self, "physics") and self.physics is not None:
+                angle_deg = _math.degrees(self.physics._pymunk_body.angle)
+            else:
+                angle_deg = self._angle
+            if angle_deg:
+                draw_image = pygame.transform.rotate(draw_image, angle_deg)
+            draw_image.set_alpha(round(self._transparency * 255 / 100))
+            self._image = draw_image
+            self.rect = draw_image.get_rect()
+            self.rect.center = pos
         super().update()
 
     def clone(self):
@@ -122,7 +127,13 @@ class Text(Sprite):
         elif os.path.isfile(font_name):
             self._pygame_font = pygame.font.Font(font_name, font_size)
         else:
-            play_logger.warning("File to font doesnt exist, Using default font")
-            self._pygame_font = pygame.font.Font(
-                pygame.font.get_default_font(), font_size
-            )
+            matched = pygame.font.match_font(font_name)
+            if matched:
+                self._pygame_font = pygame.font.Font(matched, font_size)
+            else:
+                play_logger.warning(
+                    "Font '%s' not found, using default font", font_name
+                )
+                self._pygame_font = pygame.font.Font(
+                    pygame.font.get_default_font(), font_size
+                )
