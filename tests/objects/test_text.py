@@ -377,3 +377,183 @@ def test_text_transparency():
 
     assert test_results["initial"] == 100
     assert test_results["updated"] == 50
+
+
+def test_text_angle_visually_applied():
+    """Verify rotation is actually applied to the rendered surface, not just stored."""
+    import play
+
+    results = {}
+    frames = [0]
+    text = play.new_text(words="Hello", angle=0)
+
+    @play.repeat_forever
+    def check():
+        if frames[0] > 0:
+            return
+        frames[0] += 1
+        results["size_0"] = text._image.get_size()
+        text.angle = 45
+        text._should_recompute = True
+        text.update()
+        results["size_45"] = text._image.get_size()
+        play.stop_program()
+
+    play.start_program()
+    assert results["size_0"] != results["size_45"]
+
+
+def test_text_font_setter():
+    """Verify the font setter reloads the pygame font object."""
+    import play
+
+    results = {}
+    frames = [0]
+    text = play.new_text()
+
+    @play.repeat_forever
+    def check():
+        if frames[0] > 0:
+            return
+        frames[0] += 1
+        first_font = text._pygame_font
+        text.font = "default"
+        results["font_name"] = text.font
+        results["font_reloaded"] = text._pygame_font is not first_font
+        play.stop_program()
+
+    play.start_program()
+    assert results["font_name"] == "default"
+    assert results["font_reloaded"]
+
+
+def test_text_font_invalid_name_falls_back(caplog):
+    """Verify unknown font names fall back to default and emit a warning."""
+    import logging
+    import play
+
+    frames = [0]
+
+    with caplog.at_level(logging.WARNING, logger="play"):
+        text = play.new_text(words="test", font="__nonexistent_xyz__")
+
+        @play.repeat_forever
+        def check():
+            if frames[0] > 0:
+                return
+            frames[0] += 1
+            play.stop_program()
+
+        play.start_program()
+
+    assert any("not found" in r.message for r in caplog.records)
+    assert text._image is not None
+
+
+def _find_non_default_font():
+    """Return the name of any available system font that differs from pygame's built-in default.
+
+    pygame's built-in is 'freesansbold.ttf'; skipping it ensures the chosen font
+    produces different glyph metrics.  Returns None if no system fonts are available.
+    """
+    import pygame
+
+    for name in pygame.font.get_fonts():
+        if name == "freesansbold":
+            continue
+        if pygame.font.match_font(name):
+            return name
+    return None
+
+
+def test_text_font_system_name_resolved():
+    """Verify system font names are resolved via match_font, not silently ignored."""
+    import play
+
+    results = {}
+    frames = [0]
+
+    system_font = _find_non_default_font()
+    if system_font is None:
+        pytest.skip("No non-default system font available")
+
+    text_default = play.new_text(words="Hello", font="default", font_size=40)
+    text_system = play.new_text(words="Hello", font=system_font, font_size=40)
+
+    @play.repeat_forever
+    def check():
+        if frames[0] > 0:
+            return
+        frames[0] += 1
+        results["default_w"] = text_default._image.get_width()
+        results["system_w"] = text_system._image.get_width()
+        play.stop_program()
+
+    play.start_program()
+    assert (
+        results["default_w"] != results["system_w"]
+    ), "System font should produce different image width than default font"
+
+
+def test_text_font_file_path():
+    """Verify that an absolute file path triggers the os.path.isfile branch in _load_font."""
+    import pygame
+    import play
+
+    results = {}
+    frames = [0]
+
+    system_font = _find_non_default_font()
+    if system_font is None:
+        pytest.skip("No non-default system font file available")
+    font_path = pygame.font.match_font(system_font)
+
+    text = play.new_text(words="Hello", font=font_path, font_size=40)
+    text_default = play.new_text(words="Hello", font="default", font_size=40)
+
+    @play.repeat_forever
+    def check():
+        if frames[0] > 0:
+            return
+        frames[0] += 1
+        results["font"] = text.font
+        results["width"] = text._image.get_width()
+        results["default_width"] = text_default._image.get_width()
+        play.stop_program()
+
+    play.start_program()
+    assert results["font"] == font_path
+    assert (
+        results["width"] != results["default_width"]
+    ), "Font loaded from file path should produce different glyph metrics than default"
+
+
+def test_text_font_setter_changes_rendering():
+    """Verify that changing the font property produces different rendered glyph metrics."""
+    import play
+
+    results = {}
+    frames = [0]
+
+    system_font = _find_non_default_font()
+    if system_font is None:
+        pytest.skip("No non-default system font available")
+
+    text = play.new_text(words="Hello", font="default", font_size=40)
+
+    @play.repeat_forever
+    def check():
+        if frames[0] > 0:
+            return
+        frames[0] += 1
+        results["default_w"] = text._image.get_width()
+        text.font = system_font
+        text._should_recompute = True
+        text.update()
+        results["system_w"] = text._image.get_width()
+        play.stop_program()
+
+    play.start_program()
+    assert (
+        results["default_w"] != results["system_w"]
+    ), "Changing font should produce different image width"
