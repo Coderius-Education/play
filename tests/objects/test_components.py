@@ -109,6 +109,29 @@ def test_event_component_touching_decorators():
     assert sprite1 in sprite2.events._dependent_sprites
 
 
+def test_remove_cleans_up_dependent_sprites():
+    """sprite.remove() must remove self from every target's _dependent_sprites
+    and clear its callbacks from callback_manager."""
+    from play.callback import callback_manager, CallbackType
+
+    sprite1 = play.new_box(color="red", x=0, y=0, width=10, height=10)
+    sprite2 = play.new_box(color="blue", x=100, y=100, width=10, height=10)
+    sprite1.start_physics()
+    sprite2.start_physics()
+
+    async def mock_touching():
+        pass
+
+    sprite1.when_touching(sprite2)(mock_touching)
+    assert sprite1 in sprite2.events._dependent_sprites
+
+    sprite1_id = id(sprite1)
+    sprite1.remove()
+
+    assert sprite1 not in sprite2.events._dependent_sprites
+    assert not callback_manager.get_callback(CallbackType.WHEN_TOUCHING, sprite1_id)
+
+
 def test_event_component_wall_decorators():
     sprite = play.new_circle(color="red", x=0, y=0, radius=10)
     sprite.start_physics()
