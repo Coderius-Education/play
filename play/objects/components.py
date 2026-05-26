@@ -14,7 +14,7 @@ class EventComponent:
         self._sprite = sprite
         self._touching_callback = {}
         self._stopped_callback = {}
-        self._dependent_sprites = []
+        self._dependent_sprites = set()
         self._is_clicked = False
 
     @property
@@ -124,7 +124,7 @@ class EventComponent:
                 await run_async_callback(async_callback, [], [])
 
             for target in sprites_to_check:
-                target.events._dependent_sprites.append(self._sprite)
+                target.events._dependent_sprites.add(self._sprite)
                 callback_manager.add_callback(
                     CallbackType.WHEN_TOUCHING, (wrapper, target), id(self._sprite)
                 )
@@ -154,7 +154,7 @@ class EventComponent:
                 await run_async_callback(async_callback, [], [])
 
             for target in sprites_to_check:
-                target.events._dependent_sprites.append(self._sprite)
+                target.events._dependent_sprites.add(self._sprite)
                 callback_manager.add_callback(
                     CallbackType.WHEN_STOPPED_TOUCHING,
                     (wrapper, target),

@@ -16,13 +16,13 @@ def handle_keyboard_events(event):
         if event.key not in KEYS_TO_SKIP:
             name = _pygame_key_to_name(event)
             if name not in keyboard_state.pressed:
-                keyboard_state.pressed.append(name)
-                keyboard_state.pressed_this_frame.append(name)
+                keyboard_state.pressed.add(name)
+                keyboard_state.pressed_this_frame.add(name)
     if event.type == pygame.KEYUP:
         name = _pygame_key_to_name(event)
         if not (event.key in KEYS_TO_SKIP) and name in keyboard_state.pressed:
-            keyboard_state.released.append(name)
-            keyboard_state.pressed.remove(name)
+            keyboard_state.released.add(name)
+            keyboard_state.pressed.discard(name)
 
 
 async def handle_keyboard():
