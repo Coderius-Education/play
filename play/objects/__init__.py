@@ -6,8 +6,10 @@ For example, play.new_box() creates a new Box object.
 """
 
 from .box import Box
+from .button import Button
 from .circle import Circle
 from .sprite import Sprite
 from .text import Text
 from .image import Image
 from .sound import Sound
+from .text_input import TextInput

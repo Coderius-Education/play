@@ -35,20 +35,31 @@ _should_ignore_update = frozenset(
 
 
 class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
-    def __init__(self, image=None):
+    def __init__(self, image=None, x=0, y=0, anchor=None, layer=0):
         # Subclasses set their own field values BEFORE calling super().__init__() so
         # that start_physics() can use the correct dimensions.  The hasattr guards
         # provide fallback defaults when Sprite is instantiated directly.
         if not hasattr(self, "_size"):
             self._size = 100
-        if not hasattr(self, "_x"):
-            self._x = 0
-        if not hasattr(self, "_y"):
-            self._y = 0
         if not hasattr(self, "_angle"):
             self._angle = 0
         if not hasattr(self, "_transparency"):
             self._transparency = 100
+
+        # Anchor/layer attrs bypass __setattr__ to avoid triggering _should_recompute.
+        # Set unconditionally — subclass pre-sets (Text) are intentionally overwritten here;
+        # Text passes the same values so the result is identical.
+        object.__setattr__(self, "_layer", layer)
+        object.__setattr__(self, "_anchor", anchor)
+        object.__setattr__(self, "_anchor_ox", x)
+        object.__setattr__(self, "_anchor_oy", y)
+
+        # _x/_y: use anchor-aware defaults unless the subclass already set them
+        # (Text sets these before calling super() because it calls update() first).
+        if not hasattr(self, "_x"):
+            self._x = 0 if anchor else x
+        if not hasattr(self, "_y"):
+            self._y = 0 if anchor else y
 
         if not hasattr(self, "events"):
             self.events = EventComponent(self)
@@ -68,7 +79,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         _backup_image = getattr(self, "_image", None)
 
         super().__init__()
-        globals_list.sprites_group.add(self)
+        globals_list.sprites_group.add(self, layer=self._layer)
 
         self.rect = _backup_rect
         if _backup_image is not None:
@@ -86,6 +97,63 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
                 for sprite in self.events._dependent_sprites:
                     sprite._should_recompute = True
         super().__setattr__(name, value)
+
+    @property
+    def layer(self):
+        """The render layer this sprite belongs to (higher = drawn on top)."""
+        return self._layer
+
+    @layer.setter
+    def layer(self, value):
+        """Move the sprite to a different render layer."""
+        object.__setattr__(self, "_layer", value)
+        globals_list.sprites_group.change_layer(self, value)
+
+    def _apply_anchor(self):
+        """Recompute x/y from the anchor + offsets and current screen dimensions.
+
+        ox/oy are pixel distances from the anchored screen edge.  The sprite's
+        relevant EDGE (not center) will land at that distance from the border.
+        The half-dimensions come from the previous frame's rect, which is
+        accurate from frame 2 onward; frame 1 uses w2=h2=0 (same as before).
+        """
+        ox, oy = self._anchor_ox, self._anchor_oy
+        a = self._anchor
+        w2 = self.rect.width / 2
+        h2 = self.rect.height / 2
+        if a == "top-left":
+            nx, ny = screen.left + ox + w2, screen.top - oy - h2
+        elif a == "top-center":
+            nx, ny = ox, screen.top - oy - h2
+        elif a == "top-right":
+            nx, ny = screen.right - ox - w2, screen.top - oy - h2
+        elif a == "center-left":
+            nx, ny = screen.left + ox + w2, oy
+        elif a == "center":
+            nx, ny = ox, oy
+        elif a == "center-right":
+            nx, ny = screen.right - ox - w2, oy
+        elif a == "bottom-left":
+            nx, ny = screen.left + ox + w2, screen.bottom + oy + h2
+        elif a == "bottom-center":
+            nx, ny = ox, screen.bottom + oy + h2
+        elif a == "bottom-right":
+            nx, ny = screen.right - ox - w2, screen.bottom + oy + h2
+        else:
+            _warnings.warn(
+                f"Unknown anchor value '{a}'. "
+                "Valid values: 'top-left', 'top-center', 'top-right', "
+                "'center-left', 'center', 'center-right', "
+                "'bottom-left', 'bottom-center', 'bottom-right'.",
+                UserWarning,
+                stacklevel=2,
+            )
+            return
+        if hasattr(self, "physics") and self.physics is not None:
+            self.x, self.y = nx, ny
+        else:
+            self._x, self._y = nx, ny
+            self._should_recompute = True
 
     def is_touching_wall(self) -> bool:
         """Check if the sprite is touching the edge of the screen.
@@ -106,15 +174,19 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         return touching
 
     def update(self):
-        """Update the sprite."""
-        # Do NOT access self.physics here: Text.__init__ calls this method
-        # before super().__init__() has had a chance to create physics.
+        """Orchestrate per-frame rendering: apply anchor, call _render(), clear flag."""
+        if self._anchor:
+            self._apply_anchor()
         if not self._should_recompute:
             return
-
         if self._is_hidden:
             self._image = pygame.Surface((0, 0), pygame.SRCALPHA)
+        else:
+            self._render()
         self._should_recompute = False
+
+    def _render(self):
+        """Override in subclasses to draw the shape-specific image onto self.image."""
 
     @property
     def is_clicked(self):

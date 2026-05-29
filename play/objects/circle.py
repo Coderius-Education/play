@@ -19,21 +19,19 @@ class Circle(Sprite):
         transparency=100,
         size=100,
         angle=0,
+        anchor=None,
+        layer=0,
     ):
-        self._x = x
-        self._y = y
         self._color = color
         self._radius = radius
         self._border_color = border_color
         self._border_width = border_width
-
         self._transparency = transparency
         self._size = size
         self._angle = angle
-
         self.rect = pygame.Rect(0, 0, 0, 0)
 
-        super().__init__()
+        super().__init__(x=x, y=y, anchor=anchor, layer=layer)
         self.update()
 
     def clone(self):
@@ -47,46 +45,43 @@ class Circle(Sprite):
             **self._common_properties()
         )
 
-    def update(self):
-        """Update the circle's position, size, angle, transparency, and border."""
-        if self._should_recompute:
-            draw_image = pygame.Surface(
-                (self._radius * 2, self._radius * 2), pygame.SRCALPHA
-            )
+    def _render(self):
+        """Draw the circle surface with border, scale, alpha, and rotation."""
+        draw_image = pygame.Surface(
+            (self._radius * 2, self._radius * 2), pygame.SRCALPHA
+        )
 
-            if self._border_width > 0:
-                pygame.draw.circle(
-                    draw_image,
-                    _color_name_to_rgb(self._border_color),
-                    (self._radius, self._radius),
-                    self._radius,
-                )
-
+        if self._border_width > 0:
             pygame.draw.circle(
                 draw_image,
-                _color_name_to_rgb(self._color),
+                _color_name_to_rgb(self._border_color),
                 (self._radius, self._radius),
-                max(self._radius - self._border_width, 0),
+                self._radius,
             )
 
-            if self._size != 100:
-                scaled_r = max(round(self._radius * self._size / 100), 1)
-                draw_image = pygame.transform.scale(
-                    draw_image, (scaled_r * 2, scaled_r * 2)
-                )
+        pygame.draw.circle(
+            draw_image,
+            _color_name_to_rgb(self._color),
+            (self._radius, self._radius),
+            max(self._radius - self._border_width, 0),
+        )
 
-            draw_image.set_alpha(round(self._transparency * 255 / 100))
+        if self._size != 100:
+            scaled_r = max(round(self._radius * self._size / 100), 1)
+            draw_image = pygame.transform.scale(
+                draw_image, (scaled_r * 2, scaled_r * 2)
+            )
 
-            self.rect = draw_image.get_rect()
-            pos = convert_pos(self.x, self.y)
-            self.rect.x = pos[0] - self.rect.width // 2
-            self.rect.y = pos[1] - self.rect.height // 2
+        draw_image.set_alpha(round(self._transparency * 255 / 100))
 
-            angle_deg = _math.degrees(self.physics._pymunk_body.angle)
-            self._image = pygame.transform.rotate(draw_image, angle_deg)
-            self.rect = self._image.get_rect(center=self.rect.center)
+        self.rect = draw_image.get_rect()
+        pos = convert_pos(self.x, self.y)
+        self.rect.x = pos[0] - self.rect.width // 2
+        self.rect.y = pos[1] - self.rect.height // 2
 
-        super().update()
+        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
+        self._image = pygame.transform.rotate(draw_image, angle_deg)
+        self.rect = self._image.get_rect(center=self.rect.center)
 
     ##### color #####
     @property

@@ -25,6 +25,10 @@ from ..globals import globals_list
 from ..io.screen import screen
 from ..loop import get_loop as _get_loop
 from ..io.keypress import keyboard_state
+from ..objects.text_input_registry import (
+    dispatch_text as _dispatch_text_input,
+    dispatch_keydown as _dispatch_text_keydown,
+)
 
 _clock = pygame.time.Clock()
 
@@ -48,6 +52,11 @@ def _handle_pygame_events():
         _handle_mouse_events(event)
         _handle_controller_events(event)
 
+        if event.type == pygame.TEXTINPUT:
+            _dispatch_text_input(event.text)
+        elif event.type == pygame.KEYDOWN:
+            _dispatch_text_keydown(event)
+
         if event.type == pygame.VIDEORESIZE:
             screen.width = event.w
             screen.height = event.h
@@ -69,7 +78,8 @@ async def game_loop():
     if not _handle_pygame_events():
         return
 
-    await _handle_keyboard()
+    if not globals_list.focused_text_input:
+        await _handle_keyboard()
 
     if (
         mouse_state.click_happened
