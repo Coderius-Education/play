@@ -8,6 +8,7 @@ from ..objects import (
     Text as _Text,
     Image as _Image,
     Sound as _Sound,
+    TextInput as _TextInput,
 )
 
 
@@ -220,8 +221,14 @@ def new_image(
     :return: A new image object.
     """
     return _Image(
-        image=image, x=x, y=y, size=size, angle=angle, transparency=transparency,
-        anchor=anchor, layer=layer,
+        image=image,
+        x=x,
+        y=y,
+        size=size,
+        angle=angle,
+        transparency=transparency,
+        anchor=anchor,
+        layer=layer,
     )
 
 
@@ -238,6 +245,73 @@ def new_sound(
     """
 
     return _Sound(file_name=file_name, volume=volume, loops=loops)
+
+
+def new_text_input(
+    placeholder: str = "",
+    value: str = "",
+    x: int = 0,
+    y: int = 0,
+    width: int = 200,
+    height: int = 40,
+    color: str = "white",
+    active_color: str = "lightyellow",
+    text_color: str = "black",
+    placeholder_color: str = "gray",
+    font_size: int = 20,
+    border_color: str = "gray",
+    border_width: int = 1,
+    border_radius: int = 4,
+    max_length: int = None,
+    transparency: int = 100,
+    size: int = 100,
+    anchor: str = None,
+    layer: int = 10,
+) -> _TextInput:
+    """Make a new text input field.
+
+    :param placeholder: Hint text shown when the field is empty and unfocused.
+    :param value: Initial text value.
+    :param x: The x-coordinate (or inward offset when anchor is set).
+    :param y: The y-coordinate (or inward offset when anchor is set).
+    :param width: Width of the input in pixels.
+    :param height: Height of the input in pixels.
+    :param color: Background colour when not focused.
+    :param active_color: Background colour when the field has keyboard focus.
+    :param text_color: Colour of the typed text.
+    :param placeholder_color: Colour of the placeholder text.
+    :param font_size: Size of the text font.
+    :param border_color: Colour of the border.
+    :param border_width: Width of the border in pixels.
+    :param border_radius: Corner rounding radius.
+    :param max_length: Maximum number of characters allowed (None = unlimited).
+    :param transparency: Transparency (0–100).
+    :param size: Scale percentage.
+    :param anchor: Pin to a screen edge/corner ("top-left", "bottom-center", etc.).
+    :param layer: Render layer — defaults to 10 so UI sits above layer-0 game sprites.
+    :return: A new TextInput object.
+    """
+    return _TextInput(
+        placeholder=placeholder,
+        value=value,
+        x=x,
+        y=y,
+        width=width,
+        height=height,
+        color=color,
+        active_color=active_color,
+        text_color=text_color,
+        placeholder_color=placeholder_color,
+        font_size=font_size,
+        border_color=border_color,
+        border_width=border_width,
+        border_radius=border_radius,
+        max_length=max_length,
+        transparency=transparency,
+        size=size,
+        anchor=anchor,
+        layer=layer,
+    )
 
 
 def new_database(

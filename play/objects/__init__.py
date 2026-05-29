@@ -12,3 +12,4 @@ from .sprite import Sprite
 from .text import Text
 from .image import Image
 from .sound import Sound
+from .text_input import TextInput

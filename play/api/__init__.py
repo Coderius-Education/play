@@ -10,6 +10,7 @@ from .generators import (
     new_image,
     new_sound,
     new_database,
+    new_text_input,
 )
 from .events import (
     when_program_starts,

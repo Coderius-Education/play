@@ -24,13 +24,7 @@ class Box(Sprite):
         anchor=None,
         layer=0,
     ):
-        object.__setattr__(self, "_layer", layer)
-        object.__setattr__(self, "_anchor", anchor)
-        object.__setattr__(self, "_anchor_ox", x)
-        object.__setattr__(self, "_anchor_oy", y)
         self._color = color
-        self._x = 0 if anchor else x
-        self._y = 0 if anchor else y
         self._width = width
         self._height = height
         self._border_color = border_color
@@ -41,53 +35,49 @@ class Box(Sprite):
         self._angle = angle
         self.rect = pygame.Rect(0, 0, 0, 0)
 
-        super().__init__()
+        super().__init__(x=x, y=y, anchor=anchor, layer=layer)
         self.update()
 
-    def update(self):
-        """Update the box's position, size, angle, transparency, and border."""
-        if self._anchor:
-            self._apply_anchor()
-        if self._should_recompute:
-            draw_image = pygame.Surface((self._width, self._height), pygame.SRCALPHA)
+    def _render(self):
+        """Draw the box surface with border, scale, alpha, and rotation."""
+        draw_image = pygame.Surface((self._width, self._height), pygame.SRCALPHA)
 
-            if self._border_width > 0:
-                pygame.draw.rect(
-                    draw_image,
-                    _color_name_to_rgb(self._border_color),
-                    (0, 0, self._width, self._height),
-                    self._border_width,
-                    border_radius=self._border_radius,
-                )
-
+        if self._border_width > 0:
             pygame.draw.rect(
                 draw_image,
-                _color_name_to_rgb(self._color),
-                (
-                    self._border_width,
-                    self._border_width,
-                    self._width - 2 * self._border_width,
-                    self._height - 2 * self._border_width,
-                ),
-                border_radius=max(self._border_radius - self._border_width, 0),
+                _color_name_to_rgb(self._border_color),
+                (0, 0, self._width, self._height),
+                self._border_width,
+                border_radius=self._border_radius,
             )
 
-            if self._size != 100:
-                new_w = max(round(self._width * self._size / 100), 1)
-                new_h = max(round(self._height * self._size / 100), 1)
-                draw_image = pygame.transform.scale(draw_image, (new_w, new_h))
+        pygame.draw.rect(
+            draw_image,
+            _color_name_to_rgb(self._color),
+            (
+                self._border_width,
+                self._border_width,
+                self._width - 2 * self._border_width,
+                self._height - 2 * self._border_width,
+            ),
+            border_radius=max(self._border_radius - self._border_width, 0),
+        )
 
-            draw_image.set_alpha(round(self._transparency * 255 / 100))
+        if self._size != 100:
+            new_w = max(round(self._width * self._size / 100), 1)
+            new_h = max(round(self._height * self._size / 100), 1)
+            draw_image = pygame.transform.scale(draw_image, (new_w, new_h))
 
-            self.rect = draw_image.get_rect()
-            pos = convert_pos(self.x, self.y)
-            self.rect.x = pos[0] - self.rect.width // 2
-            self.rect.y = pos[1] - self.rect.height // 2
+        draw_image.set_alpha(round(self._transparency * 255 / 100))
 
-            angle_deg = _math.degrees(self.physics._pymunk_body.angle)
-            self.image = pygame.transform.rotate(draw_image, angle_deg)
-            self.rect = self.image.get_rect(center=self.rect.center)
-        super().update()
+        self.rect = draw_image.get_rect()
+        pos = convert_pos(self.x, self.y)
+        self.rect.x = pos[0] - self.rect.width // 2
+        self.rect.y = pos[1] - self.rect.height // 2
+
+        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
+        self.image = pygame.transform.rotate(draw_image, angle_deg)
+        self.rect = self.image.get_rect(center=self.rect.center)
 
     ##### width #####
     @property

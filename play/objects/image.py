@@ -9,12 +9,9 @@ from ..io.screen import convert_pos
 
 
 class Image(Sprite):
-    def __init__(self, image, x=0, y=0, angle=0, size=100, transparency=100,
-                 anchor=None, layer=0):
-        object.__setattr__(self, "_layer", layer)
-        object.__setattr__(self, "_anchor", anchor)
-        object.__setattr__(self, "_anchor_ox", x)
-        object.__setattr__(self, "_anchor_oy", y)
+    def __init__(
+        self, image, x=0, y=0, angle=0, size=100, transparency=100, anchor=None, layer=0
+    ):
         if isinstance(image, str):
             if not os.path.isfile(image):
                 raise FileNotFoundError(f"Image file '{image}' not found.")
@@ -27,42 +24,31 @@ class Image(Sprite):
 
         self._original_width = self._source_image.get_width()
         self._original_height = self._source_image.get_height()
-        self._x = 0 if anchor else x
-        self._y = 0 if anchor else y
         self._angle = angle
         self._size = size
         self._transparency = transparency
         self.rect = self._source_image.get_rect()
 
-        # Initialize the parent sprite with this image, which starts physics using rect
-        super().__init__(image=self._source_image)
+        super().__init__(image=self._source_image, x=x, y=y, anchor=anchor, layer=layer)
         self.update()
 
-    def update(self):
-        """Update the image's position, size, angle, and transparency."""
-        if self._anchor:
-            self._apply_anchor()
-        if self._should_recompute:
-            # Generate the display image from the original source
-            draw_image = pygame.transform.scale(
-                self._source_image,
-                (
-                    max(round(self._original_width * self._size / 100), 1),
-                    max(round(self._original_height * self._size / 100), 1),
-                ),
-            )
-            angle_deg = _math.degrees(self.physics._pymunk_body.angle)
-            draw_image = pygame.transform.rotate(draw_image, angle_deg)
-            draw_image.set_alpha(round(self._transparency * 255 / 100))
+    def _render(self):
+        """Scale, rotate, and alpha-blend the source image."""
+        draw_image = pygame.transform.scale(
+            self._source_image,
+            (
+                max(round(self._original_width * self._size / 100), 1),
+                max(round(self._original_height * self._size / 100), 1),
+            ),
+        )
+        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
+        draw_image = pygame.transform.rotate(draw_image, angle_deg)
+        draw_image.set_alpha(round(self._transparency * 255 / 100))
 
-            # Set the generated image as the sprite's current image
-            self.image = draw_image
-            self.rect = draw_image.get_rect()
-            pos = convert_pos(self.x, self.y)
-            self.rect.center = pos
-
-        # Allow the parent class to handle hiding, collisions, etc.
-        super().update()
+        self.image = draw_image
+        self.rect = draw_image.get_rect()
+        pos = convert_pos(self.x, self.y)
+        self.rect.center = pos
 
     # The custom image property is removed to use the parent Sprite's property.
     # This ensures that the image managed by the Pygame sprite group is the

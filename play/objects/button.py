@@ -30,6 +30,7 @@ class Button(Box):
         self._base_color = color
         self._text_color = text_color
         self._button_font_size = font_size
+        self._button_font = pygame.font.SysFont(None, font_size)
         super().__init__(
             color=color,
             x=x,
@@ -44,22 +45,15 @@ class Button(Box):
         )
 
     def update(self):
-        """Draw box with hover colour, then blit text on top."""
-        if self._anchor:
-            self._apply_anchor()
-        hovered = (
-            self.x - self._width / 2 <= mouse.x <= self.x + self._width / 2
-            and self.y - self._height / 2 <= mouse.y <= self.y + self._height / 2
-        )
-        self._color = self._hover_color if hovered else self._base_color
+        """Set hover colour, delegate rendering to Sprite, then blit text label."""
+        self._color = self._hover_color if mouse.is_touching(self) else self._base_color
         needs_text = self._should_recompute
-        super().update()
+        super().update()  # → Sprite.update() → anchor + Box._render()
         if needs_text and self.image is not None:
             self._blit_text()
 
     def _blit_text(self):
-        font = pygame.font.SysFont(None, self._button_font_size)
-        text_surf = font.render(
+        text_surf = self._button_font.render(
             self._button_text, True, _color_name_to_rgb(self._text_color)
         )
         text_rect = text_surf.get_rect(
@@ -77,3 +71,51 @@ class Button(Box):
         """Set the button label and trigger a redraw."""
         self._button_text = value
         self._should_recompute = True
+
+    @property
+    def text_color(self):
+        """The colour of the button label."""
+        return self._text_color
+
+    @text_color.setter
+    def text_color(self, value):
+        self._text_color = value
+        self._should_recompute = True
+
+    @property
+    def hover_color(self):
+        """The background colour when the mouse is over the button."""
+        return self._hover_color
+
+    @hover_color.setter
+    def hover_color(self, value):
+        self._hover_color = value
+        self._should_recompute = True
+
+    @property
+    def font_size(self):
+        """The font size of the button label."""
+        return self._button_font_size
+
+    @font_size.setter
+    def font_size(self, value):
+        self._button_font_size = value
+        self._button_font = pygame.font.SysFont(None, value)
+        self._should_recompute = True
+
+    def clone(self):
+        """Create a copy of this button."""
+        return Button(
+            text=self._button_text,
+            x=self.x,
+            y=self.y,
+            width=self._width,
+            height=self._height,
+            color=self._base_color,
+            hover_color=self._hover_color,
+            text_color=self._text_color,
+            font_size=self._button_font_size,
+            border_radius=self._border_radius,
+            transparency=self._transparency,
+            size=self._size,
+        )

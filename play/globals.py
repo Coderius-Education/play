@@ -2,8 +2,12 @@
 
 import os as _os
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Optional
 
 import pygame
+
+if TYPE_CHECKING:
+    from .objects.text_input import TextInput
 
 
 @dataclass
@@ -31,6 +35,7 @@ class Globals:
     should_auto_start: bool = False
     initial_pid: int = field(default_factory=_os.getpid)
     start_program_fn: object = None  # set by play.api.utils to avoid cyclic import
+    focused_text_input: Optional["TextInput"] = None
 
     def reset(self):
         """Reset mutable game state to defaults.
@@ -51,6 +56,7 @@ class Globals:
         self.num_sim_steps = 10
         self.program_started = False
         self.should_auto_start = False
+        self.focused_text_input = None
 
 
 globals_list = Globals()
