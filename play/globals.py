@@ -8,7 +8,9 @@ import pygame
 
 @dataclass
 class Globals:
-    sprites_group: pygame.sprite.Group = field(default_factory=pygame.sprite.Group)
+    sprites_group: pygame.sprite.LayeredUpdates = field(
+        default_factory=pygame.sprite.LayeredUpdates
+    )
 
     walls: list = field(default_factory=list)
 

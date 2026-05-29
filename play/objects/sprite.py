@@ -50,6 +50,16 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         if not hasattr(self, "_transparency"):
             self._transparency = 100
 
+        # Anchor/layer attrs use object.__setattr__ to avoid triggering _should_recompute.
+        if not hasattr(self, "_layer"):
+            object.__setattr__(self, "_layer", 0)
+        if not hasattr(self, "_anchor"):
+            object.__setattr__(self, "_anchor", None)
+        if not hasattr(self, "_anchor_ox"):
+            object.__setattr__(self, "_anchor_ox", 0)
+        if not hasattr(self, "_anchor_oy"):
+            object.__setattr__(self, "_anchor_oy", 0)
+
         if not hasattr(self, "events"):
             self.events = EventComponent(self)
         self.physics = None
@@ -68,7 +78,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         _backup_image = getattr(self, "_image", None)
 
         super().__init__()
-        globals_list.sprites_group.add(self)
+        globals_list.sprites_group.add(self, layer=self._layer)
 
         self.rect = _backup_rect
         if _backup_image is not None:
@@ -86,6 +96,47 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
                 for sprite in self.events._dependent_sprites:
                     sprite._should_recompute = True
         super().__setattr__(name, value)
+
+    @property
+    def layer(self):
+        """The render layer this sprite belongs to (higher = drawn on top)."""
+        return self._layer
+
+    @layer.setter
+    def layer(self, value):
+        """Move the sprite to a different render layer."""
+        object.__setattr__(self, "_layer", value)
+        globals_list.sprites_group.change_layer(self, value)
+
+    def _apply_anchor(self):
+        """Recompute x/y from the anchor + offsets and current screen dimensions."""
+        ox, oy = self._anchor_ox, self._anchor_oy
+        a = self._anchor
+        if a == "top-left":
+            nx, ny = screen.left + ox, screen.top - oy
+        elif a == "top-center":
+            nx, ny = ox, screen.top - oy
+        elif a == "top-right":
+            nx, ny = screen.right - ox, screen.top - oy
+        elif a == "center-left":
+            nx, ny = screen.left + ox, oy
+        elif a == "center":
+            nx, ny = ox, oy
+        elif a == "center-right":
+            nx, ny = screen.right - ox, oy
+        elif a == "bottom-left":
+            nx, ny = screen.left + ox, screen.bottom + oy
+        elif a == "bottom-center":
+            nx, ny = ox, screen.bottom + oy
+        elif a == "bottom-right":
+            nx, ny = screen.right - ox, screen.bottom + oy
+        else:
+            return
+        if hasattr(self, "physics") and self.physics is not None:
+            self.x, self.y = nx, ny
+        else:
+            self._x, self._y = nx, ny
+            self._should_recompute = True
 
     def is_touching_wall(self) -> bool:
         """Check if the sprite is touching the edge of the screen.

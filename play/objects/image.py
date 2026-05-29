@@ -9,7 +9,12 @@ from ..io.screen import convert_pos
 
 
 class Image(Sprite):
-    def __init__(self, image, x=0, y=0, angle=0, size=100, transparency=100):
+    def __init__(self, image, x=0, y=0, angle=0, size=100, transparency=100,
+                 anchor=None, layer=0):
+        object.__setattr__(self, "_layer", layer)
+        object.__setattr__(self, "_anchor", anchor)
+        object.__setattr__(self, "_anchor_ox", x)
+        object.__setattr__(self, "_anchor_oy", y)
         if isinstance(image, str):
             if not os.path.isfile(image):
                 raise FileNotFoundError(f"Image file '{image}' not found.")
@@ -22,8 +27,8 @@ class Image(Sprite):
 
         self._original_width = self._source_image.get_width()
         self._original_height = self._source_image.get_height()
-        self._x = x
-        self._y = y
+        self._x = 0 if anchor else x
+        self._y = 0 if anchor else y
         self._angle = angle
         self._size = size
         self._transparency = transparency
@@ -35,6 +40,8 @@ class Image(Sprite):
 
     def update(self):
         """Update the image's position, size, angle, and transparency."""
+        if self._anchor:
+            self._apply_anchor()
         if self._should_recompute:
             # Generate the display image from the original source
             draw_image = pygame.transform.scale(

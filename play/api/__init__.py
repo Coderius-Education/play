@@ -5,6 +5,7 @@ This module contains the API for the game.
 from .generators import (
     new_text,
     new_box,
+    new_button,
     new_circle,
     new_image,
     new_sound,

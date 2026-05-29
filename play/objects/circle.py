@@ -19,9 +19,15 @@ class Circle(Sprite):
         transparency=100,
         size=100,
         angle=0,
+        anchor=None,
+        layer=0,
     ):
-        self._x = x
-        self._y = y
+        object.__setattr__(self, "_layer", layer)
+        object.__setattr__(self, "_anchor", anchor)
+        object.__setattr__(self, "_anchor_ox", x)
+        object.__setattr__(self, "_anchor_oy", y)
+        self._x = 0 if anchor else x
+        self._y = 0 if anchor else y
         self._color = color
         self._radius = radius
         self._border_color = border_color
@@ -49,6 +55,8 @@ class Circle(Sprite):
 
     def update(self):
         """Update the circle's position, size, angle, transparency, and border."""
+        if self._anchor:
+            self._apply_anchor()
         if self._should_recompute:
             draw_image = pygame.Surface(
                 (self._radius * 2, self._radius * 2), pygame.SRCALPHA

@@ -3,6 +3,7 @@
 from ..db import Database
 from ..objects import (
     Box as _Box,
+    Button as _Button,
     Circle as _Circle,
     Text as _Text,
     Image as _Image,
@@ -20,17 +21,21 @@ def new_text(
     angle: int = 0,
     transparency: int = 100,
     size: int = 100,
+    anchor: str = None,
+    layer: int = 0,
 ) -> _Text:
     """Make a new text object.
     :param words: The text to display.
-    :param x: The x-coordinate of the text.
-    :param y: The y-coordinate of the text.
+    :param x: The x-coordinate (or inward offset when anchor is set).
+    :param y: The y-coordinate (or inward offset when anchor is set).
     :param font: The font to use.
     :param font_size: The size of the font.
     :param color: The color of the text.
     :param angle: The angle of the text.
     :param transparency: The transparency of the text.
     :param size: The size of the text.
+    :param anchor: Pin to a screen edge/corner ("top-left", "top-right", etc.).
+    :param layer: Render layer — higher layers draw on top (default 0).
     :return: A new text object.
     """
     if not isinstance(words, str):
@@ -46,6 +51,8 @@ def new_text(
         angle=angle,
         transparency=transparency,
         size=size,
+        anchor=anchor,
+        layer=layer,
     )
 
 
@@ -61,11 +68,13 @@ def new_box(
     angle: int = 0,
     transparency: int = 100,
     size: int = 100,
+    anchor: str = None,
+    layer: int = 0,
 ) -> _Box:
     """Make a new box object.
     :param color: The color of the box.
-    :param x: The x-coordinate of the box.
-    :param y: The y-coordinate of the box.
+    :param x: The x-coordinate (or inward offset when anchor is set).
+    :param y: The y-coordinate (or inward offset when anchor is set).
     :param width: The width of the box.
     :param height: The height of the box.
     :param border_color: The color of the border of the box.
@@ -74,6 +83,8 @@ def new_box(
     :param angle: The angle of the box.
     :param transparency: The transparency of the box.
     :param size: The size of the box.
+    :param anchor: Pin to a screen edge/corner ("top-left", "top-right", etc.).
+    :param layer: Render layer — higher layers draw on top (default 0).
     :return: A new box object.
     """
     return _Box(
@@ -88,6 +99,60 @@ def new_box(
         angle=angle,
         transparency=transparency,
         size=size,
+        anchor=anchor,
+        layer=layer,
+    )
+
+
+def new_button(
+    text: str = "Button",
+    x: int = 0,
+    y: int = 0,
+    width: int = 160,
+    height: int = 50,
+    color: str = "royalblue",
+    hover_color: str = "steelblue",
+    text_color: str = "white",
+    font_size: int = 20,
+    border_radius: int = 6,
+    transparency: int = 100,
+    size: int = 100,
+    anchor: str = None,
+    layer: int = 10,
+) -> _Button:
+    """Make a new button with a text label and hover highlight.
+
+    :param text: The label to display on the button.
+    :param x: The x-coordinate (or inward offset when anchor is set).
+    :param y: The y-coordinate (or inward offset when anchor is set).
+    :param width: Width of the button in pixels.
+    :param height: Height of the button in pixels.
+    :param color: Background colour when not hovered.
+    :param hover_color: Background colour when the mouse is over the button.
+    :param text_color: Colour of the label text.
+    :param font_size: Size of the label font.
+    :param border_radius: Corner rounding radius.
+    :param transparency: Transparency (0–100).
+    :param size: Scale percentage.
+    :param anchor: Pin to a screen edge/corner ("top-left", "bottom-center", etc.).
+    :param layer: Render layer — defaults to 10 so UI sits above layer-0 game sprites.
+    :return: A new Button object.
+    """
+    return _Button(
+        text=text,
+        x=x,
+        y=y,
+        width=width,
+        height=height,
+        color=color,
+        hover_color=hover_color,
+        text_color=text_color,
+        font_size=font_size,
+        border_radius=border_radius,
+        transparency=transparency,
+        size=size,
+        anchor=anchor,
+        layer=layer,
     )
 
 
@@ -101,17 +166,21 @@ def new_circle(
     transparency: int = 100,
     size: int = 100,
     angle: int = 0,
+    anchor: str = None,
+    layer: int = 0,
 ) -> _Circle:
     """Make a new circle object.
     :param color: The color of the circle.
-    :param x: The x-coordinate of the circle.
-    :param y: The y-coordinate of the circle.
+    :param x: The x-coordinate (or inward offset when anchor is set).
+    :param y: The y-coordinate (or inward offset when anchor is set).
     :param radius: The radius of the circle.
     :param border_color: The color of the border of the circle.
     :param border_width: The width of the border of the circle.
     :param transparency: The transparency of the circle.
     :param size: The size of the circle.
     :param angle: The angle of the circle.
+    :param anchor: Pin to a screen edge/corner ("top-left", "top-right", etc.).
+    :param layer: Render layer — higher layers draw on top (default 0).
     :return: A new circle object.
     """
     return _Circle(
@@ -124,6 +193,8 @@ def new_circle(
         transparency=transparency,
         size=size,
         angle=angle,
+        anchor=anchor,
+        layer=layer,
     )
 
 
@@ -134,18 +205,23 @@ def new_image(
     size: int = 100,
     angle: int = 0,
     transparency: int = 100,
+    anchor: str = None,
+    layer: int = 0,
 ) -> _Image:
     """Make a new image object.
     :param image: The image to display.
-    :param x: The x-coordinate of the image.
-    :param y: The y-coordinate of the image.
+    :param x: The x-coordinate (or inward offset when anchor is set).
+    :param y: The y-coordinate (or inward offset when anchor is set).
     :param size: The size of the image.
     :param angle: The angle of the image.
     :param transparency: The transparency of the image.
+    :param anchor: Pin to a screen edge/corner ("top-left", "top-right", etc.).
+    :param layer: Render layer — higher layers draw on top (default 0).
     :return: A new image object.
     """
     return _Image(
-        image=image, x=x, y=y, size=size, angle=angle, transparency=transparency
+        image=image, x=x, y=y, size=size, angle=angle, transparency=transparency,
+        anchor=anchor, layer=layer,
     )
 
 
