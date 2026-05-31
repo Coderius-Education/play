@@ -3,6 +3,7 @@
 import pygame
 
 from ..globals import globals_list
+from ..io.keypress import keyboard_state
 
 
 def focus(widget):
@@ -14,6 +15,10 @@ def focus(widget):
     globals_list.focused_text_input = widget
     widget._is_focused = True
     widget._should_recompute = True
+    # Clear any keys held before focus so they don't fire game callbacks while
+    # the user types (e.g. holding right-arrow then clicking into a TextInput).
+    keyboard_state.pressed.clear()
+    keyboard_state.pressed_this_frame.clear()
     pygame.key.start_text_input()
 
 

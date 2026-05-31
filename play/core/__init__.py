@@ -48,7 +48,11 @@ def _handle_pygame_events():
             _get_loop().stop()
             return False
 
-        _handle_keyboard_events(event)
+        # Skip KEYDOWN recording while a TextInput is focused so typed characters
+        # don't accumulate in keyboard_state and leak into game callbacks.
+        # KEYUP is still processed to keep keyboard_state.pressed consistent.
+        if not globals_list.focused_text_input or event.type == pygame.KEYUP:
+            _handle_keyboard_events(event)
         _handle_mouse_events(event)
         _handle_controller_events(event)
 

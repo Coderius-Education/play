@@ -121,25 +121,22 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         a = self._anchor
         w2 = self.rect.width / 2
         h2 = self.rect.height / 2
-        if a == "top-left":
-            nx, ny = screen.left + ox + w2, screen.top - oy - h2
-        elif a == "top-center":
-            nx, ny = ox, screen.top - oy - h2
-        elif a == "top-right":
-            nx, ny = screen.right - ox - w2, screen.top - oy - h2
-        elif a == "center-left":
-            nx, ny = screen.left + ox + w2, oy
-        elif a == "center":
-            nx, ny = ox, oy
-        elif a == "center-right":
-            nx, ny = screen.right - ox - w2, oy
-        elif a == "bottom-left":
-            nx, ny = screen.left + ox + w2, screen.bottom + oy + h2
-        elif a == "bottom-center":
-            nx, ny = ox, screen.bottom + oy + h2
-        elif a == "bottom-right":
-            nx, ny = screen.right - ox - w2, screen.bottom + oy + h2
-        else:
+
+        parts = a.split("-")
+        y_key = parts[0]
+        x_key = parts[1] if len(parts) > 1 else "center"
+        nx = {
+            "left": screen.left + ox + w2,
+            "center": ox,
+            "right": screen.right - ox - w2,
+        }.get(x_key)
+        ny = {
+            "top": screen.top - oy - h2,
+            "center": oy,
+            "bottom": screen.bottom + oy + h2,
+        }.get(y_key)
+
+        if nx is None or ny is None:
             _warnings.warn(
                 f"Unknown anchor value '{a}'. "
                 "Valid values: 'top-left', 'top-center', 'top-right', "
@@ -149,8 +146,14 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
                 stacklevel=2,
             )
             return
+
         if hasattr(self, "physics") and self.physics is not None:
-            self.x, self.y = nx, ny
+            if nx != self._x or ny != self._y:
+                self.x, self.y = nx, ny
+                # Dynamic bodies accumulate velocity against the anchor each frame;
+                # reset it so collision responses stay physically meaningful.
+                if self.physics._pymunk_body.body_type == _pymunk.Body.DYNAMIC:
+                    self.physics._pymunk_body.velocity = (0, 0)
         else:
             self._x, self._y = nx, ny
             self._should_recompute = True
@@ -599,11 +602,13 @@ You might want to look in your code where you're setting transparency and make s
     def _common_properties(self):
         # used with inheritance to clone
         return {
-            "x": self.x,
-            "y": self.y,
+            "x": self._anchor_ox if self._anchor else self.x,
+            "y": self._anchor_oy if self._anchor else self.y,
             "size": self.size,
             "transparency": self.transparency,
             "angle": self.angle,
+            "anchor": self._anchor,
+            "layer": self._layer,
         }
 
     def clone(self):

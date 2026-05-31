@@ -81,10 +81,12 @@ class TextInput(Box):
                 self._should_recompute = True
 
         self._color = self._active_color if self._is_focused else self._base_input_color
-        needs_render = self._should_recompute
-        super().update()  # → Sprite.update() → anchor + Box._render()
-        if needs_render and self.image is not None:
-            self._blit_input_text()
+        super().update()
+
+    def _render(self):
+        """Draw box background then blit text/cursor on top."""
+        super()._render()  # Box._render()
+        self._blit_input_text()
 
     def _handle_text_input(self, text):
         """Append *text* (from a TEXTINPUT pygame event) to the current value."""
@@ -228,8 +230,8 @@ class TextInput(Box):
         """Create a copy of this text input (value and focus state are not copied)."""
         return TextInput(
             placeholder=self._placeholder,
-            x=self.x,
-            y=self.y,
+            x=self._anchor_ox if self._anchor else self.x,
+            y=self._anchor_oy if self._anchor else self.y,
             width=self._width,
             height=self._height,
             color=self._base_input_color,
@@ -243,6 +245,8 @@ class TextInput(Box):
             max_length=self._max_length,
             transparency=self._transparency,
             size=self._size,
+            anchor=self._anchor,
+            layer=self._layer,
         )
 
     def remove(self):

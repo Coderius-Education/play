@@ -45,12 +45,14 @@ class Button(Box):
         )
 
     def update(self):
-        """Set hover colour, delegate rendering to Sprite, then blit text label."""
+        """Set hover colour then delegate to Sprite.update() → _render()."""
         self._color = self._hover_color if mouse.is_touching(self) else self._base_color
-        needs_text = self._should_recompute
-        super().update()  # → Sprite.update() → anchor + Box._render()
-        if needs_text and self.image is not None:
-            self._blit_text()
+        super().update()
+
+    def _render(self):
+        """Draw box background then blit the text label on top."""
+        super()._render()  # Box._render()
+        self._blit_text()
 
     def _blit_text(self):
         text_surf = self._button_font.render(
@@ -107,8 +109,8 @@ class Button(Box):
         """Create a copy of this button."""
         return Button(
             text=self._button_text,
-            x=self.x,
-            y=self.y,
+            x=self._anchor_ox if self._anchor else self.x,
+            y=self._anchor_oy if self._anchor else self.y,
             width=self._width,
             height=self._height,
             color=self._base_color,
@@ -118,4 +120,6 @@ class Button(Box):
             border_radius=self._border_radius,
             transparency=self._transparency,
             size=self._size,
+            anchor=self._anchor,
+            layer=self._layer,
         )
