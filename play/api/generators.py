@@ -24,7 +24,7 @@ def new_text(
     angle: int = 0,
     transparency: int = 100,
     size: int = 100,
-    anchor: str = None,
+    anchor: Optional[str] = None,
     layer: int = 0,
 ) -> _Text:
     """Make a new text object.
@@ -71,7 +71,7 @@ def new_box(
     angle: int = 0,
     transparency: int = 100,
     size: int = 100,
-    anchor: str = None,
+    anchor: Optional[str] = None,
     layer: int = 0,
 ) -> _Box:
     """Make a new box object.
@@ -120,7 +120,7 @@ def new_button(
     border_radius: int = 6,
     transparency: int = 100,
     size: int = 100,
-    anchor: str = None,
+    anchor: Optional[str] = None,
     layer: int = 10,
 ) -> _Button:
     """Make a new button with a text label and hover highlight.
@@ -169,7 +169,7 @@ def new_circle(
     transparency: int = 100,
     size: int = 100,
     angle: int = 0,
-    anchor: str = None,
+    anchor: Optional[str] = None,
     layer: int = 0,
 ) -> _Circle:
     """Make a new circle object.
@@ -208,7 +208,7 @@ def new_image(
     size: int = 100,
     angle: int = 0,
     transparency: int = 100,
-    anchor: str = None,
+    anchor: Optional[str] = None,
     layer: int = 0,
 ) -> _Image:
     """Make a new image object.
@@ -267,7 +267,7 @@ def new_text_input(
     max_length: Optional[int] = None,
     transparency: int = 100,
     size: int = 100,
-    anchor: str = None,
+    anchor: Optional[str] = None,
     layer: int = 10,
 ) -> _TextInput:
     """Make a new text input field.

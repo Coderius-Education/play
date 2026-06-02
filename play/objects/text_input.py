@@ -145,6 +145,9 @@ class TextInput(Box):
         y_pos = (self.image.get_height() - text_surf.get_height()) // 2
         max_w = self.image.get_width() - 2 * padding
 
+        if max_w <= 0:
+            return
+
         if text_surf.get_width() > max_w:
             # Scroll to the end: show the rightmost portion that fits
             src_rect = pygame.Rect(

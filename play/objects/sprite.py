@@ -21,6 +21,8 @@ def point_touching_sprite(point, sprite):
     :param point: The point (x, y tuple) to check if it's touching the sprite.
     :param sprite: The sprite to check if it's touching the point.
     :return: Whether the point is touching the sprite."""
+    if sprite._is_hidden:
+        return False
     point_info = sprite.physics._pymunk_shape.point_query(point)
     return point_info.distance <= 0
 
@@ -136,6 +138,16 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         h2 = self.rect.height / 2
 
         parts = a.split("-")
+        if len(parts) > 2:
+            _warnings.warn(
+                f"Unknown anchor value '{a}'. "
+                "Valid values: 'top-left', 'top-center', 'top-right', "
+                "'center-left', 'center', 'center-right', "
+                "'bottom-left', 'bottom-center', 'bottom-right'.",
+                UserWarning,
+                stacklevel=2,
+            )
+            return
         y_key = parts[0]
         x_key = parts[1] if len(parts) > 1 else "center"
         nx = {
