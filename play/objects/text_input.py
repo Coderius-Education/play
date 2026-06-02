@@ -1,6 +1,8 @@
 """TextInput — a clickable, keyboard-editable text field widget."""
 
 import inspect as _inspect
+from typing import Optional as _Optional
+
 import pygame
 
 from .box import Box
@@ -27,7 +29,7 @@ class TextInput(Box):
         border_color="gray",
         border_width=1,
         border_radius=4,
-        max_length=None,
+        max_length: _Optional[int] = None,
         transparency=100,
         size=100,
         anchor=None,
@@ -227,7 +229,10 @@ class TextInput(Box):
         return func
 
     def clone(self):
-        """Create a copy of this text input (value and focus state are not copied)."""
+        """Create a copy of this text input.
+
+        Value, focus state, and when_changed/when_submit callbacks are not
+        copied — register new callbacks on the returned instance."""
         return TextInput(
             placeholder=self._placeholder,
             x=self._anchor_ox if self._anchor else self.x,

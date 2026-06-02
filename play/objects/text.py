@@ -24,10 +24,7 @@ class Text(Sprite):
         anchor=None,
         layer=0,
     ):
-        object.__setattr__(self, "_layer", layer)
-        object.__setattr__(self, "_anchor", anchor)
-        object.__setattr__(self, "_anchor_ox", x)
-        object.__setattr__(self, "_anchor_oy", y)
+        Sprite._init_anchor_attrs(self, x, y, anchor, layer)
         self._font = font
         self._font_size = font_size
 

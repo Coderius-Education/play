@@ -1,5 +1,7 @@
 """Generators for creating new objects."""
 
+from typing import Optional
+
 from ..db import Database
 from ..objects import (
     Box as _Box,
@@ -262,7 +264,7 @@ def new_text_input(
     border_color: str = "gray",
     border_width: int = 1,
     border_radius: int = 4,
-    max_length: int = None,
+    max_length: Optional[int] = None,
     transparency: int = 100,
     size: int = 100,
     anchor: str = None,

@@ -35,6 +35,16 @@ _should_ignore_update = frozenset(
 
 
 class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
+    @staticmethod
+    def _init_anchor_attrs(instance, x, y, anchor, layer):
+        """Write anchor/layer attrs via object.__setattr__ to avoid triggering
+        _should_recompute.  Called from both Sprite.__init__ and Text.__init__
+        (which must initialise these before its early self.update() call)."""
+        object.__setattr__(instance, "_layer", layer)
+        object.__setattr__(instance, "_anchor", anchor)
+        object.__setattr__(instance, "_anchor_ox", x)
+        object.__setattr__(instance, "_anchor_oy", y)
+
     def __init__(self, image=None, x=0, y=0, anchor=None, layer=0):
         # Subclasses set their own field values BEFORE calling super().__init__() so
         # that start_physics() can use the correct dimensions.  The hasattr guards
@@ -47,12 +57,9 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
             self._transparency = 100
 
         # Anchor/layer attrs bypass __setattr__ to avoid triggering _should_recompute.
-        # Set unconditionally — subclass pre-sets (Text) are intentionally overwritten here;
-        # Text passes the same values so the result is identical.
-        object.__setattr__(self, "_layer", layer)
-        object.__setattr__(self, "_anchor", anchor)
-        object.__setattr__(self, "_anchor_ox", x)
-        object.__setattr__(self, "_anchor_oy", y)
+        # Text calls this same helper before its early update() so the values are
+        # already set; we overwrite unconditionally — the values are identical.
+        Sprite._init_anchor_attrs(self, x, y, anchor, layer)
 
         # _x/_y: use anchor-aware defaults unless the subclass already set them
         # (Text sets these before calling super() because it calls update() first).
@@ -112,10 +119,16 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def _apply_anchor(self):
         """Recompute x/y from the anchor + offsets and current screen dimensions.
 
-        ox/oy are pixel distances from the anchored screen edge.  The sprite's
-        relevant EDGE (not center) will land at that distance from the border.
-        The half-dimensions come from the previous frame's rect, which is
-        accurate from frame 2 onward; frame 1 uses w2=h2=0 (same as before).
+        For edge anchors ("top-left", "bottom-right", etc.) ox/oy are pixel
+        distances inward from the anchored screen border — the sprite's relevant
+        EDGE lands exactly ox/oy pixels from that border.
+
+        For "center", ox/oy are play-coordinate offsets from the screen centre
+        (same as a plain x/y without an anchor), not pixel distances from any edge.
+
+        Half-dimensions come from the previous frame's rect, so edge placement
+        is accurate from frame 2 onward; frame 1 uses w2=h2=0.  Text pre-renders
+        in __init__ so it is correct from game-loop frame 1.
         """
         ox, oy = self._anchor_ox, self._anchor_oy
         a = self._anchor
