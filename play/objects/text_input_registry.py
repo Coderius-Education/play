@@ -1,9 +1,26 @@
-"""Global registry for the currently focused TextInput widget."""
+"""Global registry for the currently focused TextInput widget and Tab-order management."""
 
 import pygame
 
 from ..globals import globals_list
 from ..io.keypress import keyboard_state
+
+
+_tab_order = []  # All registered TextInput widgets in insertion order
+
+
+def register(widget):
+    """Add *widget* to the Tab order (called from TextInput.__init__)."""
+    if widget not in _tab_order:
+        _tab_order.append(widget)
+
+
+def unregister(widget):
+    """Remove *widget* from the Tab order (called from TextInput.remove)."""
+    try:
+        _tab_order.remove(widget)
+    except ValueError:
+        pass
 
 
 def focus(widget):
@@ -32,6 +49,21 @@ def clear_focus():
         pygame.key.stop_text_input()
 
 
+def focus_next():
+    """Shift keyboard focus to the next TextInput in the Tab order.
+
+    Cycles wrap around; if no widget is focused, focuses the first one."""
+    visible = [w for w in _tab_order if w.alive() and not w._is_disabled]
+    if not visible:
+        return
+    current = globals_list.focused_text_input
+    if current is None or current not in visible:
+        focus(visible[0])
+        return
+    idx = visible.index(current)
+    focus(visible[(idx + 1) % len(visible)])
+
+
 def dispatch_text(text):
     """Forward a TEXTINPUT event's text to the focused widget."""
     widget = globals_list.focused_text_input
@@ -40,7 +72,12 @@ def dispatch_text(text):
 
 
 def dispatch_keydown(event):
-    """Forward a KEYDOWN event to the focused widget (backspace, enter, escape)."""
+    """Forward a KEYDOWN event to the focused widget (backspace, enter, escape, arrows, tab)."""
     widget = globals_list.focused_text_input
     if widget is not None:
         widget._handle_keydown(event)
+
+
+def reset():
+    """Clear the Tab order. Called from conftest between tests."""
+    _tab_order.clear()

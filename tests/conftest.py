@@ -191,6 +191,9 @@ def clean_play_state(request):
     collision_registry.callbacks = {True: {}, False: {}}
     collision_registry.shape_registry.clear()
 
+    from play.objects import text_input_registry as _ti_registry
+    _ti_registry.reset()
+
     from play.core import keyboard_state, mouse_state
 
     keyboard_state.pressed.clear()
