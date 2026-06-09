@@ -7,7 +7,7 @@ import pygame
 from .box import Box
 from ..io.mouse import mouse
 from ..utils import color_name_to_rgb as _color_name_to_rgb
-from ..io.screen import convert_pos
+from ..io.screen import convert_pos, screen
 from ..core.mouse_loop import mouse_state
 
 
@@ -108,7 +108,8 @@ class Dropdown(Box):
                     self._should_recompute = True
 
         self._color = (
-            self._hover_color if mouse.is_touching(self) and not self._dropdown_open
+            self._hover_color
+            if mouse.is_touching(self) and not self._dropdown_open
             else self._base_color
         )
         super().update()
@@ -120,11 +121,10 @@ class Dropdown(Box):
         option_top = pos[0] - self._width // 2
         option_right = pos[0] + self._width // 2
 
-        from ..io.screen import screen
         mouse_px = mouse.x + screen.width / 2.0
         mouse_py = screen.height / 2.0 - mouse.y
 
-        if not (option_top <= mouse_px <= option_right):
+        if not option_top <= mouse_px <= option_right:
             return -1
 
         for i in range(len(self._options)):
@@ -153,7 +153,10 @@ class Dropdown(Box):
         btn_rect = pygame.Rect(0, 0, w, self._height)
         if bw > 0:
             pygame.draw.rect(
-                draw_image, _color_name_to_rgb(self._border_color), btn_rect, bw,
+                draw_image,
+                _color_name_to_rgb(self._border_color),
+                btn_rect,
+                bw,
                 border_radius=self._border_radius,
             )
         pygame.draw.rect(
@@ -169,13 +172,17 @@ class Dropdown(Box):
             if 0 <= self._selected_index < len(self._options)
             else self._placeholder
         )
-        label_surf = self._dropdown_font.render(label, True, _color_name_to_rgb(self._text_color))
+        label_surf = self._dropdown_font.render(
+            label, True, _color_name_to_rgb(self._text_color)
+        )
         ly = (self._height - label_surf.get_height()) // 2
         draw_image.blit(label_surf, (bw + 8, ly))
 
         # Arrow indicator (▼ / ▲)
         arrow = "▲" if self._dropdown_open else "▼"
-        arrow_surf = self._dropdown_font.render(arrow, True, _color_name_to_rgb(self._text_color))
+        arrow_surf = self._dropdown_font.render(
+            arrow, True, _color_name_to_rgb(self._text_color)
+        )
         draw_image.blit(arrow_surf, (w - arrow_surf.get_width() - 8, ly))
 
         # ── open option rows ───────────────────────────────────────────────
@@ -191,10 +198,14 @@ class Dropdown(Box):
                 )
                 if bw > 0:
                     pygame.draw.rect(
-                        draw_image, _color_name_to_rgb(self._border_color), row_rect, bw,
+                        draw_image,
+                        _color_name_to_rgb(self._border_color),
+                        row_rect,
+                        bw,
                     )
                 pygame.draw.rect(
-                    draw_image, bg,
+                    draw_image,
+                    bg,
                     (bw, row_y + bw, w - 2 * bw, self._height - 2 * bw),
                 )
                 opt_surf = self._dropdown_font.render(
@@ -220,7 +231,9 @@ class Dropdown(Box):
         self.rect.y = pos[1] - self._height // 2
         angle_deg = _math.degrees(self.physics._pymunk_body.angle)
         self.image = pygame.transform.rotate(draw_image, angle_deg)
-        self.rect = self.image.get_rect(center=(pos[0], pos[1] - self._height // 2 + total_h // 2))
+        self.rect = self.image.get_rect(
+            center=(pos[0], pos[1] - self._height // 2 + total_h // 2)
+        )
 
     # ── public API ────────────────────────────────────────────────────────────
 
@@ -260,6 +273,7 @@ class Dropdown(Box):
 
     @property
     def disabled(self):
+        """Whether the dropdown is non-interactive."""
         return self._is_disabled
 
     @disabled.setter

@@ -1,11 +1,13 @@
 """Checkbox — a toggleable Boolean control with an optional text label."""
 
 import inspect as _inspect
+import math as _math
 import pygame
 
 from .box import Box
 from ..io.mouse import mouse
 from ..utils import color_name_to_rgb as _color_name_to_rgb
+from ..io.screen import convert_pos
 from ..core.mouse_loop import mouse_state
 
 
@@ -71,7 +73,11 @@ class Checkbox(Box):
 
     def update(self):
         """Toggle checked state on click."""
-        if not self._is_disabled and mouse_state.click_happened and mouse.is_touching(self):
+        if (
+            not self._is_disabled
+            and mouse_state.click_happened
+            and mouse.is_touching(self)
+        ):
             self._checked = not self._checked
             self._should_recompute = True
             for cb in self._on_change_callbacks:
@@ -131,8 +137,6 @@ class Checkbox(Box):
 
         draw_image.set_alpha(round(self._transparency * 255 / 100))
 
-        from ..io.screen import convert_pos
-        import math as _math
         self.rect = draw_image.get_rect()
         pos = convert_pos(self.x, self.y)
         self.rect.x = pos[0] - self.rect.width // 2

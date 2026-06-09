@@ -78,7 +78,6 @@ class Tooltip(Sprite):
 
         if not self._is_hidden:
             # Follow the mouse position
-            from ..io.screen import screen
             self._x = mouse.x + self._offset_x
             self._y = mouse.y + self._offset_y
             self._should_recompute = True
@@ -89,7 +88,9 @@ class Tooltip(Sprite):
         """Render the tooltip bubble."""
         font = self._tooltip_font
         lines = self._tooltip_text.split("\n")
-        rendered = [font.render(ln, True, _color_name_to_rgb(self._text_color)) for ln in lines]
+        rendered = [
+            font.render(ln, True, _color_name_to_rgb(self._text_color)) for ln in lines
+        ]
 
         text_w = max(s.get_width() for s in rendered) if rendered else 0
         text_h = sum(s.get_height() for s in rendered) + max(0, len(rendered) - 1) * 2
@@ -99,12 +100,17 @@ class Tooltip(Sprite):
 
         draw_image = pygame.Surface((w, h), pygame.SRCALPHA)
         pygame.draw.rect(
-            draw_image, _color_name_to_rgb(self._tooltip_color), (0, 0, w, h),
+            draw_image,
+            _color_name_to_rgb(self._tooltip_color),
+            (0, 0, w, h),
             border_radius=self._border_radius,
         )
         pygame.draw.rect(
-            draw_image, _color_name_to_rgb(self._border_color), (0, 0, w, h),
-            1, border_radius=self._border_radius,
+            draw_image,
+            _color_name_to_rgb(self._border_color),
+            (0, 0, w, h),
+            1,
+            border_radius=self._border_radius,
         )
 
         y = p

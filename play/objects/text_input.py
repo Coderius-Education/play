@@ -66,7 +66,7 @@ class TextInput(Box):
         self._cursor_visible = True
         self._last_blink = 0
         self._cursor_pos = len(value)  # index into _input_value
-        self._selection_start = None   # None = no selection
+        self._selection_start = None  # None = no selection
         self._selection_end = None
         self._on_change_callbacks = []
         self._on_submit_callbacks = []
@@ -112,7 +112,9 @@ class TextInput(Box):
         if self._is_disabled:
             self._color = self._base_input_color
         else:
-            self._color = self._active_color if self._is_focused else self._base_input_color
+            self._color = (
+                self._active_color if self._is_focused else self._base_input_color
+            )
         super().update()
 
     def _render(self):
@@ -145,7 +147,9 @@ class TextInput(Box):
         for cb in self._on_change_callbacks:
             cb(self._input_value)
 
-    def _handle_keydown(self, event):
+    def _handle_keydown(
+        self, event
+    ):  # pylint: disable=too-many-return-statements,too-many-branches,too-many-statements
         """Handle navigation, editing, clipboard, and Tab keys from a KEYDOWN event."""
         mods = pygame.key.get_mods()
         ctrl = mods & (pygame.KMOD_CTRL | pygame.KMOD_META)
@@ -239,7 +243,11 @@ class TextInput(Box):
                     self._cursor_pos += len(pasted)
                     self._selection_start = self._selection_end = None
                     self._fire_change()
-            except Exception:  # noqa: BLE001 — scrap not available in all environments
+            except (
+                pygame.error,
+                OSError,
+                ValueError,
+            ):  # scrap not available in all environments
                 pass
             return
 
@@ -301,7 +309,7 @@ class TextInput(Box):
             return self._MASK_CHAR * len(value)
         return value
 
-    def _blit_input_text(self):
+    def _blit_input_text(self):  # pylint: disable=too-many-statements
         """Draw the value (or placeholder) and cursor onto the rendered box image."""
         font = self._input_font
         padding = 8
@@ -340,8 +348,11 @@ class TextInput(Box):
             y_pos = (self.image.get_height() - font.get_height()) // 2
 
         # Draw cursor as a thin vertical line.
-        if self._is_focused and self._cursor_visible and has_value or (
-            self._is_focused and self._cursor_visible
+        if (
+            self._is_focused
+            and self._cursor_visible
+            and has_value
+            or (self._is_focused and self._cursor_visible)
         ):
             cursor_x_screen = padding + (cursor_x_full - scroll_x)
             cursor_x_screen = max(padding, min(cursor_x_screen, padding + max_w))
@@ -365,7 +376,9 @@ class TextInput(Box):
             x_a = max(0, x_a)
             x_b = min(max_w, x_b)
             if x_b > x_a:
-                sel_surf = pygame.Surface((x_b - x_a, font.get_height()), pygame.SRCALPHA)
+                sel_surf = pygame.Surface(
+                    (x_b - x_a, font.get_height()), pygame.SRCALPHA
+                )
                 sel_surf.fill((100, 149, 237, 100))  # cornflower blue, semi-transparent
                 sy = (self.image.get_height() - font.get_height()) // 2
                 self.image.blit(sel_surf, (padding + x_a, sy))

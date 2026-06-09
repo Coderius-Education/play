@@ -113,6 +113,7 @@ def test_backspace_on_selection_deletes_selection():
 def test_disabled_prevents_focus():
     from play.io.mouse import mouse
     from play.core.mouse_loop import mouse_state
+
     ti = play.new_text_input(x=0, y=0, width=200, height=40, disabled=True)
     mouse.x = 0
     mouse.y = 0
@@ -217,12 +218,14 @@ def test_tab_skips_disabled():
 
 def test_register_on_creation():
     from play.objects.text_input_registry import _tab_order
+
     ti = play.new_text_input()
     assert ti in _tab_order
 
 
 def test_unregister_on_remove():
     from play.objects.text_input_registry import _tab_order
+
     ti = play.new_text_input()
     ti.remove()
     assert ti not in _tab_order

@@ -6,7 +6,6 @@ import pygame
 from .box import Box
 from ..io.mouse import mouse
 from ..utils import color_name_to_rgb as _color_name_to_rgb
-from ..core.mouse_loop import mouse_state
 
 
 def _load_font(font_path_or_none, size):
@@ -92,7 +91,11 @@ class Button(Box):
                 else:
                     rgba = _color_name_to_rgb(self._hover_color)
                     r, g, b = rgba[0], rgba[1], rgba[2]
-                    self._color = (max(0, int(r * 0.75)), max(0, int(g * 0.75)), max(0, int(b * 0.75)))
+                    self._color = (
+                        max(0, int(r * 0.75)),
+                        max(0, int(g * 0.75)),
+                        max(0, int(b * 0.75)),
+                    )
             elif hovered:
                 self._color = self._hover_color
             else:
@@ -119,17 +122,21 @@ class Button(Box):
 
     def when_clicked(self, callback, call_with_sprite=False):
         """Register a click callback; the callback is silently skipped when disabled."""
+
         def guarded(*args, **kwargs):
             if not self._is_disabled:
-                return callback(*args, **kwargs)
+                callback(*args, **kwargs)
+
         guarded.__name__ = getattr(callback, "__name__", "guarded")
         return super().when_clicked(guarded, call_with_sprite)
 
     def when_click_released(self, callback, call_with_sprite=False):
         """Register a click-release callback; skipped when disabled."""
+
         def guarded(*args, **kwargs):
             if not self._is_disabled:
-                return callback(*args, **kwargs)
+                callback(*args, **kwargs)
+
         guarded.__name__ = getattr(callback, "__name__", "guarded")
         return super().when_click_released(guarded, call_with_sprite)
 

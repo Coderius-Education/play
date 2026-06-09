@@ -122,7 +122,11 @@ class RadioButton(Sprite):
 
     def update(self):
         """Handle click to select."""
-        if not self._is_disabled and mouse_state.click_happened and mouse.is_touching(self):
+        if (
+            not self._is_disabled
+            and mouse_state.click_happened
+            and mouse.is_touching(self)
+        ):
             if self._group is not None:
                 self._group._select(self)
             else:
@@ -147,7 +151,9 @@ class RadioButton(Sprite):
         )
 
         # Outer circle
-        pygame.draw.circle(draw_image, _color_name_to_rgb(self._radio_color), (cx, cy), r)
+        pygame.draw.circle(
+            draw_image, _color_name_to_rgb(self._radio_color), (cx, cy), r
+        )
         pygame.draw.circle(draw_image, border_col, (cx, cy), r, 2)
 
         # Inner filled dot when selected
@@ -203,6 +209,7 @@ class RadioButton(Sprite):
 
     @property
     def label(self):
+        """The text label shown beside the radio button."""
         return self._label_text
 
     @label.setter
@@ -212,6 +219,7 @@ class RadioButton(Sprite):
 
     @property
     def disabled(self):
+        """Whether the radio button is non-interactive."""
         return self._is_disabled
 
     @disabled.setter

@@ -59,6 +59,7 @@ def test_slider_when_changed_fires():
 def test_slider_when_changed_rejects_async():
     s = play.new_slider()
     with pytest.raises(TypeError):
+
         @s.when_changed
         async def bad(v):
             pass

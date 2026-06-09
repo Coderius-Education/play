@@ -58,7 +58,9 @@ def test_dropdown_open_toggles_on_click():
 
 
 def test_dropdown_disabled_ignores_click():
-    dd = play.new_dropdown(options=["A", "B"], x=0, y=0, width=160, height=40, disabled=True)
+    dd = play.new_dropdown(
+        options=["A", "B"], x=0, y=0, width=160, height=40, disabled=True
+    )
     mouse.x = 0
     mouse.y = 0
     mouse_state.click_happened = True
@@ -82,6 +84,7 @@ def test_dropdown_when_changed_fires():
 def test_dropdown_when_changed_rejects_async():
     dd = play.new_dropdown(options=["A"])
     with pytest.raises(TypeError):
+
         @dd.when_changed
         async def bad(v, i):
             pass

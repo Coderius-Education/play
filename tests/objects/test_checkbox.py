@@ -47,6 +47,7 @@ def test_checkbox_when_changed_fires():
 def test_checkbox_when_changed_rejects_async():
     cb = play.new_checkbox()
     with pytest.raises(TypeError):
+
         @cb.when_changed
         async def bad(v):
             pass

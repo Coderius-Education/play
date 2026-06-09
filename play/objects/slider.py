@@ -7,7 +7,7 @@ import pygame
 from .sprite import Sprite
 from ..io.mouse import mouse
 from ..utils import color_name_to_rgb as _color_name_to_rgb
-from ..io.screen import convert_pos
+from ..io.screen import convert_pos, screen
 from ..core.mouse_loop import mouse_state
 
 
@@ -68,8 +68,7 @@ class Slider(Sprite):
         self._step = step
         self._on_change_callbacks = []
         self._image = None
-        import pygame as _pg
-        self.rect = _pg.Rect(0, 0, 0, 0)
+        self.rect = pygame.Rect(0, 0, 0, 0)
         super().__init__(x=x, y=y, anchor=anchor, layer=layer)
         self.update()
 
@@ -94,7 +93,6 @@ class Slider(Sprite):
         track_width = track_right - track_left
 
         # Mouse x in pygame screen coords
-        from ..io.screen import screen
         mouse_px = mouse.x + screen.width / 2.0
 
         t = (mouse_px - track_left) / track_width if track_width > 0 else 0
@@ -157,8 +155,14 @@ class Slider(Sprite):
 
         # Value label
         if self._show_value:
-            label = str(int(self._value)) if isinstance(self._value, float) and self._value == int(self._value) else str(self._value)
-            label_surf = self._slider_font.render(label, True, _color_name_to_rgb(self._value_color))
+            label = (
+                str(int(self._value))
+                if isinstance(self._value, float) and self._value == int(self._value)
+                else str(self._value)
+            )
+            label_surf = self._slider_font.render(
+                label, True, _color_name_to_rgb(self._value_color)
+            )
             draw_image.blit(label_surf, (w + 6, cy - label_surf.get_height() // 2))
 
         draw_image.set_alpha(round(self._transparency * 255 / 100))
@@ -187,6 +191,7 @@ class Slider(Sprite):
 
     @property
     def min_value(self):
+        """The minimum value of the slider range."""
         return self._min_value
 
     @min_value.setter
@@ -197,6 +202,7 @@ class Slider(Sprite):
 
     @property
     def max_value(self):
+        """The maximum value of the slider range."""
         return self._max_value
 
     @max_value.setter
@@ -207,6 +213,7 @@ class Slider(Sprite):
 
     @property
     def disabled(self):
+        """Whether the slider is non-interactive."""
         return self._is_disabled
 
     @disabled.setter

@@ -73,7 +73,9 @@ def test_disabled_uses_disabled_color():
 
 
 def test_disabled_ignores_hover():
-    btn = play.new_button(x=0, y=0, width=100, height=50, hover_color="steelblue", disabled_color="gray")
+    btn = play.new_button(
+        x=0, y=0, width=100, height=50, hover_color="steelblue", disabled_color="gray"
+    )
     btn.disabled = True
     mouse.x = 0
     mouse.y = 0
@@ -153,14 +155,15 @@ def test_when_hover_not_fired_twice_without_leave():
     # Now move into hover area
     mouse.x = 0
     mouse.y = 0
-    btn.update()   # enters hover — should fire
-    btn.update()   # still hovering — should NOT fire again
+    btn.update()  # enters hover — should fire
+    btn.update()  # still hovering — should NOT fire again
     assert count[0] == 1  # fired exactly once
 
 
 def test_when_hover_rejects_async():
     btn = play.new_button()
     with pytest.raises(TypeError):
+
         @btn.when_hover
         async def bad():
             pass
@@ -169,6 +172,7 @@ def test_when_hover_rejects_async():
 def test_when_unhover_rejects_async():
     btn = play.new_button()
     with pytest.raises(TypeError):
+
         @btn.when_unhover
         async def bad():
             pass

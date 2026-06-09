@@ -100,7 +100,9 @@ class ProgressBar(Box):
         # Optional percentage label
         if self._show_label:
             pct = int(t * 100)
-            label_surf = self._font.render(f"{pct}%", True, _color_name_to_rgb(self._label_color))
+            label_surf = self._font.render(
+                f"{pct}%", True, _color_name_to_rgb(self._label_color)
+            )
             lx = (w - label_surf.get_width()) // 2
             ly = (h - label_surf.get_height()) // 2
             draw_image.blit(label_surf, (lx, ly))
@@ -129,6 +131,7 @@ class ProgressBar(Box):
 
     @property
     def min_value(self):
+        """The minimum value of the progress bar range."""
         return self._min_value
 
     @min_value.setter
@@ -139,6 +142,7 @@ class ProgressBar(Box):
 
     @property
     def max_value(self):
+        """The maximum value of the progress bar range."""
         return self._max_value
 
     @max_value.setter

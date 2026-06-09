@@ -63,6 +63,7 @@ def test_radio_group_when_changed_fires():
 def test_radio_group_when_changed_rejects_async():
     g = play.new_radio_group()
     with pytest.raises(TypeError):
+
         @g.when_changed
         async def bad(v):
             pass
@@ -98,7 +99,9 @@ def test_radio_button_disabled_setter():
 
 def test_radio_button_disabled_ignores_click():
     g = play.new_radio_group()
-    r = play.new_radio_button("X", value="x", group=g, x=0, y=0, size_px=22, disabled=True)
+    r = play.new_radio_button(
+        "X", value="x", group=g, x=0, y=0, size_px=22, disabled=True
+    )
     mouse.x = 0
     mouse.y = 0
     mouse_state.click_happened = True
