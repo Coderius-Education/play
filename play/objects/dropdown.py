@@ -6,18 +6,9 @@ import pygame
 
 from .box import Box
 from ..io.mouse import mouse
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
 from ..io.screen import convert_pos, screen
 from ..core.mouse_loop import mouse_state
-
-
-def _load_font(font_path_or_none, size):
-    if font_path_or_none and font_path_or_none != "default":
-        try:
-            return pygame.font.Font(font_path_or_none, size)
-        except (FileNotFoundError, OSError):
-            pass
-    return pygame.font.SysFont(None, size)
 
 
 class Dropdown(Box):
@@ -127,7 +118,7 @@ class Dropdown(Box):
         if not option_top <= mouse_px <= option_right:
             return -1
 
-        for i in range(len(self._options)):
+        for i, _ in enumerate(self._options):
             row_y = closed_top + self._height * (i + 1)
             if row_y <= mouse_py < row_y + self._height:
                 return i

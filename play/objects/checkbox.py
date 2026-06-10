@@ -6,18 +6,9 @@ import pygame
 
 from .box import Box
 from ..io.mouse import mouse
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
 from ..io.screen import convert_pos
 from ..core.mouse_loop import mouse_state
-
-
-def _load_font(font_path_or_none, size):
-    if font_path_or_none and font_path_or_none != "default":
-        try:
-            return pygame.font.Font(font_path_or_none, size)
-        except (FileNotFoundError, OSError):
-            pass
-    return pygame.font.SysFont(None, size)
 
 
 class Checkbox(Box):
@@ -50,7 +41,6 @@ class Checkbox(Box):
         self._checkbox_font_size = font_size
         self._checkbox_font_path = font
         self._is_disabled = disabled
-        self._was_clicked_last_frame = False
         self._on_change_callbacks = []
 
         # Width includes the box + label area
@@ -123,7 +113,7 @@ class Checkbox(Box):
 
         # Dim when disabled
         if self._is_disabled:
-            overlay = pygame.Surface((size_px, size_px), pygame.SRCALPHA)
+            overlay = pygame.Surface((self._width, self._height), pygame.SRCALPHA)
             overlay.fill((200, 200, 200, 120))
             draw_image.blit(overlay, (0, 0))
 

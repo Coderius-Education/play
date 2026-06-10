@@ -7,19 +7,9 @@ import pygame
 
 from .box import Box
 from ..io.mouse import mouse
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
 from . import text_input_registry as _registry
 from ..core.mouse_loop import mouse_state
-
-
-def _load_font(font_path_or_none, size):
-    """Load a pygame font from a .ttf path or fall back to the system default."""
-    if font_path_or_none and font_path_or_none != "default":
-        try:
-            return pygame.font.Font(font_path_or_none, size)
-        except (FileNotFoundError, OSError):
-            pass
-    return pygame.font.SysFont(None, size)
 
 
 class TextInput(Box):

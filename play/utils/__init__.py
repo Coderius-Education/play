@@ -134,6 +134,16 @@ You can find the RGB form of a color on websites like this: https://www.rapidtab
         ) from exc
 
 
+def load_font(font_path_or_none, size):
+    """Load a pygame font from a .ttf path, or fall back to the system default."""
+    if font_path_or_none and font_path_or_none != "default":
+        try:
+            return pygame.font.Font(font_path_or_none, size)
+        except (FileNotFoundError, OSError):
+            pass
+    return pygame.font.SysFont(None, size)
+
+
 def is_called_from_pygame():
     """Check if the current method is being called from pygame's internal code."""
     stack = inspect.stack()

@@ -6,18 +6,9 @@ import pygame
 
 from .sprite import Sprite
 from ..io.mouse import mouse
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
 from ..io.screen import convert_pos
 from ..core.mouse_loop import mouse_state
-
-
-def _load_font(font_path_or_none, size):
-    if font_path_or_none and font_path_or_none != "default":
-        try:
-            return pygame.font.Font(font_path_or_none, size)
-        except (FileNotFoundError, OSError):
-            pass
-    return pygame.font.SysFont(None, size)
 
 
 class RadioGroup:
@@ -165,7 +156,7 @@ class RadioButton(Sprite):
 
         # Dim when disabled
         if self._is_disabled:
-            overlay = pygame.Surface((self._size_px, h), pygame.SRCALPHA)
+            overlay = pygame.Surface((w, h), pygame.SRCALPHA)
             overlay.fill((200, 200, 200, 120))
             draw_image.blit(overlay, (0, 0))
 

@@ -6,18 +6,9 @@ import pygame
 
 from .sprite import Sprite
 from ..io.mouse import mouse
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
 from ..io.screen import convert_pos, screen
 from ..core.mouse_loop import mouse_state
-
-
-def _load_font(font_path_or_none, size):
-    if font_path_or_none and font_path_or_none != "default":
-        try:
-            return pygame.font.Font(font_path_or_none, size)
-        except (FileNotFoundError, OSError):
-            pass
-    return pygame.font.SysFont(None, size)
 
 
 class Slider(Sprite):
@@ -126,11 +117,11 @@ class Slider(Sprite):
             border_radius=self._border_radius,
         )
 
-        # Filled portion
+        # Filled portion — fill ends at the thumb centre so both use the same formula
         t = (self._value - self._min_value) / max(1, self._max_value - self._min_value)
-        fill_w = max(0, int(t * (w - self._thumb_radius)))
-        if fill_w > 0:
-            fill_rect = pygame.Rect(0, cy - h // 2, fill_w + self._thumb_radius, h)
+        thumb_x = int(t * (w - 2 * self._thumb_radius)) + self._thumb_radius
+        if thumb_x > 0:
+            fill_rect = pygame.Rect(0, cy - h // 2, thumb_x, h)
             pygame.draw.rect(
                 draw_image,
                 _color_name_to_rgb(self._fill_color),
@@ -139,7 +130,6 @@ class Slider(Sprite):
             )
 
         # Thumb
-        thumb_x = int(t * (w - 2 * self._thumb_radius)) + self._thumb_radius
         pygame.draw.circle(
             draw_image,
             _color_name_to_rgb(self._thumb_color),

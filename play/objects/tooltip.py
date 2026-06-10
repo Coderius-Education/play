@@ -5,17 +5,8 @@ import pygame
 
 from .sprite import Sprite
 from ..io.mouse import mouse
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
 from ..io.screen import convert_pos
-
-
-def _load_font(font_path_or_none, size):
-    if font_path_or_none and font_path_or_none != "default":
-        try:
-            return pygame.font.Font(font_path_or_none, size)
-        except (FileNotFoundError, OSError):
-            pass
-    return pygame.font.SysFont(None, size)
 
 
 class Tooltip(Sprite):
@@ -77,10 +68,13 @@ class Tooltip(Sprite):
                 self._should_recompute = True
 
         if not self._is_hidden:
-            # Follow the mouse position
-            self._x = mouse.x + self._offset_x
-            self._y = mouse.y + self._offset_y
-            self._should_recompute = True
+            # Follow the mouse position; only recompute when it actually moved
+            nx = mouse.x + self._offset_x
+            ny = mouse.y + self._offset_y
+            if nx != self._x or ny != self._y:
+                self._x = nx
+                self._y = ny
+                self._should_recompute = True
 
         super().update()
 
@@ -120,13 +114,12 @@ class Tooltip(Sprite):
 
         draw_image.set_alpha(round(self._transparency * 255 / 100))
 
-        self.rect = draw_image.get_rect()
         pos = convert_pos(self._x, self._y)
-        self.rect.x = pos[0]
-        self.rect.y = pos[1] - h
+        centre_x = pos[0] + w // 2
+        centre_y = pos[1] - h + h // 2
         angle_deg = _math.degrees(self.physics._pymunk_body.angle)
         self.image = pygame.transform.rotate(draw_image, angle_deg)
-        self.rect = self.image.get_rect(topleft=self.rect.topleft)
+        self.rect = self.image.get_rect(center=(centre_x, centre_y))
 
     # ── public API ────────────────────────────────────────────────────────────
 
