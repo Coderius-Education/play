@@ -2,7 +2,7 @@ numpy==2.2.6; python_version < "3.14"
 numpy==2.4.1; python_version >= "3.14"
 pygame-ce==2.5.7
 pymunk==7.2.0
-pytest==9.0.3
+pytest==9.1.0
 pytest-cov>=7.1.0
 pytest-timeout>=2.4.0
 hypothesis>=6.153.2
