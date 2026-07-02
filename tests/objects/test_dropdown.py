@@ -81,6 +81,58 @@ def test_dropdown_when_changed_fires():
     assert received == [("B", 1)]
 
 
+def test_dropdown_hovers_option_row_under_mouse():
+    # With the menu open, mouse.y=-80 lands on the 2nd option row (index 1)
+    # for a dropdown at y=0 with height=40 on the 800x600 test display.
+    dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
+    mouse.x, mouse.y = 0, 0
+    mouse_state.click_happened = True
+    dd.update()  # open
+    mouse_state.click_happened = False
+    mouse.x, mouse.y = 0, -80
+    dd.update()  # tracks hovered option
+    assert dd._hovered_option == 1
+
+
+def test_dropdown_click_option_selects_and_closes():
+    dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
+    mouse.x, mouse.y = 0, 0
+    mouse_state.click_happened = True
+    dd.update()  # open
+    mouse_state.click_happened = False
+    assert dd.is_open is True
+
+    # Hover the 2nd option row so _hovered_option is set before the click frame.
+    mouse.x, mouse.y = 0, -80
+    dd.update()
+    assert dd._hovered_option == 1
+
+    # Click selects the hovered option and closes the menu.
+    mouse_state.click_happened = True
+    dd.update()
+    mouse_state.click_happened = False
+    assert dd.selected_index == 1
+    assert dd.selected_value == "B"
+    assert dd.is_open is False
+
+
+def test_dropdown_click_option_fires_when_changed():
+    dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
+    received = []
+    dd.when_changed(lambda v, i: received.append((v, i)))
+    mouse.x, mouse.y = 0, 0
+    mouse_state.click_happened = True
+    dd.update()  # open
+    mouse_state.click_happened = False
+    mouse.x, mouse.y = 0, -120  # 3rd option row (index 2)
+    dd.update()
+    assert dd._hovered_option == 2
+    mouse_state.click_happened = True
+    dd.update()
+    mouse_state.click_happened = False
+    assert received == [("C", 2)]
+
+
 def test_dropdown_when_changed_rejects_async():
     dd = play.new_dropdown(options=["A"])
     with pytest.raises(TypeError):

@@ -81,6 +81,73 @@ def test_slider_alive():
     assert s.alive()
 
 
+# ── drag interaction ──────────────────────────────────────────────────────────
+# The 800x600 test display puts x=0 at screen centre. For a slider at x=0 with
+# width=200 and thumb_radius=12, the usable track spans mouse.x ∈ [-88, +88],
+# so mouse.x=-88 → min, mouse.x=+88 → max, mouse.x=0 → midpoint.
+
+
+def _start_drag(slider):
+    mouse.x, mouse.y = 0, 0
+    mouse._is_clicked = True
+    mouse_state.click_happened = True
+    slider.update()
+    mouse_state.click_happened = False
+
+
+def test_slider_drag_to_far_right_sets_max():
+    s = play.new_slider(min_value=0, max_value=100, value=50, x=0, y=0, width=200)
+    _start_drag(s)
+    mouse.x = 88
+    s.update()
+    assert s.value == 100
+
+
+def test_slider_drag_to_far_left_sets_min():
+    s = play.new_slider(min_value=0, max_value=100, value=50, x=0, y=0, width=200)
+    _start_drag(s)
+    mouse.x = -88
+    s.update()
+    assert s.value == 0
+
+
+def test_slider_drag_stops_on_mouse_release():
+    s = play.new_slider(min_value=0, max_value=100, value=50, x=0, y=0, width=200)
+    _start_drag(s)
+    mouse._is_clicked = False  # released
+    mouse.x = 88
+    s.update()
+    assert s.value == 50  # not dragging → unchanged
+
+
+def test_slider_drag_fires_when_changed():
+    s = play.new_slider(min_value=0, max_value=100, value=50, x=0, y=0, width=200)
+    seen = []
+    s.when_changed(seen.append)
+    _start_drag(s)
+    mouse.x = 88
+    s.update()
+    assert 100 in seen
+
+
+def test_slider_step_quantizes_dragged_value():
+    s = play.new_slider(
+        min_value=0, max_value=100, value=0, x=0, y=0, width=200, step=25
+    )
+    _start_drag(s)  # mouse.x=0 → midpoint 50 (already a multiple of 25)
+    mouse.x = -35  # ~raw 30 → snaps to nearest 25
+    s.update()
+    assert s.value == 25
+
+
+def test_slider_no_drag_without_prior_grab():
+    # Moving the mouse over the slider without a click must not change the value.
+    s = play.new_slider(min_value=0, max_value=100, value=50, x=0, y=0, width=200)
+    mouse.x, mouse.y = 88, 0
+    s.update()
+    assert s.value == 50
+
+
 def test_slider_image_rendered():
     s = play.new_slider()
     assert s.image is not None
