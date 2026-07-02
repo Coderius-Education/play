@@ -104,7 +104,23 @@ class Slider(Sprite):
         """Draw the track, filled portion, and thumb circle."""
         w, h = self._width, self._height
         canvas_h = h + self._thumb_radius * 2
-        draw_image = pygame.Surface((w, canvas_h), pygame.SRCALPHA)
+
+        # Render the value label first so we can widen the canvas to fit it.
+        label_surf = None
+        if self._show_value:
+            label = (
+                str(int(self._value))
+                if isinstance(self._value, float) and self._value == int(self._value)
+                else str(self._value)
+            )
+            label_surf = self._slider_font.render(
+                label, True, _color_name_to_rgb(self._value_color)
+            )
+            canvas_w = w + 6 + label_surf.get_width()
+        else:
+            canvas_w = w
+
+        draw_image = pygame.Surface((canvas_w, canvas_h), pygame.SRCALPHA)
 
         cy = canvas_h // 2  # vertical centre
 
@@ -137,30 +153,25 @@ class Slider(Sprite):
             self._thumb_radius,
         )
 
-        # Dim when disabled
+        # Dim when disabled (covers the whole canvas, including the label)
         if self._is_disabled:
-            overlay = pygame.Surface((w, canvas_h), pygame.SRCALPHA)
+            overlay = pygame.Surface((canvas_w, canvas_h), pygame.SRCALPHA)
             overlay.fill((200, 200, 200, 120))
             draw_image.blit(overlay, (0, 0))
 
-        # Value label
-        if self._show_value:
-            label = (
-                str(int(self._value))
-                if isinstance(self._value, float) and self._value == int(self._value)
-                else str(self._value)
-            )
-            label_surf = self._slider_font.render(
-                label, True, _color_name_to_rgb(self._value_color)
-            )
+        # Value label, to the right of the track
+        if label_surf is not None:
             draw_image.blit(label_surf, (w + 6, cy - label_surf.get_height() // 2))
 
         draw_image.set_alpha(round(self._transparency * 255 / 100))
 
+        # Centre the *track* region (left ``w`` pixels) on the sprite position so
+        # the drag math in _update_value_from_mouse stays consistent regardless of
+        # the extra label width on the right.
         self.rect = draw_image.get_rect()
         pos = convert_pos(self.x, self.y)
-        self.rect.x = pos[0] - self.rect.width // 2
-        self.rect.y = pos[1] - self.rect.height // 2
+        self.rect.x = pos[0] - w // 2
+        self.rect.y = pos[1] - canvas_h // 2
         angle_deg = _math.degrees(self.physics._pymunk_body.angle)
         self.image = pygame.transform.rotate(draw_image, angle_deg)
         self.rect = self.image.get_rect(center=self.rect.center)

@@ -86,6 +86,15 @@ def test_slider_image_rendered():
     assert s.image is not None
 
 
+def test_slider_show_value_widens_image():
+    # Regression: show_value must include the label in the surface, not clip it
+    # off the right edge.
+    plain = play.new_slider(width=200, value=100, show_value=False)
+    labelled = play.new_slider(width=200, value=100, show_value=True)
+    assert labelled.image is not None
+    assert labelled.image.get_width() > plain.image.get_width()
+
+
 def test_slider_clone():
     s = play.new_slider(min_value=10, max_value=90, value=40)
     c = s.clone()
