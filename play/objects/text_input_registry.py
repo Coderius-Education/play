@@ -55,6 +55,7 @@ def focus_next():
     Cycles wrap around; if no widget is focused, focuses the first one."""
     visible = [w for w in _tab_order if w.alive() and not w._is_disabled]
     if not visible:
+        clear_focus()
         return
     current = globals_list.focused_text_input
     if current is None or current not in visible:

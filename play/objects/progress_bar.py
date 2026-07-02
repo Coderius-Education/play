@@ -4,7 +4,7 @@ import math as _math
 import pygame
 
 from .box import Box
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
 from ..io.screen import convert_pos
 
 
@@ -40,13 +40,7 @@ class ProgressBar(Box):
         self._label_color = label_color
         self._font_size = font_size
         self._font_path = font
-        if font and font != "default":
-            try:
-                self._font = pygame.font.Font(font, font_size)
-            except (FileNotFoundError, OSError):
-                self._font = pygame.font.SysFont(None, font_size)
-        else:
-            self._font = pygame.font.SysFont(None, font_size)
+        self._font = _load_font(font, font_size)
 
         super().__init__(
             color=background_color,

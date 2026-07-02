@@ -216,6 +216,33 @@ def test_tab_skips_disabled():
     assert globals_list.focused_text_input is ti3
 
 
+def test_tab_with_all_fields_disabled_clears_focus():
+    # Regression: focus_next() must not strand focus when nothing is focusable.
+    ti1 = play.new_text_input(x=-100, y=0)
+    ti2 = play.new_text_input(x=100, y=0)
+    registry.focus(ti1)
+    # Disable every field via the private attr (bypasses the disabled setter).
+    ti1._is_disabled = True
+    ti2._is_disabled = True
+    ti1._handle_keydown(_keydown(pygame.K_TAB))
+    assert globals_list.focused_text_input is None
+    assert ti1._is_focused is False
+
+
+def test_copy_survives_unavailable_scrap(monkeypatch):
+    # Regression: Ctrl+C/Ctrl+X must not propagate when pygame.scrap is unavailable.
+    ti = play.new_text_input(value="hello")
+    registry.focus(ti)
+    ti._selection_start, ti._selection_end = 0, 5
+
+    def _boom(*_args, **_kwargs):
+        raise pygame.error("scrap not available")
+
+    monkeypatch.setattr(pygame.scrap, "init", _boom)
+    # Should not raise.
+    ti._handle_keydown(_keydown(pygame.K_c, mod=pygame.KMOD_CTRL))
+
+
 def test_register_on_creation():
     from play.objects.text_input_registry import _tab_order
 

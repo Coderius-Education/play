@@ -202,15 +202,13 @@ class TextInput(Box):
         if ctrl and event.key == pygame.K_c:
             selected = self._get_selected_text()
             if selected:
-                pygame.scrap.init()
-                pygame.scrap.put_text(selected)
+                self._copy_to_clipboard(selected)
             return
 
         if ctrl and event.key == pygame.K_x:
             selected = self._get_selected_text()
             if selected:
-                pygame.scrap.init()
-                pygame.scrap.put_text(selected)
+                self._copy_to_clipboard(selected)
                 self._delete_selection()
                 self._fire_change()
             return
@@ -271,6 +269,15 @@ class TextInput(Box):
                 self._fire_change()
 
     # ── selection helpers ─────────────────────────────────────────────────────
+
+    @staticmethod
+    def _copy_to_clipboard(text):
+        """Put *text* on the system clipboard, ignoring unavailable-scrap errors."""
+        try:
+            pygame.scrap.init()
+            pygame.scrap.put_text(text)
+        except (pygame.error, OSError, ValueError):  # scrap not available everywhere
+            pass
 
     def _get_selected_text(self):
         if self._selection_start is None:
@@ -337,13 +344,8 @@ class TextInput(Box):
         else:
             y_pos = (self.image.get_height() - font.get_height()) // 2
 
-        # Draw cursor as a thin vertical line.
-        if (
-            self._is_focused
-            and self._cursor_visible
-            and has_value
-            or (self._is_focused and self._cursor_visible)
-        ):
+        # Draw cursor as a thin vertical line (also shown in an empty focused field).
+        if self._is_focused and self._cursor_visible:
             cursor_x_screen = padding + (cursor_x_full - scroll_x)
             cursor_x_screen = max(padding, min(cursor_x_screen, padding + max_w))
             cursor_h = font.get_height()
