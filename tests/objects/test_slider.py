@@ -81,6 +81,15 @@ def test_slider_alive():
     assert s.alive()
 
 
+def test_slider_hit_shape_matches_size():
+    # Regression: a 0x0 rect at construction gave a degenerate point hit-shape,
+    # so only dead-centre clicks could grab the slider.
+    s = play.new_slider(width=200, height=20, thumb_radius=12)
+    bb = s.physics._pymunk_shape.bb
+    assert (bb.right - bb.left) > 0
+    assert (bb.top - bb.bottom) > 0
+
+
 # ── drag interaction ──────────────────────────────────────────────────────────
 # The 800x600 test display puts x=0 at screen centre. For a slider at x=0 with
 # width=200 and thumb_radius=12, the usable track spans mouse.x ∈ [-88, +88],

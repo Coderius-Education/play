@@ -59,7 +59,10 @@ class Slider(Sprite):
         self._step = step
         self._on_change_callbacks = []
         self._image = None
-        self.rect = pygame.Rect(0, 0, 0, 0)
+        # Seed the rect with the real widget size so the pymunk hit-shape is
+        # built correctly; a 0x0 rect yields a degenerate point shape that only
+        # registers clicks at the exact centre.
+        self.rect = pygame.Rect(0, 0, width, height + thumb_radius * 2)
         super().__init__(x=x, y=y, anchor=anchor, layer=layer)
         self.update()
 

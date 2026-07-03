@@ -109,25 +109,32 @@ class Button(Box):
 
     # ── override when_clicked to honour disabled state ───────────────────────
 
-    def when_clicked(self, callback, call_with_sprite=False):
-        """Register a click callback; the callback is silently skipped when disabled."""
+    def _guard_disabled(self, callback):
+        """Wrap *callback* so it's skipped while disabled, preserving async-ness."""
+        if _inspect.iscoroutinefunction(callback):
 
-        def guarded(*args, **kwargs):
-            if not self._is_disabled:
-                callback(*args, **kwargs)
+            async def guarded(*args, **kwargs):
+                if not self._is_disabled:
+                    await callback(*args, **kwargs)
+
+        else:
+
+            def guarded(*args, **kwargs):
+                if not self._is_disabled:
+                    callback(*args, **kwargs)
 
         guarded.__name__ = getattr(callback, "__name__", "guarded")
-        return super().when_clicked(guarded, call_with_sprite)
+        return guarded
+
+    def when_clicked(self, callback, call_with_sprite=False):
+        """Register a click callback; the callback is silently skipped when disabled."""
+        return super().when_clicked(self._guard_disabled(callback), call_with_sprite)
 
     def when_click_released(self, callback, call_with_sprite=False):
         """Register a click-release callback; skipped when disabled."""
-
-        def guarded(*args, **kwargs):
-            if not self._is_disabled:
-                callback(*args, **kwargs)
-
-        guarded.__name__ = getattr(callback, "__name__", "guarded")
-        return super().when_click_released(guarded, call_with_sprite)
+        return super().when_click_released(
+            self._guard_disabled(callback), call_with_sprite
+        )
 
     # ── hover callbacks ───────────────────────────────────────────────────────
 

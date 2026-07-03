@@ -103,7 +103,12 @@ class RadioButton(Sprite):
         self._is_disabled = disabled
         self._selected = selected
         self._image = None
-        self.rect = pygame.Rect(0, 0, 0, 0)
+        # Seed the rect with the real widget size so the pymunk hit-shape is
+        # built correctly (a 0x0 rect yields a degenerate point shape that makes
+        # clicks miss or bleed between stacked radios).
+        label_w = self._radio_font.size(label)[0] if label else 0
+        w = size_px + (10 + label_w if label else 0)
+        self.rect = pygame.Rect(0, 0, w, size_px)
 
         if group is not None:
             group._register(self)

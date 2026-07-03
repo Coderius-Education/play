@@ -121,6 +121,39 @@ def test_radio_button_click_selects():
     assert r._selected is True
 
 
+def test_radio_button_hit_shape_matches_size():
+    # Regression: the pymunk hit-shape must span the widget, not be a 0x0 point.
+    r = play.new_radio_button("Label", value="x", x=0, y=0, size_px=22)
+    bb = r.physics._pymunk_shape.bb
+    assert (bb.right - bb.left) > 0
+    assert (bb.top - bb.bottom) > 0
+
+
+def test_stacked_radios_select_independently():
+    # Regression: a vertical stack of radios must each be clickable — a degenerate
+    # hit-shape made every click land on the last radio.
+    g = play.new_radio_group()
+    top = play.new_radio_button("Top", value="top", group=g, x=-250, y=185)
+    mid = play.new_radio_button("Mid", value="mid", group=g, x=-250, y=155)
+    bot = play.new_radio_button("Bot", value="bot", group=g, x=-250, y=125)
+    for r in (top, mid, bot):
+        r.update()
+
+    def click(y):
+        mouse.x, mouse.y = -250, y
+        mouse_state.click_happened = True
+        for r in (top, mid, bot):
+            r.update()
+        mouse_state.click_happened = False
+
+    click(155)
+    assert g.selected_value == "mid"
+    click(185)
+    assert g.selected_value == "top"
+    click(125)
+    assert g.selected_value == "bot"
+
+
 def test_radio_button_alive():
     r = play.new_radio_button()
     assert r.alive()

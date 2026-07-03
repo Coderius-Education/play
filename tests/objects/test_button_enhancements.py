@@ -1,5 +1,8 @@
 """Tests for enhanced Button features: click_color, disabled, hover callbacks."""
 
+import asyncio
+import inspect
+
 import pytest
 import play
 from play.io.mouse import mouse
@@ -8,6 +11,53 @@ from play.io.mouse import mouse
 @pytest.fixture(autouse=True)
 def setup_play(clean_play_state):
     pass
+
+
+# ── async click callbacks ─────────────────────────────────────────────────────
+
+
+def test_when_clicked_preserves_async_callback():
+    # Regression: the disabled-guard wrapper must stay a coroutine function for
+    # async callbacks, otherwise the game loop never awaits them.
+    btn = play.new_button()
+
+    async def cb():
+        pass
+
+    guarded = btn._guard_disabled(cb)
+    assert inspect.iscoroutinefunction(guarded)
+
+
+def test_when_clicked_sync_callback_stays_sync():
+    btn = play.new_button()
+
+    def cb():
+        pass
+
+    guarded = btn._guard_disabled(cb)
+    assert not inspect.iscoroutinefunction(guarded)
+
+
+def test_async_guard_runs_when_enabled():
+    btn = play.new_button()
+    seen = []
+
+    async def cb():
+        seen.append(1)
+
+    asyncio.run(btn._guard_disabled(cb)())
+    assert seen == [1]
+
+
+def test_async_guard_skips_when_disabled():
+    btn = play.new_button(disabled=True)
+    seen = []
+
+    async def cb():
+        seen.append(1)
+
+    asyncio.run(btn._guard_disabled(cb)())
+    assert seen == []
 
 
 # ── click_color ───────────────────────────────────────────────────────────────
