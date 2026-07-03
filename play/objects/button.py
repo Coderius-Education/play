@@ -4,7 +4,11 @@ import inspect as _inspect
 
 from .box import Box
 from ..io.mouse import mouse
-from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
+from ..utils import (
+    color_name_to_rgb as _color_name_to_rgb,
+    load_font as _load_font,
+    reject_async_callback as _reject_async,
+)
 
 
 class Button(Box):
@@ -124,6 +128,13 @@ class Button(Box):
                     callback(*args, **kwargs)
 
         guarded.__name__ = getattr(callback, "__name__", "guarded")
+        # Expose the wrapped callback's signature so the dispatcher's arg-count
+        # check (callback_helpers._resolve_callback_args) still works — otherwise
+        # the *args wrapper reads as zero args and call_with_sprite=True raises.
+        try:
+            guarded.__signature__ = _inspect.signature(callback)
+        except (ValueError, TypeError):
+            pass
         return guarded
 
     def when_clicked(self, callback, call_with_sprite=False):
@@ -140,19 +151,13 @@ class Button(Box):
 
     def when_hover(self, func):
         """Decorator — *func()* is called when the mouse pointer enters the button."""
-        if _inspect.iscoroutinefunction(func):
-            raise TypeError(
-                f"{func.__name__} is async. when_hover callbacks must be regular functions."
-            )
+        _reject_async(func, "when_hover")
         self._hover_callbacks.append(func)
         return func
 
     def when_unhover(self, func):
         """Decorator — *func()* is called when the mouse pointer leaves the button."""
-        if _inspect.iscoroutinefunction(func):
-            raise TypeError(
-                f"{func.__name__} is async. when_unhover callbacks must be regular functions."
-            )
+        _reject_async(func, "when_unhover")
         self._unhover_callbacks.append(func)
         return func
 

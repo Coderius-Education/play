@@ -166,6 +166,21 @@ def test_dropdown_image_rendered():
     assert dd.image.get_width() > 0 and dd.image.get_height() > 0
 
 
+def test_dropdown_anchor_rect_height_stays_closed_when_open():
+    # Regression: the anchor/collision rect keeps the closed-button height so an
+    # edge-anchored dropdown doesn't jump vertically when the menu opens.
+    dd = play.new_dropdown(
+        options=["A", "B", "C"], anchor="top-left", x=10, y=10, width=160, height=40
+    )
+    dd.update()
+    assert dd.rect.height == 40
+    dd._dropdown_open = True
+    dd._should_recompute = True
+    dd.update()
+    assert dd.image.get_height() > 40  # the drawn image did expand
+    assert dd.rect.height == 40  # but the anchor rect did not
+
+
 def test_dropdown_open_image_taller_than_closed():
     # Opening must actually expand the drawn surface to show the option rows.
     dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)

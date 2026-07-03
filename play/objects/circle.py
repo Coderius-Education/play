@@ -34,6 +34,10 @@ class Circle(Sprite):
         super().__init__(x=x, y=y, anchor=anchor, layer=layer)
         self.update()
 
+    def _hit_dims(self, size_factor):
+        """Circle hit-shape uses its radius, scaled by size."""
+        return self._radius * size_factor, 0.0, 0.0
+
     def clone(self):
         """Create a copy of the circle.
         :return: A copy of the circle."""

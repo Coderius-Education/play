@@ -38,6 +38,10 @@ class Box(Sprite):
         super().__init__(x=x, y=y, anchor=anchor, layer=layer)
         self.update()
 
+    def _hit_dims(self, size_factor):
+        """Box hit-shape uses its logical width/height, scaled by size."""
+        return 0.0, self._width * size_factor, self._height * size_factor
+
     def _render(self):
         """Draw the box surface with border, scale, alpha, and rotation."""
         draw_image = pygame.Surface((self._width, self._height), pygame.SRCALPHA)

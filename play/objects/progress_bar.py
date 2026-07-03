@@ -1,11 +1,9 @@
 """ProgressBar — a read-only range display widget (health bar, loading bar, etc.)."""
 
-import math as _math
 import pygame
 
 from .box import Box
 from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
-from ..io.screen import convert_pos
 
 
 class ProgressBar(Box):
@@ -101,15 +99,7 @@ class ProgressBar(Box):
             ly = (h - label_surf.get_height()) // 2
             draw_image.blit(label_surf, (lx, ly))
 
-        draw_image.set_alpha(round(self._transparency * 255 / 100))
-
-        self.rect = draw_image.get_rect()
-        pos = convert_pos(self.x, self.y)
-        self.rect.x = pos[0] - self.rect.width // 2
-        self.rect.y = pos[1] - self.rect.height // 2
-        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
-        self.image = pygame.transform.rotate(draw_image, angle_deg)
-        self.rect = self.image.get_rect(center=self.rect.center)
+        self._finalize_image(draw_image)
 
     # ── public API ────────────────────────────────────────────────────────────
 

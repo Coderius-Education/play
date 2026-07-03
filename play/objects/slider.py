@@ -1,12 +1,15 @@
 """Slider — a draggable range-input widget."""
 
-import inspect as _inspect
 import math as _math
 import pygame
 
 from .sprite import Sprite
 from ..io.mouse import mouse
-from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
+from ..utils import (
+    color_name_to_rgb as _color_name_to_rgb,
+    load_font as _load_font,
+    reject_async_callback as _reject_async,
+)
 from ..io.screen import convert_pos, screen
 from ..core.mouse_loop import mouse_state
 
@@ -158,9 +161,7 @@ class Slider(Sprite):
 
         # Dim when disabled (covers the whole canvas, including the label)
         if self._is_disabled:
-            overlay = pygame.Surface((canvas_w, canvas_h), pygame.SRCALPHA)
-            overlay.fill((200, 200, 200, 120))
-            draw_image.blit(overlay, (0, 0))
+            self._draw_disabled_overlay(draw_image)
 
         # Value label, to the right of the track
         if label_surf is not None:
@@ -227,10 +228,7 @@ class Slider(Sprite):
 
     def when_changed(self, func):
         """Decorator — *func(value)* is called whenever the slider moves."""
-        if _inspect.iscoroutinefunction(func):
-            raise TypeError(
-                f"{func.__name__} is async. when_changed callbacks must be regular functions."
-            )
+        _reject_async(func, "when_changed")
         self._on_change_callbacks.append(func)
         return func
 

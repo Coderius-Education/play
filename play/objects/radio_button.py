@@ -1,13 +1,14 @@
 """RadioButton and RadioGroup — mutually exclusive selection controls."""
 
-import inspect as _inspect
-import math as _math
 import pygame
 
 from .sprite import Sprite
 from ..io.mouse import mouse
-from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
-from ..io.screen import convert_pos
+from ..utils import (
+    color_name_to_rgb as _color_name_to_rgb,
+    load_font as _load_font,
+    reject_async_callback as _reject_async,
+)
 from ..core.mouse_loop import mouse_state
 
 
@@ -55,10 +56,7 @@ class RadioGroup:
 
     def when_changed(self, func):
         """Decorator — *func(value)* is called when selection changes."""
-        if _inspect.iscoroutinefunction(func):
-            raise TypeError(
-                f"{func.__name__} is async. when_changed callbacks must be regular functions."
-            )
+        _reject_async(func, "when_changed")
         self._on_change_callbacks.append(func)
         return func
 
@@ -161,9 +159,7 @@ class RadioButton(Sprite):
 
         # Dim when disabled
         if self._is_disabled:
-            overlay = pygame.Surface((w, h), pygame.SRCALPHA)
-            overlay.fill((200, 200, 200, 120))
-            draw_image.blit(overlay, (0, 0))
+            self._draw_disabled_overlay(draw_image)
 
         # Label
         if self._label_text:
@@ -173,15 +169,7 @@ class RadioButton(Sprite):
             ly = (h - label_surf.get_height()) // 2
             draw_image.blit(label_surf, (self._size_px + 10, ly))
 
-        draw_image.set_alpha(round(self._transparency * 255 / 100))
-
-        self.rect = draw_image.get_rect()
-        pos = convert_pos(self.x, self.y)
-        self.rect.x = pos[0] - self.rect.width // 2
-        self.rect.y = pos[1] - self.rect.height // 2
-        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
-        self.image = pygame.transform.rotate(draw_image, angle_deg)
-        self.rect = self.image.get_rect(center=self.rect.center)
+        self._finalize_image(draw_image)
 
     # ── public API ────────────────────────────────────────────────────────────
 
@@ -211,6 +199,12 @@ class RadioButton(Sprite):
     @label.setter
     def label(self, v):
         self._label_text = v
+        # Resize the hit-shape to match the new label width (the shape is built
+        # from self.rect, which otherwise stays frozen at the old label size).
+        label_w = self._radio_font.size(v)[0] if v else 0
+        w = self._size_px + (10 + label_w if v else 0)
+        self.rect = pygame.Rect(self.rect.x, self.rect.y, w, self._size_px)
+        self.physics._make_pymunk()
         self._should_recompute = True
 
     @property

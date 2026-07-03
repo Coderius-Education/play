@@ -51,10 +51,23 @@ class Tooltip(Sprite):
         self._size = 100
         self._angle = 0
         self._image = None
-        self.rect = pygame.Rect(0, 0, 0, 0)
+        # Seed the rect with the bubble size so the pymunk hit-shape isn't a
+        # degenerate 0x0 point (keeps the tooltip hit-testable, and consistent
+        # with the other Sprite-based widgets).
+        bw, bh = self._bubble_size()
+        self.rect = pygame.Rect(0, 0, bw, bh)
         super().__init__(x=0, y=0, layer=layer)
         self._is_hidden = True
         self.update()
+
+    def _bubble_size(self):
+        """Return the (width, height) of the tooltip bubble for the current text."""
+        font = self._tooltip_font
+        lines = self._tooltip_text.split("\n")
+        text_w = max((font.size(ln)[0] for ln in lines), default=0)
+        text_h = font.get_height() * len(lines) + max(0, len(lines) - 1) * 2
+        p = self._padding
+        return max(1, text_w + 2 * p), max(1, text_h + 2 * p)
 
     def update(self):
         """Show/hide based on whether the mouse is over the target."""
@@ -131,6 +144,9 @@ class Tooltip(Sprite):
     @text.setter
     def text(self, v):
         self._tooltip_text = v
+        bw, bh = self._bubble_size()
+        self.rect = pygame.Rect(self.rect.x, self.rect.y, bw, bh)
+        self.physics._make_pymunk()
         self._should_recompute = True
 
     @property

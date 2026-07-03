@@ -185,6 +185,20 @@ def test_radio_button_image_rendered():
     assert r.image.get_width() > 0 and r.image.get_height() > 0
 
 
+def test_radio_button_label_change_resizes_hit_shape():
+    # Regression: the pymunk hit-shape must grow when the label widens, so the
+    # new label region is clickable.
+    r = play.new_radio_button("A", value="a", x=0, y=0, size_px=22)
+
+    def shape_width():
+        bb = r.physics._pymunk_shape.bb
+        return bb.right - bb.left
+
+    narrow = shape_width()
+    r.label = "A considerably longer option label"
+    assert shape_width() > narrow
+
+
 def test_radio_button_selected_dot_only_when_selected():
     dot_rgb = color_name_to_rgb("royalblue")
     off = play.new_radio_button("A", selected_color="royalblue", selected=False)

@@ -60,6 +60,23 @@ def test_async_guard_skips_when_disabled():
     assert seen == []
 
 
+def test_guard_preserves_callback_signature():
+    # Regression: the guard must expose the wrapped callback's signature so the
+    # dispatcher's arg-count check works with call_with_sprite=True.
+    btn = play.new_button()
+
+    def handler(sprite):
+        pass
+
+    guarded = btn._guard_disabled(handler)
+    assert list(inspect.signature(guarded).parameters) == ["sprite"]
+
+    def noarg():
+        pass
+
+    assert list(inspect.signature(btn._guard_disabled(noarg)).parameters) == []
+
+
 # ── click_color ───────────────────────────────────────────────────────────────
 
 

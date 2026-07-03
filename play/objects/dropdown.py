@@ -1,12 +1,15 @@
 """Dropdown — a button that reveals a list of selectable options."""
 
-import inspect as _inspect
 import math as _math
 import pygame
 
 from .box import Box
 from ..io.mouse import mouse
-from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
+from ..utils import (
+    color_name_to_rgb as _color_name_to_rgb,
+    load_font as _load_font,
+    reject_async_callback as _reject_async,
+)
 from ..io.screen import convert_pos, screen
 from ..core.mouse_loop import mouse_state
 
@@ -206,25 +209,24 @@ class Dropdown(Box):
                 draw_image.blit(opt_surf, (bw + 8, oly))
 
         if self._is_disabled:
-            overlay = pygame.Surface((w, total_h), pygame.SRCALPHA)
-            overlay.fill((200, 200, 200, 120))
-            draw_image.blit(overlay, (0, 0))
+            self._draw_disabled_overlay(draw_image)
 
         draw_image.set_alpha(round(self._transparency * 255 / 100))
 
-        # Position: anchor the TOP of the sprite at the usual center position
-        # so the options expand downward naturally.
-        self.rect = draw_image.get_rect()
+        # Position: the closed button stays centred at the play-coordinate y and
+        # the option list expands downward. The image (which may be taller than
+        # the button when open) blits from rect.topleft, so we keep rect.height
+        # at the *closed* height — otherwise _apply_anchor would re-anchor using
+        # the full open height and an edge-anchored dropdown would jump when it
+        # opens.
         pos = convert_pos(self.x, self.y)
-        self.rect.x = pos[0] - w // 2
-        # Shift upward by half of the closed height so the button stays centred
-        # at the play-coordinate y when closed.
-        self.rect.y = pos[1] - self._height // 2
         angle_deg = _math.degrees(self.physics._pymunk_body.angle)
         self.image = pygame.transform.rotate(draw_image, angle_deg)
         self.rect = self.image.get_rect(
             center=(pos[0], pos[1] - self._height // 2 + total_h // 2)
         )
+        self.rect.height = self._height
+        self.rect.top = pos[1] - self._height // 2
 
     # ── public API ────────────────────────────────────────────────────────────
 
@@ -276,10 +278,7 @@ class Dropdown(Box):
 
     def when_changed(self, func):
         """Decorator — *func(value, index)* is called when the selection changes."""
-        if _inspect.iscoroutinefunction(func):
-            raise TypeError(
-                f"{func.__name__} is async. when_changed callbacks must be regular functions."
-            )
+        _reject_async(func, "when_changed")
         self._on_change_callbacks.append(func)
         return func
 

@@ -10,7 +10,7 @@ from ..api.auto_start import _schedule_auto_start
 from ..callback import callback_manager, CallbackType
 from ..callback.collision_callbacks import collision_registry
 from ..globals import globals_list
-from ..io.screen import screen
+from ..io.screen import screen, convert_pos
 from ..physics import physics_space, Physics as _Physics
 from ..utils import clamp as _clamp, is_called_from_pygame
 from .components import EventComponent
@@ -513,6 +513,35 @@ You might want to look in your code where you're setting transparency and make s
                 stacklevel=2,
             )
         super().remove_internal(group)
+
+    def _draw_disabled_overlay(self, surface):
+        """Dim *surface* in place with a translucent grey to signal disabled state."""
+        overlay = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+        overlay.fill((200, 200, 200, 120))
+        surface.blit(overlay, (0, 0))
+
+    def _finalize_image(self, draw_image):
+        """Apply transparency + rotation and centre the sprite at its play position.
+
+        Shared render tail for widgets drawn into *draw_image* that sit centred
+        on ``(self.x, self.y)``."""
+        draw_image.set_alpha(round(self._transparency * 255 / 100))
+        self.rect = draw_image.get_rect()
+        pos = convert_pos(self.x, self.y)
+        self.rect.x = pos[0] - self.rect.width // 2
+        self.rect.y = pos[1] - self.rect.height // 2
+        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
+        self.image = pygame.transform.rotate(draw_image, angle_deg)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def _hit_dims(self, size_factor):  # pylint: disable=unused-argument
+        """Return ``(radius, width, height)`` for the pymunk hit-shape.
+
+        The physics layer calls this when (re)building the collision shape.
+        The default uses the current rendered rect; subclasses whose logical
+        size differs from the rect (Box, Circle) override this. A positive
+        radius selects a circular shape."""
+        return 0.0, float(self.width), float(self.height)
 
     @property
     def width(self):

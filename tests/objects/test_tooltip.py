@@ -98,3 +98,11 @@ def test_tooltip_multiline_taller_than_single_line():
 def test_tooltip_alive():
     _target, tip = _make()
     assert tip.alive()
+
+
+def test_tooltip_hit_shape_not_degenerate():
+    # Regression: the tooltip must not carry a 0x0 point hit-shape.
+    tip = play.new_tooltip("Hello there")
+    bb = tip.physics._pymunk_shape.bb
+    assert (bb.right - bb.left) > 0
+    assert (bb.top - bb.bottom) > 0
