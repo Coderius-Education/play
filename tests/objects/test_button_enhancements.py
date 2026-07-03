@@ -140,14 +140,20 @@ def test_disabled_custom_color_stored():
 
 
 def test_disabled_click_callback_suppressed():
-    btn = play.new_button(x=0, y=0, width=100, height=50)
-    btn.disabled = True
+    # The guard wrapper must swallow the callback while disabled.
+    btn = play.new_button(x=0, y=0, width=100, height=50, disabled=True)
     fired = []
-    btn.when_clicked(lambda: fired.append(1))
-    # Simulate the guarded callback directly
-    # (not triggering via game loop — just verifying the wrapper suppresses it)
-    guarded = btn.events._is_clicked  # flag is still False (no actual click dispatched)
-    assert btn.disabled is True
+    guarded = btn._guard_disabled(lambda: fired.append(1))
+    guarded()
+    assert fired == []
+
+
+def test_enabled_click_callback_fires():
+    btn = play.new_button(x=0, y=0, width=100, height=50)
+    fired = []
+    guarded = btn._guard_disabled(lambda: fired.append(1))
+    guarded()
+    assert fired == [1]
 
 
 # ── when_hover / when_unhover callbacks ───────────────────────────────────────

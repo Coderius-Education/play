@@ -2,6 +2,8 @@
 
 import pytest
 import play
+from play.utils import color_name_to_rgb
+from tests.conftest import count_color
 
 
 @pytest.fixture(autouse=True)
@@ -77,6 +79,29 @@ def test_progress_bar_alive():
 def test_progress_bar_image_rendered():
     pb = play.new_progress_bar()
     assert pb.image is not None
+    assert pb.image.get_width() > 0 and pb.image.get_height() > 0
+
+
+def test_progress_bar_fill_tracks_value():
+    # More bar-colour pixels at max than at zero — the fill must respond to value.
+    bar_rgb = color_name_to_rgb("royalblue")
+    empty = play.new_progress_bar(
+        min_value=0, max_value=100, value=0, bar_color="royalblue"
+    )
+    full = play.new_progress_bar(
+        min_value=0, max_value=100, value=100, bar_color="royalblue"
+    )
+    assert count_color(full.image, bar_rgb) > count_color(empty.image, bar_rgb)
+
+
+def test_progress_bar_show_label_draws_pixels():
+    # The percentage label must actually be drawn on the surface.
+    label_rgb = color_name_to_rgb("black")
+    without = play.new_progress_bar(value=50, show_label=False, label_color="black")
+    with_lbl = play.new_progress_bar(value=50, show_label=True, label_color="black")
+    assert count_color(with_lbl.image, label_rgb) > count_color(
+        without.image, label_rgb
+    )
 
 
 def test_progress_bar_clone():

@@ -4,6 +4,8 @@ import pytest
 import play
 from play.io.mouse import mouse
 from play.core.mouse_loop import mouse_state
+from play.utils import color_name_to_rgb
+from tests.conftest import count_color
 
 
 @pytest.fixture(autouse=True)
@@ -58,6 +60,24 @@ def test_radio_group_when_changed_fires():
     g.when_changed(received.append)
     g._select(r2)
     assert received == ["b"]
+
+
+def test_radio_group_when_changed_fires_on_click():
+    # The real interaction path: clicking a radio must fire the group callback.
+    g = play.new_radio_group()
+    r1 = play.new_radio_button("A", value="a", group=g, x=-120, y=0)
+    r2 = play.new_radio_button("B", value="b", group=g, x=120, y=0)
+    for r in (r1, r2):
+        r.update()
+    received = []
+    g.when_changed(received.append)
+    mouse.x, mouse.y = 120, 0
+    mouse_state.click_happened = True
+    for r in (r1, r2):
+        r.update()
+    mouse_state.click_happened = False
+    assert received == ["b"]
+    assert g.selected_value == "b"
 
 
 def test_radio_group_when_changed_rejects_async():
@@ -162,6 +182,15 @@ def test_radio_button_alive():
 def test_radio_button_image_rendered():
     r = play.new_radio_button()
     assert r.image is not None
+    assert r.image.get_width() > 0 and r.image.get_height() > 0
+
+
+def test_radio_button_selected_dot_only_when_selected():
+    dot_rgb = color_name_to_rgb("royalblue")
+    off = play.new_radio_button("A", selected_color="royalblue", selected=False)
+    on = play.new_radio_button("A", selected_color="royalblue", selected=True)
+    assert count_color(off.image, dot_rgb) == 0
+    assert count_color(on.image, dot_rgb) > 0
 
 
 def test_radio_button_unregisters_on_remove():

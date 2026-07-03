@@ -163,6 +163,20 @@ def test_dropdown_alive():
 def test_dropdown_image_rendered():
     dd = play.new_dropdown(options=["A", "B"])
     assert dd.image is not None
+    assert dd.image.get_width() > 0 and dd.image.get_height() > 0
+
+
+def test_dropdown_open_image_taller_than_closed():
+    # Opening must actually expand the drawn surface to show the option rows.
+    dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
+    dd.update()
+    closed_h = dd.image.get_height()
+    mouse.x, mouse.y = 0, 0
+    mouse_state.click_happened = True
+    dd.update()  # open
+    mouse_state.click_happened = False
+    assert dd.is_open is True
+    assert dd.image.get_height() > closed_h
 
 
 def test_dropdown_clone():

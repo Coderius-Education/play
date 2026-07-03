@@ -160,6 +160,42 @@ def test_slider_no_drag_without_prior_grab():
 def test_slider_image_rendered():
     s = play.new_slider()
     assert s.image is not None
+    assert s.image.get_width() > 0 and s.image.get_height() > 0
+
+
+def _thumb_mean_x(surface, rgb):
+    """Mean x of pixels matching *rgb* (the thumb colour), or None if absent."""
+    tr, tg, tb = rgb[:3]
+    xs = []
+    for x in range(surface.get_width()):
+        for y in range(surface.get_height()):
+            c = surface.get_at((x, y))
+            if c.r == tr and c.g == tg and c.b == tb and c.a != 0:
+                xs.append(x)
+    return sum(xs) / len(xs) if xs else None
+
+
+def test_slider_thumb_moves_with_value():
+    # Give the thumb a colour distinct from the fill so we can locate it.
+    from play.utils import color_name_to_rgb
+
+    thumb_rgb = color_name_to_rgb("red")
+
+    def thumb_x(value):
+        s = play.new_slider(
+            min_value=0,
+            max_value=100,
+            value=value,
+            width=200,
+            thumb_color="red",
+            fill_color="blue",
+            track_color="lightgray",
+        )
+        return _thumb_mean_x(s.image, thumb_rgb)
+
+    left, mid, right = thumb_x(0), thumb_x(50), thumb_x(100)
+    assert left is not None and mid is not None and right is not None
+    assert left < mid < right
 
 
 def test_slider_show_value_widens_image():
