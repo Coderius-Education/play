@@ -52,6 +52,31 @@ def test_radio_group_selected_value_setter():
     assert r2._selected is True
 
 
+def test_radio_group_selected_value_setter_fires_when_changed():
+    # Regression: setting selected_value should fire when_changed, like the
+    # TextInput.value and Slider.value setters do.
+    g = play.new_radio_group()
+    r1 = play.new_radio_button("A", value="a", group=g, x=-50, y=0, selected=True)
+    r2 = play.new_radio_button("B", value="b", group=g, x=50, y=0)
+    received = []
+    g.when_changed(received.append)
+    g.selected_value = "b"
+    assert received == ["b"]
+    assert r2._selected is True
+    assert r1._selected is False
+
+
+def test_radio_group_selected_value_setter_no_match_clears_without_firing():
+    g = play.new_radio_group()
+    play.new_radio_button("A", value="a", group=g, x=-50, y=0, selected=True)
+    play.new_radio_button("B", value="b", group=g, x=50, y=0)
+    received = []
+    g.when_changed(received.append)
+    g.selected_value = "does-not-exist"
+    assert g.selected_value is None
+    assert received == []
+
+
 def test_radio_group_when_changed_fires():
     g = play.new_radio_group()
     r1 = play.new_radio_button("A", value="a", group=g, x=-50, y=0)

@@ -10,7 +10,7 @@ from ..utils import (
     load_font as _load_font,
     reject_async_callback as _reject_async,
 )
-from ..io.screen import convert_pos, screen
+from ..io.screen import convert_pos
 from ..core.mouse_loop import mouse_state
 
 
@@ -115,8 +115,7 @@ class Dropdown(Box):
         option_top = pos[0] - self._width // 2
         option_right = pos[0] + self._width // 2
 
-        mouse_px = mouse.x + screen.width / 2.0
-        mouse_py = screen.height / 2.0 - mouse.y
+        mouse_px, mouse_py = convert_pos(mouse.x, mouse.y)
 
         if not option_top <= mouse_px <= option_right:
             return -1

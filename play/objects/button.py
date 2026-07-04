@@ -235,7 +235,10 @@ class Button(Box):
         self._should_recompute = True
 
     def clone(self):
-        """Create a copy of this button."""
+        """Create a copy of this button.
+
+        when_clicked/when_click_released/when_hover/when_unhover callbacks are
+        not copied — register new callbacks on the returned instance."""
         return Button(
             text=self._button_text,
             x=self._anchor_ox if self._anchor else self.x,

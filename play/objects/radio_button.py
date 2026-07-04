@@ -49,9 +49,17 @@ class RadioGroup:
 
     @selected_value.setter
     def selected_value(self, v):
-        """Select the RadioButton with the given value (if it exists)."""
+        """Select the RadioButton with the given value.
+
+        Fires ``when_changed`` when a matching option exists (consistent with a
+        click). If no option matches, the selection is cleared and no callback
+        fires — there is no selected value to report."""
         for btn in self._buttons:
-            btn._selected = btn.value == v
+            if btn.value == v:
+                self._select(btn)
+                return
+        for btn in self._buttons:
+            btn._selected = False
             btn._should_recompute = True
 
     def when_changed(self, func):
