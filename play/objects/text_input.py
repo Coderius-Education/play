@@ -1,13 +1,16 @@
 """TextInput — a clickable, keyboard-editable text field widget."""
 
-import inspect as _inspect
 from typing import Optional as _Optional
 
 import pygame
 
 from .box import Box
 from ..io.mouse import mouse
-from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
+from ..utils import (
+    color_name_to_rgb as _color_name_to_rgb,
+    load_font as _load_font,
+    reject_async_callback as _reject_async,
+)
 from . import text_input_registry as _registry
 from ..core.mouse_loop import mouse_state
 
@@ -42,6 +45,9 @@ class TextInput(Box):
         readonly=False,
         password_mode=False,
     ):
+        self._max_length = max_length
+        if max_length is not None:
+            value = value[:max_length]
         self._input_value = value
         self._placeholder = placeholder
         self._active_color = active_color
@@ -51,7 +57,6 @@ class TextInput(Box):
         self._input_font_size = font_size
         self._input_font_path = font
         self._input_font = _load_font(font, font_size)
-        self._max_length = max_length
         self._is_focused = False
         self._cursor_visible = True
         self._last_blink = 0
@@ -221,8 +226,9 @@ class TextInput(Box):
                     if self._selection_start is not None:
                         self._delete_selection()
                     if self._max_length is not None:
-                        remaining = self._max_length - len(self._input_value)
+                        remaining = max(0, self._max_length - len(self._input_value))
                         pasted = pasted[:remaining]
+                if pasted:
                     self._input_value = (
                         self._input_value[: self._cursor_pos]
                         + pasted
@@ -230,6 +236,7 @@ class TextInput(Box):
                     )
                     self._cursor_pos += len(pasted)
                     self._selection_start = self._selection_end = None
+                    self._should_recompute = True
                     self._fire_change()
             except (
                 pygame.error,
@@ -393,7 +400,10 @@ class TextInput(Box):
     @value.setter
     def value(self, new_value):
         """Set the text value programmatically. Fires when_changed callbacks."""
-        self._input_value = str(new_value)
+        new_value = str(new_value)
+        if self._max_length is not None:
+            new_value = new_value[: self._max_length]
+        self._input_value = new_value
         self._cursor_pos = len(self._input_value)
         self._selection_start = self._selection_end = None
         self._should_recompute = True
@@ -475,19 +485,13 @@ class TextInput(Box):
 
     def when_changed(self, func):
         """Decorator — *func(value)* is called whenever the text changes."""
-        if _inspect.iscoroutinefunction(func):
-            raise TypeError(
-                f"{func.__name__} is async. when_changed callbacks must be regular functions."
-            )
+        _reject_async(func, "when_changed")
         self._on_change_callbacks.append(func)
         return func
 
     def when_submit(self, func):
         """Decorator — *func(value)* is called when the user presses Enter."""
-        if _inspect.iscoroutinefunction(func):
-            raise TypeError(
-                f"{func.__name__} is async. when_submit callbacks must be regular functions."
-            )
+        _reject_async(func, "when_submit")
         self._on_submit_callbacks.append(func)
         return func
 

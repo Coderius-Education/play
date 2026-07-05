@@ -81,9 +81,12 @@ class Dropdown(Box):
         """Handle clicks on the button and on the open option list."""
         if not self._is_disabled:
             if mouse_state.click_happened:
+                # Recompute the option under the cursor at click time rather than
+                # trusting last frame's cached value (the mouse may have moved).
+                clicked_option = self._option_at_mouse() if self._dropdown_open else -1
                 # Check if click lands on the open option list
-                if self._dropdown_open and self._hovered_option >= 0:
-                    self._select(self._hovered_option)
+                if self._dropdown_open and clicked_option >= 0:
+                    self._select(clicked_option)
                     self._dropdown_open = False
                     self._should_recompute = True
                 elif mouse.is_touching(self):

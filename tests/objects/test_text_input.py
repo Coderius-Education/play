@@ -86,6 +86,18 @@ def test_max_length_exact_boundary():
     assert ti.value == "ab"
 
 
+def test_max_length_enforced_by_constructor():
+    ti = play.new_text_input(value="x" * 100, max_length=5)
+    assert ti.value == "xxxxx"
+    assert ti._cursor_pos == 5
+
+
+def test_max_length_enforced_by_value_setter():
+    ti = play.new_text_input(max_length=5)
+    ti.value = "y" * 100
+    assert ti.value == "yyyyy"
+
+
 # ── callbacks ────────────────────────────────────────────────────────────────
 
 

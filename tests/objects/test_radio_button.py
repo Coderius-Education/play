@@ -4,6 +4,7 @@ import pytest
 import play
 from play.io.mouse import mouse
 from play.core.mouse_loop import mouse_state
+from play.physics import physics_space
 from play.utils import color_name_to_rgb
 from tests.conftest import count_color
 
@@ -208,6 +209,29 @@ def test_radio_button_image_rendered():
     r = play.new_radio_button()
     assert r.image is not None
     assert r.image.get_width() > 0 and r.image.get_height() > 0
+
+
+def test_radio_button_label_change_does_not_leak_bodies():
+    # Regression: the label setter must _remove() before _make_pymunk().
+    r = play.new_radio_button("A", value="a", x=0, y=0, size_px=22)
+    before = len(physics_space.bodies)
+    for i in range(5):
+        r.label = f"label {i}"
+    assert len(physics_space.bodies) == before
+
+
+def test_radio_button_hover_border_reacts():
+    # Regression: hovering must re-render so the hover border actually appears.
+    import pygame
+
+    r = play.new_radio_button("A", value="a", x=0, y=0, size_px=22)
+    mouse.x, mouse.y = 500, 500  # away from the radio
+    r.update()
+    away = pygame.image.tobytes(r.image, "RGBA")
+    mouse.x, mouse.y = 0, 0  # move over the radio
+    r.update()
+    over = pygame.image.tobytes(r.image, "RGBA")
+    assert away != over
 
 
 def test_radio_button_label_change_resizes_hit_shape():

@@ -108,6 +108,7 @@ class RadioButton(Sprite):
         self._angle = 0
         self._is_disabled = disabled
         self._selected = selected
+        self._was_hovered = False
         self._image = None
         # Seed the rect with the real widget size so the pymunk hit-shape is
         # built correctly (a 0x0 rect yields a degenerate point shape that makes
@@ -123,17 +124,19 @@ class RadioButton(Sprite):
         self.update()
 
     def update(self):
-        """Handle click to select."""
-        if (
-            not self._is_disabled
-            and mouse_state.click_happened
-            and mouse.is_touching(self)
-        ):
+        """Handle click to select; re-render on hover changes."""
+        hovered = mouse.is_touching(self)
+        if not self._is_disabled and mouse_state.click_happened and hovered:
             if self._group is not None:
                 self._group._select(self)
             else:
                 self._selected = True
                 self._should_recompute = True
+        # Hover border is computed in _render(); mark dirty when hover changes so
+        # the border actually reacts to the mouse entering/leaving.
+        if hovered != self._was_hovered:
+            self._was_hovered = hovered
+            self._should_recompute = True
         super().update()
 
     def _render(self):
@@ -212,6 +215,7 @@ class RadioButton(Sprite):
         label_w = self._radio_font.size(v)[0] if v else 0
         w = self._size_px + (10 + label_w if v else 0)
         self.rect = pygame.Rect(self.rect.x, self.rect.y, w, self._size_px)
+        self.physics._remove()
         self.physics._make_pymunk()
         self._should_recompute = True
 

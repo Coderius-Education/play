@@ -3,11 +3,33 @@
 import pytest
 import play
 from play.io.mouse import mouse
+from play.physics import physics_space
 
 
 @pytest.fixture(autouse=True)
 def setup_play(clean_play_state):
     pass
+
+
+def test_tooltip_text_change_does_not_leak_bodies():
+    # Regression: the text setter must _remove() before _make_pymunk(), otherwise
+    # each update orphans a body+shape in the physics space.
+    _target, tip = _make()
+    tip.show()  # unpause so the body is in the space
+    before = len(physics_space.bodies)
+    for i in range(5):
+        tip.text = f"update {i}"
+    assert len(physics_space.bodies) == before
+
+
+def test_tooltip_is_sensor_and_hidden_leaves_space():
+    _target, tip = _make()
+    # Hidden by default: its body should not be in the physics space.
+    assert tip._is_hidden is True
+    assert tip.physics._pymunk_body not in physics_space.bodies
+    # And it is a sensor so it never blocks other sprites when shown.
+    tip.show()
+    assert tip.physics.sensor is True
 
 
 def _make(text="Hi", target_x=200):

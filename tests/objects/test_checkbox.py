@@ -34,6 +34,20 @@ def test_checkbox_toggles_on_click():
     mouse_state.click_happened = False
 
 
+def test_checkbox_hover_border_reacts():
+    # Regression: hovering must re-render so the hover border actually appears.
+    import pygame
+
+    cb = play.new_checkbox(x=0, y=0, size_px=24)
+    mouse.x, mouse.y = 500, 500  # away from the checkbox
+    cb.update()
+    away = pygame.image.tobytes(cb.image, "RGBA")
+    mouse.x, mouse.y = 0, 0  # move over the checkbox
+    cb.update()
+    over = pygame.image.tobytes(cb.image, "RGBA")
+    assert away != over  # the hover border changed the rendered image
+
+
 def test_checkbox_when_changed_fires():
     cb = play.new_checkbox(x=0, y=0, size_px=24)
     results = []

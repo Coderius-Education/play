@@ -166,6 +166,23 @@ def test_dropdown_image_rendered():
     assert dd.image.get_width() > 0 and dd.image.get_height() > 0
 
 
+def test_dropdown_click_uses_current_mouse_not_stale_hover():
+    # Regression: the click must select the row under the mouse now, not the
+    # cached _hovered_option from the previous frame.
+    dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
+    mouse.x, mouse.y = 0, 0
+    mouse_state.click_happened = True
+    dd.update()  # open
+    mouse_state.click_happened = False
+    # Stale hover points at row 0, but the mouse is really over row 2.
+    dd._hovered_option = 0
+    mouse.x, mouse.y = 0, -120
+    mouse_state.click_happened = True
+    dd.update()
+    mouse_state.click_happened = False
+    assert dd.selected_index == 2
+
+
 def test_dropdown_anchor_rect_height_stays_closed_when_open():
     # Regression: the anchor/collision rect keeps the closed-button height so an
     # edge-anchored dropdown doesn't jump vertically when the menu opens.

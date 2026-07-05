@@ -57,7 +57,11 @@ class Tooltip(Sprite):
         bw, bh = self._bubble_size()
         self.rect = pygame.Rect(0, 0, bw, bh)
         super().__init__(x=0, y=0, layer=layer)
-        self._is_hidden = True
+        # A tooltip is a pure visual overlay: make it a sensor so it never blocks
+        # or shoves other sprites, and start hidden (hide() pauses physics so the
+        # body leaves the space instead of lingering as an invisible collider).
+        self.physics.sensor = True
+        self.hide()
         self.update()
 
     def _bubble_size(self):
@@ -74,10 +78,10 @@ class Tooltip(Sprite):
         if self._target is not None:
             hovered = mouse.is_touching(self._target)
             if hovered and self._is_hidden:
-                self._is_hidden = False
+                self.show()  # unpauses physics; marks dirty via __setattr__
                 self._should_recompute = True
             elif not hovered and not self._is_hidden:
-                self._is_hidden = True
+                self.hide()  # pauses physics so the body leaves the space
                 self._should_recompute = True
 
         if not self._is_hidden:
@@ -146,6 +150,7 @@ class Tooltip(Sprite):
         self._tooltip_text = v
         bw, bh = self._bubble_size()
         self.rect = pygame.Rect(self.rect.x, self.rect.y, bw, bh)
+        self.physics._remove()
         self.physics._make_pymunk()
         self._should_recompute = True
 
