@@ -134,6 +134,10 @@ class Tooltip(Sprite):
         pos = convert_pos(self._x, self._y)
         centre_x = pos[0] + w // 2
         centre_y = pos[1] - h + h // 2
+        # The tooltip follows the mouse by writing _x/_y directly (not the x/y
+        # setters), so move the sensor body onto the visible bubble's centre;
+        # otherwise its collision shape would stay stranded at the origin.
+        self.physics._pymunk_body.position = (self._x + w // 2, self._y + h // 2)
         angle_deg = _math.degrees(self.physics._pymunk_body.angle)
         self.image = pygame.transform.rotate(draw_image, angle_deg)
         self.rect = self.image.get_rect(center=(centre_x, centre_y))

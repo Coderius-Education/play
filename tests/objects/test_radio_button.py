@@ -220,6 +220,20 @@ def test_radio_button_label_change_does_not_leak_bodies():
     assert len(physics_space.bodies) == before
 
 
+def test_disabled_radio_ignores_hover():
+    # Regression: a disabled radio must not show hover feedback.
+    import pygame
+
+    r = play.new_radio_button("A", value="a", x=0, y=0, size_px=22, disabled=True)
+    mouse.x, mouse.y = 500, 500  # away
+    r.update()
+    away = pygame.image.tobytes(r.image, "RGBA")
+    mouse.x, mouse.y = 0, 0  # over the radio
+    r.update()
+    over = pygame.image.tobytes(r.image, "RGBA")
+    assert away == over
+
+
 def test_radio_button_hover_border_reacts():
     # Regression: hovering must re-render so the hover border actually appears.
     import pygame

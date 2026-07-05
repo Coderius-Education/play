@@ -42,7 +42,7 @@ class Checkbox(Box):
         self._checkbox_font_size = font_size
         self._checkbox_font_path = font
         self._is_disabled = disabled
-        self._was_hovered = False
+        self._hovered = False  # cached hover state (never True while disabled)
         self._on_change_callbacks = []
 
         # Width includes the box + label area
@@ -65,16 +65,17 @@ class Checkbox(Box):
 
     def update(self):
         """Toggle checked state on click; re-render on hover changes."""
-        hovered = mouse.is_touching(self)
-        if not self._is_disabled and mouse_state.click_happened and hovered:
+        # Disabled widgets never show hover feedback.
+        hovered = not self._is_disabled and mouse.is_touching(self)
+        if mouse_state.click_happened and hovered:
             self._checked = not self._checked
             self._should_recompute = True
             for cb in self._on_change_callbacks:
                 cb(self._checked)
-        # Hover border is computed in _render(); mark dirty when hover changes so
-        # the border actually reacts to the mouse entering/leaving.
-        if hovered != self._was_hovered:
-            self._was_hovered = hovered
+        # Hover border is drawn in _render() from the cached value; mark dirty
+        # when hover changes so the border reacts to the mouse entering/leaving.
+        if hovered != self._hovered:
+            self._hovered = hovered
             self._should_recompute = True
         super().update()
 
@@ -84,9 +85,9 @@ class Checkbox(Box):
         draw_image = pygame.Surface((self._width, self._height), pygame.SRCALPHA)
 
         border_col = (
-            _color_name_to_rgb(self._border_color)
-            if not mouse.is_touching(self)
-            else _color_name_to_rgb(self._hover_border_color)
+            _color_name_to_rgb(self._hover_border_color)
+            if self._hovered
+            else _color_name_to_rgb(self._border_color)
         )
 
         # Background square

@@ -48,6 +48,20 @@ def test_checkbox_hover_border_reacts():
     assert away != over  # the hover border changed the rendered image
 
 
+def test_disabled_checkbox_ignores_hover():
+    # Regression: a disabled widget must not show hover feedback (border change).
+    import pygame
+
+    cb = play.new_checkbox(x=0, y=0, size_px=24, disabled=True)
+    mouse.x, mouse.y = 500, 500  # away
+    cb.update()
+    away = pygame.image.tobytes(cb.image, "RGBA")
+    mouse.x, mouse.y = 0, 0  # over the checkbox
+    cb.update()
+    over = pygame.image.tobytes(cb.image, "RGBA")
+    assert away == over  # no hover reaction while disabled
+
+
 def test_checkbox_when_changed_fires():
     cb = play.new_checkbox(x=0, y=0, size_px=24)
     results = []

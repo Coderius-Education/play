@@ -108,7 +108,7 @@ class RadioButton(Sprite):
         self._angle = 0
         self._is_disabled = disabled
         self._selected = selected
-        self._was_hovered = False
+        self._hovered = False  # cached hover state (never True while disabled)
         self._image = None
         # Seed the rect with the real widget size so the pymunk hit-shape is
         # built correctly (a 0x0 rect yields a degenerate point shape that makes
@@ -125,17 +125,18 @@ class RadioButton(Sprite):
 
     def update(self):
         """Handle click to select; re-render on hover changes."""
-        hovered = mouse.is_touching(self)
-        if not self._is_disabled and mouse_state.click_happened and hovered:
+        # Disabled widgets never show hover feedback.
+        hovered = not self._is_disabled and mouse.is_touching(self)
+        if mouse_state.click_happened and hovered:
             if self._group is not None:
                 self._group._select(self)
             else:
                 self._selected = True
                 self._should_recompute = True
-        # Hover border is computed in _render(); mark dirty when hover changes so
-        # the border actually reacts to the mouse entering/leaving.
-        if hovered != self._was_hovered:
-            self._was_hovered = hovered
+        # Hover border is drawn in _render() from the cached value; mark dirty
+        # when hover changes so the border reacts to the mouse entering/leaving.
+        if hovered != self._hovered:
+            self._hovered = hovered
             self._should_recompute = True
         super().update()
 
@@ -148,10 +149,9 @@ class RadioButton(Sprite):
         draw_image = pygame.Surface((w, h), pygame.SRCALPHA)
 
         cx, cy = r, r
-        hovered = mouse.is_touching(self)
         border_col = (
             _color_name_to_rgb(self._hover_border_color)
-            if hovered
+            if self._hovered
             else _color_name_to_rgb(self._border_color)
         )
 

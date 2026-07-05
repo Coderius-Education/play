@@ -13,6 +13,7 @@ from ..objects import (
     RadioButton as _RadioButton,
     RadioGroup as _RadioGroup,
     Slider as _Slider,
+    Sprite as _Sprite,
     Text as _Text,
     Image as _Image,
     Sound as _Sound,
@@ -383,7 +384,7 @@ def new_progress_bar(
 
 
 def new_dropdown(
-    options=None,
+    options: Optional[list] = None,
     selected_index: int = 0,
     x: int = 0,
     y: int = 0,
@@ -537,7 +538,7 @@ def new_radio_button(
 
 def new_tooltip(
     text: str = "",
-    target=None,
+    target: Optional[_Sprite] = None,
     offset_x: int = 12,
     offset_y: int = -12,
     color: str = "lightyellow",
