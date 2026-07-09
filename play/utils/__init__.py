@@ -134,6 +134,28 @@ You can find the RGB form of a color on websites like this: https://www.rapidtab
         ) from exc
 
 
+def reject_async_callback(func, kind):
+    """Raise TypeError if *func* is a coroutine function.
+
+    Widget callback registrars (when_changed/when_submit/when_hover/...) run
+    synchronously, so an ``async def`` handler would never be awaited. *kind* is
+    the registrar name used in the error message."""
+    if inspect.iscoroutinefunction(func):
+        raise TypeError(
+            f"{func.__name__} is async. {kind} callbacks must be regular functions."
+        )
+
+
+def load_font(font_path_or_none, size):
+    """Load a pygame font from a .ttf path, or fall back to the system default."""
+    if font_path_or_none and font_path_or_none != "default":
+        try:
+            return pygame.font.Font(font_path_or_none, size)
+        except (FileNotFoundError, OSError):
+            pass
+    return pygame.font.SysFont(None, size)
+
+
 def is_called_from_pygame():
     """Check if the current method is being called from pygame's internal code."""
     stack = inspect.stack()

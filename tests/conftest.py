@@ -81,6 +81,27 @@ def post_key_up(pygame_key):
     pygame.event.post(pygame.event.Event(pygame.KEYUP, {"key": pygame_key}))
 
 
+def count_color(surface, rgb):
+    """Count pixels in *surface* whose RGB matches *rgb* (alpha ignored).
+
+    Used by widget render tests to assert that drawing responds to state
+    (e.g. a progress bar shows more fill pixels at a higher value), instead of
+    only checking that an image exists.
+    """
+    import pygame
+
+    target = pygame.Color(*rgb[:3]) if not isinstance(rgb, pygame.Color) else rgb
+    tr, tg, tb = target.r, target.g, target.b
+    w, h = surface.get_width(), surface.get_height()
+    total = 0
+    for x in range(w):
+        for y in range(h):
+            c = surface.get_at((x, y))
+            if c.r == tr and c.g == tg and c.b == tb and c.a != 0:
+                total += 1
+    return total
+
+
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
@@ -190,6 +211,10 @@ def clean_play_state(request):
 
     collision_registry.callbacks = {True: {}, False: {}}
     collision_registry.shape_registry.clear()
+
+    from play.objects import text_input_registry as _ti_registry
+
+    _ti_registry.reset()
 
     from play.core import keyboard_state, mouse_state
 

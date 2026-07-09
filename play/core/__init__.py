@@ -25,6 +25,10 @@ from ..globals import globals_list
 from ..io.screen import screen
 from ..loop import get_loop as _get_loop
 from ..io.keypress import keyboard_state
+from ..objects.text_input_registry import (
+    dispatch_text as _dispatch_text_input,
+    dispatch_keydown as _dispatch_text_keydown,
+)
 
 _clock = pygame.time.Clock()
 
@@ -44,9 +48,18 @@ def _handle_pygame_events():
             _get_loop().stop()
             return False
 
-        _handle_keyboard_events(event)
+        # Skip KEYDOWN recording while a TextInput is focused so typed characters
+        # don't accumulate in keyboard_state and leak into game callbacks.
+        # KEYUP is still processed to keep keyboard_state.pressed consistent.
+        if not globals_list.focused_text_input or event.type == pygame.KEYUP:
+            _handle_keyboard_events(event)
         _handle_mouse_events(event)
         _handle_controller_events(event)
+
+        if event.type == pygame.TEXTINPUT:
+            _dispatch_text_input(event.text)
+        elif event.type == pygame.KEYDOWN:
+            _dispatch_text_keydown(event)
 
         if event.type == pygame.VIDEORESIZE:
             screen.width = event.w
@@ -69,7 +82,11 @@ async def game_loop():
     if not _handle_pygame_events():
         return
 
-    await _handle_keyboard()
+    # A focused TextInput captures the keyboard exclusively: every
+    # @when_key_pressed / while-pressed / released callback and key poll is
+    # suspended until the field is blurred (click elsewhere, Escape, or Enter).
+    if not globals_list.focused_text_input:
+        await _handle_keyboard()
 
     if (
         mouse_state.click_happened

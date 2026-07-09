@@ -10,7 +10,7 @@ from ..api.auto_start import _schedule_auto_start
 from ..callback import callback_manager, CallbackType
 from ..callback.collision_callbacks import collision_registry
 from ..globals import globals_list
-from ..io.screen import screen
+from ..io.screen import screen, convert_pos
 from ..physics import physics_space, Physics as _Physics
 from ..utils import clamp as _clamp, is_called_from_pygame
 from .components import EventComponent
@@ -21,6 +21,8 @@ def point_touching_sprite(point, sprite):
     :param point: The point (x, y tuple) to check if it's touching the sprite.
     :param sprite: The sprite to check if it's touching the point.
     :return: Whether the point is touching the sprite."""
+    if sprite._is_hidden:
+        return False
     point_info = sprite.physics._pymunk_shape.point_query(point)
     return point_info.distance <= 0
 
@@ -35,20 +37,38 @@ _should_ignore_update = frozenset(
 
 
 class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
-    def __init__(self, image=None):
+    @staticmethod
+    def _init_anchor_attrs(instance, x, y, anchor, layer):
+        """Write anchor/layer attrs via object.__setattr__ to avoid triggering
+        _should_recompute.  Called from both Sprite.__init__ and Text.__init__
+        (which must initialise these before its early self.update() call)."""
+        object.__setattr__(instance, "_layer", layer)
+        object.__setattr__(instance, "_anchor", anchor)
+        object.__setattr__(instance, "_anchor_ox", x)
+        object.__setattr__(instance, "_anchor_oy", y)
+
+    def __init__(self, image=None, x=0, y=0, anchor=None, layer=0):
         # Subclasses set their own field values BEFORE calling super().__init__() so
         # that start_physics() can use the correct dimensions.  The hasattr guards
         # provide fallback defaults when Sprite is instantiated directly.
         if not hasattr(self, "_size"):
             self._size = 100
-        if not hasattr(self, "_x"):
-            self._x = 0
-        if not hasattr(self, "_y"):
-            self._y = 0
         if not hasattr(self, "_angle"):
             self._angle = 0
         if not hasattr(self, "_transparency"):
             self._transparency = 100
+
+        # Anchor/layer attrs bypass __setattr__ to avoid triggering _should_recompute.
+        # Text calls this same helper before its early update() so the values are
+        # already set; we overwrite unconditionally — the values are identical.
+        Sprite._init_anchor_attrs(self, x, y, anchor, layer)
+
+        # _x/_y: use anchor-aware defaults unless the subclass already set them
+        # (Text sets these before calling super() because it calls update() first).
+        if not hasattr(self, "_x"):
+            self._x = 0 if anchor else x
+        if not hasattr(self, "_y"):
+            self._y = 0 if anchor else y
 
         if not hasattr(self, "events"):
             self.events = EventComponent(self)
@@ -68,7 +88,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         _backup_image = getattr(self, "_image", None)
 
         super().__init__()
-        globals_list.sprites_group.add(self)
+        globals_list.sprites_group.add(self, layer=self._layer)
 
         self.rect = _backup_rect
         if _backup_image is not None:
@@ -86,6 +106,85 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
                 for sprite in self.events._dependent_sprites:
                     sprite._should_recompute = True
         super().__setattr__(name, value)
+
+    @property
+    def layer(self):
+        """The render layer this sprite belongs to (higher = drawn on top)."""
+        return self._layer
+
+    @layer.setter
+    def layer(self, value):
+        """Move the sprite to a different render layer."""
+        object.__setattr__(self, "_layer", value)
+        # A removed sprite is no longer in the group; LayeredUpdates.change_layer
+        # raises for non-members. Keep _layer so a later re-add uses it.
+        if globals_list.sprites_group.has(self):
+            globals_list.sprites_group.change_layer(self, value)
+
+    def _apply_anchor(self):
+        """Recompute x/y from the anchor + offsets and current screen dimensions.
+
+        For edge anchors ("top-left", "bottom-right", etc.) ox/oy are pixel
+        distances inward from the anchored screen border — the sprite's relevant
+        EDGE lands exactly ox/oy pixels from that border.
+
+        For "center", ox/oy are play-coordinate offsets from the screen centre
+        (same as a plain x/y without an anchor), not pixel distances from any edge.
+
+        Half-dimensions come from the previous frame's rect, so edge placement
+        is accurate from frame 2 onward; frame 1 uses w2=h2=0.  Text pre-renders
+        in __init__ so it is correct from game-loop frame 1.
+        """
+        ox, oy = self._anchor_ox, self._anchor_oy
+        a = self._anchor
+        w2 = self.rect.width / 2
+        h2 = self.rect.height / 2
+
+        parts = a.split("-")
+        if len(parts) > 2:
+            _warnings.warn(
+                f"Unknown anchor value '{a}'. "
+                "Valid values: 'top-left', 'top-center', 'top-right', "
+                "'center-left', 'center', 'center-right', "
+                "'bottom-left', 'bottom-center', 'bottom-right'.",
+                UserWarning,
+                stacklevel=2,
+            )
+            return
+        y_key = parts[0]
+        x_key = parts[1] if len(parts) > 1 else "center"
+        nx = {
+            "left": screen.left + ox + w2,
+            "center": ox,
+            "right": screen.right - ox - w2,
+        }.get(x_key)
+        ny = {
+            "top": screen.top - oy - h2,
+            "center": oy,
+            "bottom": screen.bottom + oy + h2,
+        }.get(y_key)
+
+        if nx is None or ny is None:
+            _warnings.warn(
+                f"Unknown anchor value '{a}'. "
+                "Valid values: 'top-left', 'top-center', 'top-right', "
+                "'center-left', 'center', 'center-right', "
+                "'bottom-left', 'bottom-center', 'bottom-right'.",
+                UserWarning,
+                stacklevel=2,
+            )
+            return
+
+        if hasattr(self, "physics") and self.physics is not None:
+            if nx != self._x or ny != self._y:
+                self.x, self.y = nx, ny
+                # Dynamic bodies accumulate velocity against the anchor each frame;
+                # reset it so collision responses stay physically meaningful.
+                if self.physics._pymunk_body.body_type == _pymunk.Body.DYNAMIC:
+                    self.physics._pymunk_body.velocity = (0, 0)
+        else:
+            self._x, self._y = nx, ny
+            self._should_recompute = True
 
     def is_touching_wall(self) -> bool:
         """Check if the sprite is touching the edge of the screen.
@@ -106,15 +205,27 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         return touching
 
     def update(self):
-        """Update the sprite."""
-        # Do NOT access self.physics here: Text.__init__ calls this method
-        # before super().__init__() has had a chance to create physics.
+        """Orchestrate per-frame rendering: apply anchor, call _render(), clear flag."""
+        # A dynamic body that obeys gravity is owned by the physics simulation;
+        # re-applying the anchor would snap it back and zero its velocity every
+        # frame, so the sprite could never fall or be pushed.
+        physics = getattr(self, "physics", None)  # Text updates before physics exists
+        if self._anchor and not (
+            physics is not None
+            and physics.obeys_gravity
+            and physics._pymunk_body.body_type == _pymunk.Body.DYNAMIC
+        ):
+            self._apply_anchor()
         if not self._should_recompute:
             return
-
         if self._is_hidden:
             self._image = pygame.Surface((0, 0), pygame.SRCALPHA)
+        else:
+            self._render()
         self._should_recompute = False
+
+    def _render(self):
+        """Override in subclasses to draw the shape-specific image onto self.image."""
 
     @property
     def is_clicked(self):
@@ -278,7 +389,10 @@ You might want to look in your code where you're setting transparency and make s
             except (AssertionError, AttributeError):
                 # Fallback: shapes might not be in a valid state for collision check
                 return False
-        # For point collision, use pymunk's point_query
+        # For point collision, use pymunk's point_query. Hidden sprites are
+        # non-interactive, matching point_touching_sprite / mouse.is_touching.
+        if self._is_hidden:
+            return False
         point_info = self.physics._pymunk_shape.point_query(sprite_or_point)
         return point_info.distance <= 0
 
@@ -414,6 +528,35 @@ You might want to look in your code where you're setting transparency and make s
             )
         super().remove_internal(group)
 
+    def _draw_disabled_overlay(self, surface):
+        """Dim *surface* in place with a translucent grey to signal disabled state."""
+        overlay = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+        overlay.fill((200, 200, 200, 120))
+        surface.blit(overlay, (0, 0))
+
+    def _finalize_image(self, draw_image):
+        """Apply transparency + rotation and centre the sprite at its play position.
+
+        Shared render tail for widgets drawn into *draw_image* that sit centred
+        on ``(self.x, self.y)``."""
+        draw_image.set_alpha(round(self._transparency * 255 / 100))
+        self.rect = draw_image.get_rect()
+        pos = convert_pos(self.x, self.y)
+        self.rect.x = pos[0] - self.rect.width // 2
+        self.rect.y = pos[1] - self.rect.height // 2
+        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
+        self.image = pygame.transform.rotate(draw_image, angle_deg)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def _hit_dims(self, size_factor):  # pylint: disable=unused-argument
+        """Return ``(radius, width, height)`` for the pymunk hit-shape.
+
+        The physics layer calls this when (re)building the collision shape.
+        The default uses the current rendered rect; subclasses whose logical
+        size differs from the rect (Box, Circle) override this. A positive
+        radius selects a circular shape."""
+        return 0.0, float(self.width), float(self.height)
+
     @property
     def width(self):
         """Get the width of the sprite.
@@ -527,11 +670,13 @@ You might want to look in your code where you're setting transparency and make s
     def _common_properties(self):
         # used with inheritance to clone
         return {
-            "x": self.x,
-            "y": self.y,
+            "x": self._anchor_ox if self._anchor else self.x,
+            "y": self._anchor_oy if self._anchor else self.y,
             "size": self.size,
             "transparency": self.transparency,
             "angle": self.angle,
+            "anchor": self._anchor,
+            "layer": self._layer,
         }
 
     def clone(self):
