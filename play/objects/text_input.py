@@ -16,6 +16,13 @@ from ..core.mouse_loop import mouse_state
 
 
 class TextInput(Box):
+    """A single-line text entry field.
+
+    While a TextInput is focused it captures the keyboard exclusively: the
+    game's ``@when_key_pressed`` / ``@when_key_released`` callbacks and key
+    polling are suspended until the field is blurred (click elsewhere, press
+    Escape, or submit with Enter)."""
+
     # character used for password masking
     _MASK_CHAR = "•"  # •
 

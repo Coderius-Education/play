@@ -77,8 +77,7 @@ class ProgressBar(Box):
         )
 
         # Filled portion
-        span = max(1, self._max_value - self._min_value)
-        t = max(0.0, min(1.0, (self._bar_value - self._min_value) / span))
+        t = self.percentage
         inner_w = w - 2 * bw
         fill_w = int(t * inner_w)
         if fill_w > 0:
@@ -148,7 +147,9 @@ class ProgressBar(Box):
     @property
     def percentage(self):
         """The current value expressed as a fraction between 0.0 and 1.0."""
-        span = max(1, self._max_value - self._min_value)
+        span = self._max_value - self._min_value
+        if span <= 0:
+            return 0.0
         return max(0.0, min(1.0, (self._bar_value - self._min_value) / span))
 
     def clone(self):

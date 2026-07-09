@@ -51,3 +51,11 @@ def test_draw_order_lower_layer_first():
     b = play.new_box(layer=5)
     sprites = globals_list.sprites_group.sprites()
     assert sprites.index(a) < sprites.index(b)
+
+
+def test_layer_setter_after_remove_does_not_raise():
+    # Regression: LayeredUpdates.change_layer raises for non-members.
+    box = play.new_box(layer=0)
+    box.remove()
+    box.layer = 3
+    assert box.layer == 3

@@ -116,7 +116,10 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def layer(self, value):
         """Move the sprite to a different render layer."""
         object.__setattr__(self, "_layer", value)
-        globals_list.sprites_group.change_layer(self, value)
+        # A removed sprite is no longer in the group; LayeredUpdates.change_layer
+        # raises for non-members. Keep _layer so a later re-add uses it.
+        if globals_list.sprites_group.has(self):
+            globals_list.sprites_group.change_layer(self, value)
 
     def _apply_anchor(self):
         """Recompute x/y from the anchor + offsets and current screen dimensions.
@@ -203,7 +206,15 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
     def update(self):
         """Orchestrate per-frame rendering: apply anchor, call _render(), clear flag."""
-        if self._anchor:
+        # A dynamic body that obeys gravity is owned by the physics simulation;
+        # re-applying the anchor would snap it back and zero its velocity every
+        # frame, so the sprite could never fall or be pushed.
+        physics = getattr(self, "physics", None)  # Text updates before physics exists
+        if self._anchor and not (
+            physics is not None
+            and physics.obeys_gravity
+            and physics._pymunk_body.body_type == _pymunk.Body.DYNAMIC
+        ):
             self._apply_anchor()
         if not self._should_recompute:
             return
@@ -378,7 +389,10 @@ You might want to look in your code where you're setting transparency and make s
             except (AssertionError, AttributeError):
                 # Fallback: shapes might not be in a valid state for collision check
                 return False
-        # For point collision, use pymunk's point_query
+        # For point collision, use pymunk's point_query. Hidden sprites are
+        # non-interactive, matching point_touching_sprite / mouse.is_touching.
+        if self._is_hidden:
+            return False
         point_info = self.physics._pymunk_shape.point_query(sprite_or_point)
         return point_info.distance <= 0
 

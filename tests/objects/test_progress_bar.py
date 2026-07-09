@@ -111,3 +111,14 @@ def test_progress_bar_clone():
     assert c.max_value == 90
     assert c.value == 50
     assert c.bar_color == "red"
+
+
+def test_progress_bar_percentage_fractional_range():
+    # Regression: max(1, span) scaled sub-1 ranges against 1 instead of the span.
+    pb = play.new_progress_bar(min_value=0, max_value=0.8, value=0.8)
+    assert pb.percentage == 1.0
+
+
+def test_progress_bar_percentage_zero_span():
+    pb = play.new_progress_bar(min_value=5, max_value=5, value=5)
+    assert pb.percentage == 0.0

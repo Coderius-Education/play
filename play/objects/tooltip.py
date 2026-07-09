@@ -166,3 +166,20 @@ class Tooltip(Sprite):
     @target.setter
     def target(self, v):
         self._target = v
+
+    def clone(self):
+        return Tooltip(
+            text=self._tooltip_text,
+            target=self._target,
+            offset_x=self._offset_x,
+            offset_y=self._offset_y,
+            color=self._tooltip_color,
+            text_color=self._text_color,
+            border_color=self._border_color,
+            font_size=self._font_size,
+            font=self._font_path,
+            padding=self._padding,
+            border_radius=self._border_radius,
+            transparency=self._transparency,
+            layer=self._layer,
+        )

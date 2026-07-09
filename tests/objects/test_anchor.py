@@ -97,3 +97,21 @@ def test_no_anchor_leaves_xy_unchanged():
     box = play.new_box(x=50, y=30)
     assert box.x == pytest.approx(50, abs=1)
     assert box.y == pytest.approx(30, abs=1)
+
+
+def test_anchored_sprite_with_gravity_physics_falls():
+    # Regression: the anchor must not pin a free (gravity-obeying) physics
+    # body in place by snapping position and zeroing velocity every frame.
+    from play.physics import physics_space
+    from play.core.sprites_loop import update_sprite_physics
+
+    box = play.new_box("red", width=50, height=50, anchor="top-center")
+    _settled(box)
+    y_anchored = box.y
+    box.start_physics()  # dynamic body that obeys gravity
+    for _ in range(10):
+        physics_space.step(1 / 60.0)
+        update_sprite_physics(box)
+        box.update()
+    assert box.y < y_anchored
+    assert box.physics._pymunk_body.velocity.y < 0

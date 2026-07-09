@@ -25,6 +25,10 @@ class Dropdown(Box):
     it works within the existing pygame sprite layer system.
     """
 
+    # While open, the sprite is hoisted this many layers up so the option list
+    # draws above overlapping sprites instead of taking clicks while hidden.
+    _OPEN_LAYER_BOOST = 1000
+
     def __init__(
         self,
         options=None,
@@ -49,8 +53,15 @@ class Dropdown(Box):
         placeholder="Select…",
     ):
         self._options = list(options) if options else []
-        self._selected_index = selected_index if self._options else -1
+        # Clamp like the selected_index setter so an out-of-range value can't
+        # silently render the placeholder despite valid options.
+        self._selected_index = (
+            max(-1, min(len(self._options) - 1, selected_index))
+            if self._options
+            else -1
+        )
         self._dropdown_open = False
+        self._closed_layer = layer
         self._hover_color = hover_color
         self._option_hover_color = option_hover_color
         self._text_color = text_color
@@ -87,15 +98,12 @@ class Dropdown(Box):
                 # Check if click lands on the open option list
                 if self._dropdown_open and clicked_option >= 0:
                     self._select(clicked_option)
-                    self._dropdown_open = False
-                    self._should_recompute = True
+                    self._set_open(False)
                 elif mouse.is_touching(self):
-                    self._dropdown_open = not self._dropdown_open
-                    self._should_recompute = True
+                    self._set_open(not self._dropdown_open)
                 elif self._dropdown_open:
                     # Click outside: close the menu
-                    self._dropdown_open = False
-                    self._should_recompute = True
+                    self._set_open(False)
 
             # Track which option row the mouse is hovering over
             if self._dropdown_open:
@@ -110,6 +118,19 @@ class Dropdown(Box):
             else self._base_color
         )
         super().update()
+
+    def _set_open(self, open_):
+        """Open/close the menu, hoisting the sprite to a higher render layer
+        while open so the option list draws above overlapping sprites."""
+        if open_ == self._dropdown_open:
+            return
+        self._dropdown_open = open_
+        if open_:
+            self._closed_layer = self._layer
+            self.layer = self._closed_layer + self._OPEN_LAYER_BOOST
+        else:
+            self.layer = self._closed_layer
+        self._should_recompute = True
 
     def _option_at_mouse(self):
         """Return the index of the option row under the mouse, or -1."""
@@ -275,7 +296,7 @@ class Dropdown(Box):
     def disabled(self, v):
         self._is_disabled = bool(v)
         if v:
-            self._dropdown_open = False
+            self._set_open(False)
         self._should_recompute = True
 
     def when_changed(self, func):
@@ -303,7 +324,7 @@ class Dropdown(Box):
             font=self._dropdown_font_path,
             transparency=self._transparency,
             anchor=self._anchor,
-            layer=self._layer,
+            layer=self._closed_layer if self._dropdown_open else self._layer,
             disabled=self._is_disabled,
             placeholder=self._placeholder,
         )

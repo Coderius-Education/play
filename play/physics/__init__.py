@@ -10,7 +10,6 @@ from ..utils import clamp as _clamp
 
 
 class Physics:
-
     def __init__(
         self,
         sprite,

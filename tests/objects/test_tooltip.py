@@ -128,3 +128,12 @@ def test_tooltip_hit_shape_not_degenerate():
     bb = tip.physics._pymunk_shape.bb
     assert (bb.right - bb.left) > 0
     assert (bb.top - bb.bottom) > 0
+
+
+def test_tooltip_clone():
+    # Regression: the inherited Sprite.clone() passed an unsupported image= kwarg.
+    target, tip = _make()
+    c = tip.clone()
+    assert c is not tip
+    assert c.text == tip.text
+    assert c.target is target

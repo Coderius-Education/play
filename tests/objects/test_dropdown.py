@@ -231,3 +231,28 @@ def test_dropdown_when_changed_value_signature():
     dd._select(2)
     assert values == ["C"]
     assert indices == [2]
+
+
+def test_dropdown_constructor_clamps_selected_index():
+    # Regression: an out-of-range index silently rendered the placeholder.
+    dd = play.new_dropdown(options=["a", "b"], selected_index=5)
+    assert dd.selected_index == 1
+    assert dd.selected_value == "b"
+
+
+def test_dropdown_constructor_clamps_negative_selected_index():
+    dd = play.new_dropdown(options=["a", "b"], selected_index=-7)
+    assert dd.selected_index == -1
+    assert dd.selected_value is None
+
+
+def test_dropdown_open_hoists_layer():
+    # Regression: the open option list drew at the closed layer, so covered
+    # rows were invisible yet still took clicks.
+    dd = play.new_dropdown(options=["a"], layer=20)
+    dd._set_open(True)
+    assert dd.is_open
+    assert dd.layer > 20
+    dd._set_open(False)
+    assert not dd.is_open
+    assert dd.layer == 20

@@ -284,3 +284,21 @@ def test_radio_button_clone():
     assert c.label == "X"
     assert c.value == "x"
     assert c._selected is True
+
+
+def test_clone_selected_radio_keeps_single_selection():
+    # Regression: cloning a selected radio produced two selected buttons.
+    g = play.new_radio_group()
+    r = play.new_radio_button("X", value="x", group=g, selected=True)
+    r.clone()
+    selected = [btn for btn in g._buttons if btn.selected]
+    assert len(selected) == 1
+
+
+def test_constructing_second_selected_radio_keeps_single_selection():
+    g = play.new_radio_group()
+    play.new_radio_button("A", value="a", group=g, selected=True)
+    play.new_radio_button("B", value="b", group=g, selected=True)
+    selected = [btn for btn in g._buttons if btn.selected]
+    assert len(selected) == 1
+    assert g.selected_value == "b"

@@ -213,3 +213,20 @@ def test_slider_clone():
     assert c.min_value == 10
     assert c.max_value == 90
     assert c.value == 40
+
+
+def test_slider_fractional_range_renders_full_fill():
+    # Regression: max(1, span) drew the thumb/fill halfway for sub-1 ranges.
+    from tests.conftest import count_color
+
+    s = play.new_slider(
+        min_value=0,
+        max_value=0.5,
+        value=0.5,
+        fill_color="red",
+        thumb_color="blue",
+        track_color="lightgray",
+    )
+    filled = count_color(s.image, (255, 0, 0))
+    # At value == max the fill spans (nearly) the whole 200px track.
+    assert filled > 150 * s._height

@@ -119,6 +119,14 @@ class RadioButton(Sprite):
 
         if group is not None:
             group._register(self)
+            if selected:
+                # Enforce the group's single-selection invariant: deselect the
+                # siblings directly (not via group._select, which would fire
+                # when_changed callbacks for a construction-time default).
+                for btn in group._buttons:
+                    if btn is not self:
+                        btn._selected = False
+                        btn._should_recompute = True
 
         super().__init__(x=x, y=y, anchor=anchor, layer=layer)
         self.update()

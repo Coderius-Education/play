@@ -140,7 +140,8 @@ class Slider(Sprite):
         )
 
         # Filled portion — fill ends at the thumb centre so both use the same formula
-        t = (self._value - self._min_value) / max(1, self._max_value - self._min_value)
+        span = self._max_value - self._min_value
+        t = (self._value - self._min_value) / span if span > 0 else 0.0
         thumb_x = int(t * (w - 2 * self._thumb_radius)) + self._thumb_radius
         if thumb_x > 0:
             fill_rect = pygame.Rect(0, cy - h // 2, thumb_x, h)
