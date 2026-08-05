@@ -73,7 +73,7 @@ class Slider(Sprite):
         """Handle drag input then re-render."""
         if not self._is_disabled:
             touching = mouse.is_touching(self)
-            if mouse_state.click_happened and touching:
+            if mouse_state.click_hits(self) and touching:
                 self._dragging = True
             if not mouse._is_clicked:
                 self._dragging = False
@@ -190,7 +190,10 @@ class Slider(Sprite):
 
     @value.setter
     def value(self, v):
-        self._value = max(self._min_value, min(self._max_value, v))
+        new_val = max(self._min_value, min(self._max_value, v))
+        if new_val == self._value:
+            return
+        self._value = new_val
         self._should_recompute = True
         for cb in self._on_change_callbacks:
             cb(self._value)

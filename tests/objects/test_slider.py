@@ -230,3 +230,29 @@ def test_slider_fractional_range_renders_full_fill():
     filled = count_color(s.image, (255, 0, 0))
     # At value == max the fill spans (nearly) the whole 200px track.
     assert filled > 150 * s._height
+
+
+def test_slider_value_setter_skips_callback_when_unchanged():
+    # Regression: the setter fired when_changed even when the value did not
+    # actually change, so a handler writing back to slider.value recursed.
+    s = play.new_slider(min_value=0, max_value=100, value=50)
+    fired = []
+    s.when_changed(fired.append)
+    s.value = 50  # unchanged — no callback
+    assert fired == []
+    s.value = 150  # clamps to 100 — one callback
+    s.value = 150  # still 100 — no second callback
+    assert fired == [100]
+
+
+def test_slider_value_setter_safe_for_write_back_handlers():
+    # A handler that writes back to slider.value (e.g. rounding) must not
+    # recurse infinitely.
+    s = play.new_slider(min_value=0, max_value=100, value=0)
+
+    @s.when_changed
+    def _round(value):
+        s.value = round(value)
+
+    s.value = 33.4
+    assert s.value == 33
