@@ -325,3 +325,34 @@ def test_focused_text_input_suppresses_key_callbacks():
         asyncio.run(handle_keyboard())
 
     assert fired == [], "key callbacks must not fire while a TextInput is focused"
+
+
+def test_enter_blurs_field_after_submit():
+    # Regression: Enter fired when_submit but left the field focused, so the
+    # game's keyboard callbacks stayed suspended after submitting.
+    ti = play.new_text_input(value="done")
+    registry.focus(ti)
+    ti._handle_keydown(_keydown(pygame.K_RETURN))
+    assert globals_list.focused_text_input is None
+    assert ti._is_focused is False
+
+
+def test_hide_releases_focus():
+    # Regression: hiding a focused field left it focused, so an invisible
+    # field kept exclusive keyboard capture.
+    ti = play.new_text_input()
+    registry.focus(ti)
+    ti.hide()
+    assert globals_list.focused_text_input is None
+    assert ti._is_focused is False
+
+
+def test_tab_skips_hidden_fields():
+    # Regression: Tab could move focus onto a hidden (invisible) field.
+    a = play.new_text_input()
+    b = play.new_text_input()
+    c = play.new_text_input()
+    b.hide()
+    registry.focus(a)
+    registry.focus_next()
+    assert globals_list.focused_text_input is c

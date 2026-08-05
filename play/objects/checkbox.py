@@ -67,7 +67,7 @@ class Checkbox(Box):
         """Toggle checked state on click; re-render on hover changes."""
         # Disabled widgets never show hover feedback.
         hovered = not self._is_disabled and mouse.is_touching(self)
-        if mouse_state.click_happened and hovered:
+        if mouse_state.click_hits(self) and hovered:
             self._checked = not self._checked
             self._should_recompute = True
             for cb in self._on_change_callbacks:
@@ -150,7 +150,10 @@ class Checkbox(Box):
     @label.setter
     def label(self, value):
         self._label_text = value
-        self._should_recompute = True
+        # Resize the widget (and its physics hit-shape, via the Box width
+        # setter) so a longer label is neither clipped nor unclickable.
+        label_w = self._checkbox_font.size(value)[0] if value else 0
+        self.width = self._height + (10 + label_w if value else 0)
 
     @property
     def disabled(self):

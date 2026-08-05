@@ -93,7 +93,7 @@ class TextInput(Box):
 
     def update(self):
         """Handle focus, cursor blink, box rendering, and text overlay."""
-        if not self._is_disabled and mouse_state.click_happened:
+        if not self._is_disabled and mouse_state.click_hits(self):
             if mouse.is_touching(self):
                 if not self._is_focused:
                     _registry.focus(self)
@@ -167,6 +167,9 @@ class TextInput(Box):
         if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
             for cb in self._on_submit_callbacks:
                 cb(self._input_value)
+            # Submitting blurs the field (as documented), so the game's own
+            # keyboard callbacks work again right after pressing Enter.
+            _registry.clear_focus()
             return
 
         # Navigation
@@ -531,6 +534,13 @@ class TextInput(Box):
             readonly=self._readonly,
             password_mode=self._password_mode,
         )
+
+    def hide(self):
+        """Hide the field, releasing keyboard focus so an invisible field
+        can't keep capturing the keyboard."""
+        if self._is_focused:
+            _registry.clear_focus()
+        super().hide()
 
     def remove(self):
         _registry.unregister(self)

@@ -53,7 +53,9 @@ def focus_next():
     """Shift keyboard focus to the next TextInput in the Tab order.
 
     Cycles wrap around; if no widget is focused, focuses the first one."""
-    visible = [w for w in _tab_order if w.alive() and not w._is_disabled]
+    visible = [
+        w for w in _tab_order if w.alive() and not w._is_disabled and not w._is_hidden
+    ]
     if not visible:
         clear_focus()
         return

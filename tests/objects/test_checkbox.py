@@ -163,3 +163,18 @@ def test_checkbox_clone():
     assert c.label == "X"
     assert c.checked is True
     assert c.disabled is True
+
+
+def test_checkbox_label_setter_resizes_widget_and_hit_shape():
+    # Regression: a longer label was clipped and its area unclickable because
+    # the width and physics hit-shape were never recomputed.
+    cb = play.new_checkbox(label="Hi", x=0, y=0, size_px=24)
+    old_width = cb.width
+    cb.label = "A much longer label than before"
+    assert cb.width > old_width
+    # The label area (right of the box) is now clickable.
+    mouse.x, mouse.y = old_width + 40, 0
+    mouse_state.click_happened = True
+    cb.update()
+    mouse_state.click_happened = False
+    assert cb.checked is True
