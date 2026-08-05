@@ -265,3 +265,90 @@ def test_clone_preserves_click_color():
     btn = play.new_button(click_color="darkblue")
     c = btn.clone()
     assert c._click_color == "darkblue"
+
+
+# ── public decorator registration ────────────────────────────────────────────
+
+
+def test_when_clicked_public_decorator_respects_disabled():
+    # Registration through the public API returns an async wrapper around the
+    # guarded callback; running it fires only while the button is enabled.
+    btn = play.new_button(text="Go", x=0, y=0, width=100, height=50)
+    fired = []
+    cb = btn.when_clicked(lambda: fired.append(1))
+    asyncio.run(cb())
+    assert fired == [1]
+    btn.disabled = True
+    asyncio.run(cb())
+    assert fired == [1]  # guard swallows the call while disabled
+
+
+def test_when_click_released_public_decorator_respects_disabled():
+    btn = play.new_button(text="Go", x=0, y=0, width=100, height=50)
+    fired = []
+    cb = btn.when_click_released(lambda: fired.append(1))
+    asyncio.run(cb())
+    assert fired == [1]
+    btn.disabled = True
+    asyncio.run(cb())
+    assert fired == [1]
+
+
+def test_guard_handles_unreadable_signature():
+    # Builtins like min have no inspectable signature; the guard must not crash.
+    btn = play.new_button()
+    guarded = btn._guard_disabled(min)
+    assert not hasattr(guarded, "__signature__")
+
+
+# ── rendering ────────────────────────────────────────────────────────────────
+
+
+def test_disabled_text_color_used_when_disabled():
+    from tests.conftest import count_color
+
+    btn = play.new_button(
+        text="Stop",
+        width=120,
+        height=50,
+        disabled=True,
+        disabled_text_color="red",
+    )
+    btn._should_recompute = True
+    btn.update()
+    assert count_color(btn.image, (255, 0, 0)) > 0
+
+
+# ── property setters ─────────────────────────────────────────────────────────
+
+
+def test_text_color_setter():
+    btn = play.new_button()
+    btn.text_color = "green"
+    assert btn.text_color == "green"
+    assert btn._should_recompute is True
+
+
+def test_hover_color_setter():
+    btn = play.new_button()
+    btn.hover_color = "yellow"
+    assert btn.hover_color == "yellow"
+
+
+def test_click_color_setter():
+    btn = play.new_button()
+    btn.click_color = "orange"
+    assert btn.click_color == "orange"
+
+
+def test_disabled_color_setter():
+    btn = play.new_button()
+    btn.disabled_color = "gray"
+    assert btn.disabled_color == "gray"
+
+
+def test_font_size_setter_reloads_font():
+    btn = play.new_button()
+    btn.font_size = 32
+    assert btn.font_size == 32
+    assert btn._button_font.get_height() > 0
