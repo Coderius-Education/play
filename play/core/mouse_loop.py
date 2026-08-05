@@ -7,16 +7,42 @@ from ..io.mouse import mouse
 from ..io.screen import screen
 
 
-class MouseState:  # pylint: disable=too-few-public-methods
+class MouseState:
     """Class to manage the state of the mouse."""
 
     click_happened = False
     click_release_happened = False
+    # Widget that exclusively claimed this frame's click (e.g. an open
+    # dropdown menu overlapping other widgets), or None.
+    click_owner = None
+    # Widgets that may claim exclusive ownership of a click. Populated by
+    # widgets that draw on top of others (an open Dropdown registers here).
+    click_claimants = []
 
     def clear(self):
         """Clear the mouse state for the next frame."""
         self.click_happened = False
         self.click_release_happened = False
+        self.click_owner = None
+
+    def click_hits(self, sprite):
+        """Whether *sprite* may respond to this frame's click.
+
+        True when a click happened and no overlapping widget (such as an open
+        dropdown menu) claimed it exclusively for itself."""
+        return self.click_happened and (
+            self.click_owner is None or self.click_owner is sprite
+        )
+
+    def resolve_click_owner(self):
+        """Ask registered claimants whether the current click is theirs.
+
+        Called once per MOUSEBUTTONDOWN; the first claimant whose open UI is
+        under the mouse becomes the exclusive owner of this click."""
+        self.click_claimants[:] = [w for w in self.click_claimants if w.alive()]
+        self.click_owner = next(
+            (w for w in self.click_claimants if w._claims_click()), None
+        )
 
 
 mouse_state = MouseState()
@@ -27,6 +53,7 @@ def handle_mouse_events(event):
     if event.type == pygame.MOUSEBUTTONDOWN:
         mouse_state.click_happened = True
         mouse._is_clicked = True
+        mouse_state.resolve_click_owner()
     if event.type == pygame.MOUSEBUTTONUP:
         mouse_state.click_release_happened = True
         mouse._is_clicked = False

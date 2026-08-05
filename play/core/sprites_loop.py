@@ -46,7 +46,7 @@ def handle_sprite_click(sprite):
     """
     global _clicked_sprite_id
 
-    touching_and_clicked = mouse.is_touching(sprite) and mouse_state.click_happened
+    touching_and_clicked = mouse.is_touching(sprite) and mouse_state.click_hits(sprite)
     if touching_and_clicked:
         _clicked_sprite_id = id(sprite)
 

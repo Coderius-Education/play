@@ -91,7 +91,7 @@ class Dropdown(Box):
     def update(self):
         """Handle clicks on the button and on the open option list."""
         if not self._is_disabled:
-            if mouse_state.click_happened:
+            if mouse_state.click_hits(self):
                 # Recompute the option under the cursor at click time rather than
                 # trusting last frame's cached value (the mouse may have moved).
                 clicked_option = self._option_at_mouse() if self._dropdown_open else -1
@@ -128,9 +128,26 @@ class Dropdown(Box):
         if open_:
             self._closed_layer = self._layer
             self.layer = self._closed_layer + self._OPEN_LAYER_BOOST
+            # Claim clicks that land on the open menu so widgets drawn
+            # underneath it don't also react to them.
+            if self not in mouse_state.click_claimants:
+                mouse_state.click_claimants.append(self)
         else:
             self.layer = self._closed_layer
+            if self in mouse_state.click_claimants:
+                mouse_state.click_claimants.remove(self)
         self._should_recompute = True
+
+    def _claims_click(self):
+        """Whether the current click lands on this widget's open menu."""
+        if not self._dropdown_open or self._is_hidden or self._is_disabled:
+            return False
+        return self._option_at_mouse() >= 0 or mouse.is_touching(self)
+
+    def remove(self):
+        if self in mouse_state.click_claimants:
+            mouse_state.click_claimants.remove(self)
+        super().remove()
 
     def _option_at_mouse(self):
         """Return the index of the option row under the mouse, or -1."""

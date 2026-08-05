@@ -256,3 +256,43 @@ def test_dropdown_open_hoists_layer():
     dd._set_open(False)
     assert not dd.is_open
     assert dd.layer == 20
+
+
+def test_open_menu_click_does_not_fall_through():
+    # Regression: clicking an option on the open menu also clicked whatever
+    # widget sat underneath the menu.
+    dd = play.new_dropdown(options=["A", "B"], x=0, y=0, width=160, height=40)
+    cb = play.new_checkbox(label="under the menu", x=0, y=-40)
+
+    # Click the closed button to open the menu.
+    mouse.x, mouse.y = 0, 0
+    mouse_state.click_happened = True
+    mouse_state.resolve_click_owner()
+    dd.update()
+    cb.update()
+    mouse_state.clear()
+    assert dd.is_open is True
+
+    # Click option row 0, which overlaps the checkbox underneath.
+    mouse.x, mouse.y = 0, -40
+    mouse_state.click_happened = True
+    mouse_state.resolve_click_owner()
+    dd.update()
+    cb.update()
+    mouse_state.clear()
+
+    assert dd.selected_value == "A"
+    assert cb.checked is False  # the menu swallowed the click
+
+
+def test_closed_dropdown_does_not_claim_clicks():
+    dd = play.new_dropdown(options=["A", "B"], x=0, y=0, width=160, height=40)
+    cb = play.new_checkbox(label="beside", x=0, y=-40)
+    mouse.x, mouse.y = 0, -40
+    mouse_state.click_happened = True
+    mouse_state.resolve_click_owner()
+    dd.update()
+    cb.update()
+    mouse_state.clear()
+    assert dd.is_open is False
+    assert cb.checked is True  # normal click still reaches the checkbox

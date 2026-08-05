@@ -114,6 +114,7 @@ class TestHandleSpriteClick:
         sprite._is_clicked = False
         mock_mouse.is_touching.return_value = True
         mock_state.click_happened = True
+        mock_state.click_hits.side_effect = lambda s: mock_state.click_happened
         mock_mouse.is_clicked = True
 
         handle_sprite_click(sprite)
@@ -127,6 +128,7 @@ class TestHandleSpriteClick:
         sprite = MagicMock()
         mock_mouse.is_touching.return_value = True
         mock_state.click_happened = True
+        mock_state.click_hits.side_effect = lambda s: mock_state.click_happened
         mock_mouse.is_clicked = True
 
         handle_sprite_click(sprite)
@@ -145,6 +147,7 @@ class TestHandleSpriteClick:
         sprite._is_clicked = False
         mock_mouse.is_touching.return_value = False
         mock_state.click_happened = True
+        mock_state.click_hits.side_effect = lambda s: mock_state.click_happened
         mock_mouse.is_clicked = True
 
         handle_sprite_click(sprite)
@@ -160,6 +163,7 @@ class TestHandleSpriteClick:
         sprite._is_clicked = False
         mock_mouse.is_touching.return_value = True
         mock_state.click_happened = False
+        mock_state.click_hits.side_effect = lambda s: mock_state.click_happened
         mock_mouse.is_clicked = True
 
         handle_sprite_click(sprite)

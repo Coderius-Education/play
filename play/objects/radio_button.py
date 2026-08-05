@@ -135,7 +135,7 @@ class RadioButton(Sprite):
         """Handle click to select; re-render on hover changes."""
         # Disabled widgets never show hover feedback.
         hovered = not self._is_disabled and mouse.is_touching(self)
-        if mouse_state.click_happened and hovered:
+        if mouse_state.click_hits(self) and hovered:
             if self._group is not None:
                 self._group._select(self)
             else:

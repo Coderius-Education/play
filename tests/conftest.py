@@ -222,6 +222,8 @@ def clean_play_state(request):
     keyboard_state.pressed_this_frame.clear()
     mouse_state.click_happened = False
     mouse_state.click_release_happened = False
+    mouse_state.click_owner = None
+    mouse_state.click_claimants.clear()
 
     from play.io.mouse import mouse
 
