@@ -261,5 +261,7 @@ class RadioButton(Sprite):
             anchor=self._anchor,
             layer=self._layer,
             disabled=self._is_disabled,
-            selected=self._selected,
+            # A clone joining a group never steals the selection: cloning a
+            # selected grouped radio must not silently deselect the original.
+            selected=self._selected if self._group is None else False,
         )

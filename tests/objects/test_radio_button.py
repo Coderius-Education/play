@@ -3,10 +3,9 @@
 import pytest
 import play
 from play.io.mouse import mouse
-from play.core.mouse_loop import mouse_state
 from play.physics import physics_space
 from play.utils import color_name_to_rgb
-from tests.conftest import count_color
+from tests.conftest import click_at, count_color
 
 
 @pytest.fixture(autouse=True)
@@ -97,11 +96,7 @@ def test_radio_group_when_changed_fires_on_click():
         r.update()
     received = []
     g.when_changed(received.append)
-    mouse.x, mouse.y = 120, 0
-    mouse_state.click_happened = True
-    for r in (r1, r2):
-        r.update()
-    mouse_state.click_happened = False
+    click_at(120, 0, r1, r2)
     assert received == ["b"]
     assert g.selected_value == "b"
 
@@ -131,10 +126,18 @@ def test_radio_button_selected_default():
 
 
 def test_radio_button_label_setter():
+    import pygame
+
     r = play.new_radio_button("old")
+    r._should_recompute = True
+    r.update()
+    before = pygame.image.tobytes(r.image, "RGBA")
     r.label = "new"
     assert r.label == "new"
     assert r._should_recompute is True
+    r.update()
+    after = pygame.image.tobytes(r.image, "RGBA")
+    assert after != before  # the new label is actually drawn
 
 
 def test_radio_button_disabled_setter():
@@ -148,22 +151,14 @@ def test_radio_button_disabled_ignores_click():
     r = play.new_radio_button(
         "X", value="x", group=g, x=0, y=0, size_px=22, disabled=True
     )
-    mouse.x = 0
-    mouse.y = 0
-    mouse_state.click_happened = True
-    r.update()
-    mouse_state.click_happened = False
+    click_at(0, 0, r)
     assert r._selected is False
 
 
 def test_radio_button_click_selects():
     g = play.new_radio_group()
     r = play.new_radio_button("X", value="x", group=g, x=0, y=0, size_px=22)
-    mouse.x = 0
-    mouse.y = 0
-    mouse_state.click_happened = True
-    r.update()
-    mouse_state.click_happened = False
+    click_at(0, 0, r)
     assert r._selected is True
 
 
@@ -186,11 +181,7 @@ def test_stacked_radios_select_independently():
         r.update()
 
     def click(y):
-        mouse.x, mouse.y = -250, y
-        mouse_state.click_happened = True
-        for r in (top, mid, bot):
-            r.update()
-        mouse_state.click_happened = False
+        click_at(-250, y, top, mid, bot)
 
     click(155)
     assert g.selected_value == "mid"
@@ -283,16 +274,26 @@ def test_radio_button_clone():
     c = r.clone()
     assert c.label == "X"
     assert c.value == "x"
-    assert c._selected is True
+    assert c in g._buttons  # the clone joins the same group (unselected)
 
 
 def test_clone_selected_radio_keeps_single_selection():
-    # Regression: cloning a selected radio produced two selected buttons.
+    # Cloning a selected grouped radio must keep exactly one selection AND
+    # must not mutate the original: the clone joins the group unselected.
     g = play.new_radio_group()
     r = play.new_radio_button("X", value="x", group=g, selected=True)
-    r.clone()
+    c = r.clone()
     selected = [btn for btn in g._buttons if btn.selected]
     assert len(selected) == 1
+    assert r.selected is True  # the original keeps its selection
+    assert c.selected is False
+
+
+def test_clone_ungrouped_radio_keeps_selected_state():
+    r = play.new_radio_button("X", value="x", selected=True)
+    c = r.clone()
+    assert c.selected is True
+    assert r.selected is True
 
 
 def test_constructing_second_selected_radio_keeps_single_selection():
