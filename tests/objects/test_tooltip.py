@@ -84,11 +84,19 @@ def test_tooltip_no_target_stays_hidden():
 
 
 def test_tooltip_text_setter_triggers_recompute():
+    import pygame
+
     _target, tip = _make()
+    mouse.x, mouse.y = 200, 0
+    tip.update()  # visible and rendered
+    before = pygame.image.tobytes(tip.image, "RGBA")
     tip._should_recompute = False
     tip.text = "Updated"
     assert tip.text == "Updated"
     assert tip._should_recompute is True
+    tip.update()
+    after = pygame.image.tobytes(tip.image, "RGBA")
+    assert after != before  # the new text is actually drawn
 
 
 def test_tooltip_target_setter():

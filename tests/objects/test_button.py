@@ -16,11 +16,19 @@ def test_button_creation():
 
 
 def test_button_text_property_setter():
+    import pygame
+
     btn = play.new_button("Start")
+    btn._should_recompute = True
+    btn.update()
+    before = pygame.image.tobytes(btn.image, "RGBA")
     btn.text = "Stop"
     assert btn.text == "Stop"
     # Setter must flag a redraw
     assert btn._should_recompute is True
+    btn.update()
+    after = pygame.image.tobytes(btn.image, "RGBA")
+    assert after != before  # the new label is actually drawn
 
 
 def test_button_colors_stored():

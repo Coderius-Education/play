@@ -3,9 +3,8 @@
 import pytest
 import play
 from play.io.mouse import mouse
-from play.core.mouse_loop import mouse_state
 from play.utils import color_name_to_rgb
-from tests.conftest import count_color
+from tests.conftest import click_at, count_color
 
 
 @pytest.fixture(autouse=True)
@@ -26,12 +25,8 @@ def test_checkbox_default_unchecked():
 
 def test_checkbox_toggles_on_click():
     cb = play.new_checkbox(x=0, y=0, size_px=24)
-    mouse.x = 0
-    mouse.y = 0
-    mouse_state.click_happened = True
-    cb.update()
+    click_at(0, 0, cb)
     assert cb.checked is True
-    mouse_state.click_happened = False
 
 
 def test_checkbox_hover_border_reacts():
@@ -66,11 +61,7 @@ def test_checkbox_when_changed_fires():
     cb = play.new_checkbox(x=0, y=0, size_px=24)
     results = []
     cb.when_changed(results.append)
-    mouse.x = 0
-    mouse.y = 0
-    mouse_state.click_happened = True
-    cb.update()
-    mouse_state.click_happened = False
+    click_at(0, 0, cb)
     assert results == [True]
 
 
@@ -85,27 +76,38 @@ def test_checkbox_when_changed_rejects_async():
 
 def test_checkbox_disabled_ignores_click():
     cb = play.new_checkbox(x=0, y=0, size_px=24, disabled=True)
-    mouse.x = 0
-    mouse.y = 0
-    mouse_state.click_happened = True
-    cb.update()
-    mouse_state.click_happened = False
+    click_at(0, 0, cb)
     assert cb.checked is False
 
 
 def test_checkbox_checked_setter():
-    cb = play.new_checkbox()
+    check_rgb = color_name_to_rgb("royalblue")
+    cb = play.new_checkbox(check_color="royalblue")
     cb.checked = True
     assert cb.checked is True
+    cb._should_recompute = True
+    cb.update()
+    assert count_color(cb.image, check_rgb) > 0  # checkmark is drawn
     cb.checked = False
     assert cb.checked is False
+    cb._should_recompute = True
+    cb.update()
+    assert count_color(cb.image, check_rgb) == 0  # checkmark is gone
 
 
 def test_checkbox_label_setter():
+    import pygame
+
     cb = play.new_checkbox(label="old")
+    cb._should_recompute = True
+    cb.update()
+    before = pygame.image.tobytes(cb.image, "RGBA")
     cb.label = "new"
     assert cb.label == "new"
     assert cb._should_recompute is True
+    cb.update()
+    after = pygame.image.tobytes(cb.image, "RGBA")
+    assert after != before  # the new label is actually drawn
 
 
 def test_checkbox_disabled_setter():
@@ -141,19 +143,13 @@ def test_checkbox_click_off_centre_within_box_toggles():
     # The widget is wider than tall (box + label); nudge the click off-centre but
     # still inside the widget rect.
     half_w = cb.image.get_width() / 2
-    mouse.x, mouse.y = half_w - 4, 0
-    mouse_state.click_happened = True
-    cb.update()
-    mouse_state.click_happened = False
+    click_at(half_w - 4, 0, cb)
     assert cb.checked is True
 
 
 def test_checkbox_click_outside_does_not_toggle():
     cb = play.new_checkbox("Enable", x=0, y=0, size_px=24)
-    mouse.x, mouse.y = 300, 300  # far outside
-    mouse_state.click_happened = True
-    cb.update()
-    mouse_state.click_happened = False
+    click_at(300, 300, cb)  # far outside
     assert cb.checked is False
 
 
@@ -173,8 +169,5 @@ def test_checkbox_label_setter_resizes_widget_and_hit_shape():
     cb.label = "A much longer label than before"
     assert cb.width > old_width
     # The label area (right of the box) is now clickable.
-    mouse.x, mouse.y = old_width + 40, 0
-    mouse_state.click_happened = True
-    cb.update()
-    mouse_state.click_happened = False
+    click_at(old_width + 40, 0, cb)
     assert cb.checked is True

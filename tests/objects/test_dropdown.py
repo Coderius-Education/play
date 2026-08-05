@@ -3,7 +3,7 @@
 import pytest
 import play
 from play.io.mouse import mouse
-from play.core.mouse_loop import mouse_state
+from tests.conftest import click_at
 
 
 @pytest.fixture(autouse=True)
@@ -35,10 +35,18 @@ def test_dropdown_selected_index_setter():
 
 
 def test_dropdown_options_setter():
+    import pygame
+
     dd = play.new_dropdown(options=["A", "B"])
+    dd._should_recompute = True
+    dd.update()
+    before = pygame.image.tobytes(dd.image, "RGBA")
     dd.options = ["X", "Y", "Z"]
     assert dd.options == ["X", "Y", "Z"]
     assert dd._should_recompute is True
+    dd.update()
+    after = pygame.image.tobytes(dd.image, "RGBA")
+    assert after != before  # the closed button shows the new selected option
 
 
 def test_dropdown_options_setter_clamps_index():
@@ -49,11 +57,7 @@ def test_dropdown_options_setter_clamps_index():
 
 def test_dropdown_open_toggles_on_click():
     dd = play.new_dropdown(options=["A", "B"], x=0, y=0, width=160, height=40)
-    mouse.x = 0
-    mouse.y = 0
-    mouse_state.click_happened = True
-    dd.update()
-    mouse_state.click_happened = False
+    click_at(0, 0, dd)
     assert dd.is_open is True
 
 
@@ -61,11 +65,7 @@ def test_dropdown_disabled_ignores_click():
     dd = play.new_dropdown(
         options=["A", "B"], x=0, y=0, width=160, height=40, disabled=True
     )
-    mouse.x = 0
-    mouse.y = 0
-    mouse_state.click_happened = True
-    dd.update()
-    mouse_state.click_happened = False
+    click_at(0, 0, dd)
     assert dd.is_open is False
 
 
@@ -85,10 +85,7 @@ def test_dropdown_hovers_option_row_under_mouse():
     # With the menu open, mouse.y=-80 lands on the 2nd option row (index 1)
     # for a dropdown at y=0 with height=40 on the 800x600 test display.
     dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
-    mouse.x, mouse.y = 0, 0
-    mouse_state.click_happened = True
-    dd.update()  # open
-    mouse_state.click_happened = False
+    click_at(0, 0, dd)  # open
     mouse.x, mouse.y = 0, -80
     dd.update()  # tracks hovered option
     assert dd._hovered_option == 1
@@ -96,10 +93,7 @@ def test_dropdown_hovers_option_row_under_mouse():
 
 def test_dropdown_click_option_selects_and_closes():
     dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
-    mouse.x, mouse.y = 0, 0
-    mouse_state.click_happened = True
-    dd.update()  # open
-    mouse_state.click_happened = False
+    click_at(0, 0, dd)  # open
     assert dd.is_open is True
 
     # Hover the 2nd option row so _hovered_option is set before the click frame.
@@ -108,9 +102,7 @@ def test_dropdown_click_option_selects_and_closes():
     assert dd._hovered_option == 1
 
     # Click selects the hovered option and closes the menu.
-    mouse_state.click_happened = True
-    dd.update()
-    mouse_state.click_happened = False
+    click_at(0, -80, dd)
     assert dd.selected_index == 1
     assert dd.selected_value == "B"
     assert dd.is_open is False
@@ -120,16 +112,11 @@ def test_dropdown_click_option_fires_when_changed():
     dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
     received = []
     dd.when_changed(lambda v, i: received.append((v, i)))
-    mouse.x, mouse.y = 0, 0
-    mouse_state.click_happened = True
-    dd.update()  # open
-    mouse_state.click_happened = False
+    click_at(0, 0, dd)  # open
     mouse.x, mouse.y = 0, -120  # 3rd option row (index 2)
     dd.update()
     assert dd._hovered_option == 2
-    mouse_state.click_happened = True
-    dd.update()
-    mouse_state.click_happened = False
+    click_at(0, -120, dd)
     assert received == [("C", 2)]
 
 
@@ -170,16 +157,10 @@ def test_dropdown_click_uses_current_mouse_not_stale_hover():
     # Regression: the click must select the row under the mouse now, not the
     # cached _hovered_option from the previous frame.
     dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
-    mouse.x, mouse.y = 0, 0
-    mouse_state.click_happened = True
-    dd.update()  # open
-    mouse_state.click_happened = False
+    click_at(0, 0, dd)  # open
     # Stale hover points at row 0, but the mouse is really over row 2.
     dd._hovered_option = 0
-    mouse.x, mouse.y = 0, -120
-    mouse_state.click_happened = True
-    dd.update()
-    mouse_state.click_happened = False
+    click_at(0, -120, dd)
     assert dd.selected_index == 2
 
 
@@ -203,10 +184,7 @@ def test_dropdown_open_image_taller_than_closed():
     dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
     dd.update()
     closed_h = dd.image.get_height()
-    mouse.x, mouse.y = 0, 0
-    mouse_state.click_happened = True
-    dd.update()  # open
-    mouse_state.click_happened = False
+    click_at(0, 0, dd)  # open
     assert dd.is_open is True
     assert dd.image.get_height() > closed_h
 
@@ -265,21 +243,11 @@ def test_open_menu_click_does_not_fall_through():
     cb = play.new_checkbox(label="under the menu", x=0, y=-40)
 
     # Click the closed button to open the menu.
-    mouse.x, mouse.y = 0, 0
-    mouse_state.click_happened = True
-    mouse_state.resolve_click_owner()
-    dd.update()
-    cb.update()
-    mouse_state.clear()
+    click_at(0, 0, dd, cb)
     assert dd.is_open is True
 
     # Click option row 0, which overlaps the checkbox underneath.
-    mouse.x, mouse.y = 0, -40
-    mouse_state.click_happened = True
-    mouse_state.resolve_click_owner()
-    dd.update()
-    cb.update()
-    mouse_state.clear()
+    click_at(0, -40, dd, cb)
 
     assert dd.selected_value == "A"
     assert cb.checked is False  # the menu swallowed the click
@@ -288,11 +256,6 @@ def test_open_menu_click_does_not_fall_through():
 def test_closed_dropdown_does_not_claim_clicks():
     dd = play.new_dropdown(options=["A", "B"], x=0, y=0, width=160, height=40)
     cb = play.new_checkbox(label="beside", x=0, y=-40)
-    mouse.x, mouse.y = 0, -40
-    mouse_state.click_happened = True
-    mouse_state.resolve_click_owner()
-    dd.update()
-    cb.update()
-    mouse_state.clear()
+    click_at(0, -40, dd, cb)
     assert dd.is_open is False
     assert cb.checked is True  # normal click still reaches the checkbox

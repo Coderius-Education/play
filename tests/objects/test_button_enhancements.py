@@ -323,10 +323,16 @@ def test_disabled_text_color_used_when_disabled():
 
 
 def test_text_color_setter():
+    from play.utils import color_name_to_rgb
+    from tests.conftest import count_color
+
     btn = play.new_button()
     btn.text_color = "green"
     assert btn.text_color == "green"
     assert btn._should_recompute is True
+    btn.update()
+    # The label is actually drawn in the new colour.
+    assert count_color(btn.image, color_name_to_rgb("green")) > 0
 
 
 def test_hover_color_setter():

@@ -3,7 +3,7 @@
 import pytest
 import play
 from play.io.mouse import mouse
-from play.core.mouse_loop import mouse_state
+from tests.conftest import click_at
 
 
 @pytest.fixture(autouse=True)
@@ -97,11 +97,7 @@ def test_slider_hit_shape_matches_size():
 
 
 def _start_drag(slider):
-    mouse.x, mouse.y = 0, 0
-    mouse._is_clicked = True
-    mouse_state.click_happened = True
-    slider.update()
-    mouse_state.click_happened = False
+    click_at(0, 0, slider, hold=True)
 
 
 def test_slider_drag_to_far_right_sets_max():

@@ -3,8 +3,7 @@ import pytest
 import play
 from play.globals import globals_list
 from play.objects import text_input_registry as registry
-from play.core.mouse_loop import mouse_state
-from play.io.mouse import mouse
+from tests.conftest import click_at
 
 
 @pytest.fixture(autouse=True)
@@ -38,9 +37,15 @@ def test_text_input_default_value():
 
 def test_value_setter():
     ti = play.new_text_input()
+    ti._should_recompute = True
+    ti.update()
+    before = pygame.image.tobytes(ti.image, "RGBA")
     ti.value = "abc"
     assert ti.value == "abc"
     assert ti._should_recompute is True
+    ti.update()
+    after = pygame.image.tobytes(ti.image, "RGBA")
+    assert after != before  # the new value is actually drawn
 
 
 def test_value_setter_fires_callbacks():
@@ -215,10 +220,7 @@ def test_text_input_layer():
 
 def test_clicking_input_gains_focus():
     ti = play.new_text_input(x=0, y=0, width=100, height=40)
-    mouse.x = 0
-    mouse.y = 0
-    mouse_state.click_happened = True
-    ti.update()
+    click_at(0, 0, ti)
     assert ti._is_focused is True
     assert globals_list.focused_text_input is ti
 
@@ -226,10 +228,7 @@ def test_clicking_input_gains_focus():
 def test_clicking_elsewhere_blurs_focused_input():
     ti = play.new_text_input(x=0, y=0)
     registry.focus(ti)
-    mouse.x = 9999
-    mouse.y = 9999
-    mouse_state.click_happened = True
-    ti.update()
+    click_at(9999, 9999, ti)
     assert ti._is_focused is False
     assert globals_list.focused_text_input is None
 
