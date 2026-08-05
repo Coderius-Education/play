@@ -29,6 +29,7 @@ def start_program():
         )
 
     globals_list.program_started = True
+    globals_list.program_stopped = False
     globals_list.should_auto_start = False
 
     async def _run_start_then_loop():
@@ -41,8 +42,18 @@ def start_program():
         _get_loop().create_task(_game_loop())
 
     try:
-        _get_loop().run_until_complete(_run_start_then_loop())
-        _get_loop().run_forever()
+        try:
+            _get_loop().run_until_complete(_run_start_then_loop())
+        except RuntimeError:
+            # loop.stop() raced with startup: fine if the program asked to stop.
+            if not globals_list.program_stopped:
+                raise
+        # If stop_program() ran during the very first frame (or during a
+        # when_program_starts callback), its loop.stop() is absorbed by
+        # run_until_complete's own stop signal — without this check the
+        # program would keep running forever after asking to stop.
+        if not globals_list.program_stopped:
+            _get_loop().run_forever()
     finally:
         logger = _logging.getLogger("asyncio")
         logger.setLevel(_logging.CRITICAL)
@@ -56,6 +67,7 @@ def stop_program():
 
     play.stop_program() should almost certainly go at the very end of your program.
     """
+    globals_list.program_stopped = True
     _get_loop().stop()
 
 
