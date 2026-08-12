@@ -48,7 +48,10 @@ class Slider(WidgetMixin, Sprite):
         self._track_color = track_color
         self._fill_color = fill_color
         self._thumb_color = thumb_color
-        self._thumb_radius = thumb_radius
+        # A thumb wider than half the track leaves track_width negative in
+        # _update_value_from_mouse, which silently pins the slider to
+        # min_value on every drag. Keep at least a 2px draggable track.
+        self._thumb_radius = max(0, min(thumb_radius, (width - 2) // 2))
         self._border_radius = border_radius
         self._transparency = transparency
         self._size = 100
@@ -67,7 +70,7 @@ class Slider(WidgetMixin, Sprite):
         # Seed the rect with the real widget size so the pymunk hit-shape is
         # built correctly; a 0x0 rect yields a degenerate point shape that only
         # registers clicks at the exact centre.
-        self.rect = pygame.Rect(0, 0, width, height + thumb_radius * 2)
+        self.rect = pygame.Rect(0, 0, width, height + self._thumb_radius * 2)
         super().__init__(x=x, y=y, anchor=anchor, layer=layer)
         # Render only: self.update() would start a drag from a click that is
         # still live in the frame the slider was created in.

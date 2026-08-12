@@ -3,7 +3,8 @@ import pytest
 import play
 from play.globals import globals_list
 from play.objects import text_input_registry as registry
-from tests.conftest import click_at
+from play.utils import color_name_to_rgb
+from tests.conftest import click_at, count_color
 
 
 @pytest.fixture(autouse=True)
@@ -247,27 +248,48 @@ def test_cursor_toggles_after_500ms():
 
 
 def test_blit_placeholder_when_empty_and_unfocused():
-    ti = play.new_text_input(placeholder="Type here")
+    placeholder_rgb = color_name_to_rgb("gray")
+    ti = play.new_text_input(placeholder="Type here", placeholder_color="gray")
     ti._should_recompute = True
     ti.update()
-    assert ti.image is not None
+    assert count_color(ti.image, placeholder_rgb) > 0  # placeholder is drawn
+
+    # Once there is a value, the placeholder must be gone entirely.
+    ti.value = "typed"
+    ti._should_recompute = True
+    ti.update()
+    assert count_color(ti.image, placeholder_rgb) == 0
 
 
 def test_blit_cursor_when_focused_and_visible():
     ti = play.new_text_input()
     registry.focus(ti)
+
     ti._cursor_visible = True
     ti._should_recompute = True
     ti.update()
-    assert ti.image is not None
+    with_cursor = pygame.image.tostring(ti.image, "RGBA")
+
+    ti._cursor_visible = False
+    ti._should_recompute = True
+    ti.update()
+    without_cursor = pygame.image.tostring(ti.image, "RGBA")
+
+    # The blink has to be visible, not merely non-crashing.
+    assert with_cursor != without_cursor
 
 
 def test_blit_long_text_clips_to_box_width():
     ti = play.new_text_input(width=80)
+    ti._should_recompute = True
+    ti.update()
+    empty_width = ti.image.get_width()
+
     ti._input_value = "a" * 60  # far too long to fit
     ti._should_recompute = True
     ti.update()
-    assert ti.image is not None
+    # Overflowing text must be clipped inside the field, not widen it.
+    assert ti.image.get_width() == empty_width
 
 
 # ── remove() ─────────────────────────────────────────────────────────────────
@@ -298,11 +320,15 @@ def test_dispatch_keydown_reaches_focused_widget():
 
 
 def test_dispatch_text_no_focused_is_noop():
-    registry.dispatch_text("x")  # no widget focused — must not raise
+    ti = play.new_text_input(value="abc")  # exists but is not focused
+    registry.dispatch_text("x")  # must not raise
+    assert ti.value == "abc"  # and must not reach an unfocused field
 
 
 def test_dispatch_keydown_no_focused_is_noop():
+    ti = play.new_text_input(value="abc")
     registry.dispatch_keydown(_keydown(pygame.K_BACKSPACE))  # must not raise
+    assert ti.value == "abc"
 
 
 # ── key handler suppression ───────────────────────────────────────────────────

@@ -241,6 +241,10 @@ def test_copy_survives_unavailable_scrap(monkeypatch):
     monkeypatch.setattr(pygame.scrap, "init", _boom)
     # Should not raise.
     ti._handle_keydown(_keydown(pygame.K_c, mod=pygame.KMOD_CTRL))
+    # A failed copy must also leave the field completely untouched — without
+    # this the test would pass even if Ctrl+C deleted the selection.
+    assert ti.value == "hello"
+    assert (ti._selection_start, ti._selection_end) == (0, 5)
 
 
 def test_register_on_creation():
@@ -440,9 +444,15 @@ def test_readonly_setter():
 
 
 def test_unregister_twice_is_harmless():
+    other = play.new_text_input()
     ti = play.new_text_input()
     registry.unregister(ti)
+    before = list(registry._tab_order)
     registry.unregister(ti)  # second call must not raise
+    # ...and must not disturb the remaining fields either.
+    assert list(registry._tab_order) == before
+    assert other in registry._tab_order
+    assert ti not in registry._tab_order
 
 
 def test_tab_from_stale_focus_goes_to_first_field():
