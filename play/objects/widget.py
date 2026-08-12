@@ -17,6 +17,7 @@ same contract. Subclasses must:
 
 import inspect as _inspect
 
+from ..core.mouse_loop import mouse_state
 from ..utils import reject_async_callback as _reject_async
 
 
@@ -28,10 +29,29 @@ class WidgetMixin:
     _is_widget = True
 
     def _init_widget(self):
-        """Initialise hover state. Call before ``super().__init__()``."""
+        """Initialise hover and click state. Call before ``super().__init__()``."""
         self._hover_callbacks = []
         self._unhover_callbacks = []
         self._was_hovered = False
+        self._last_click_id = -1
+
+    def _claim_click(self):
+        """True at most once per click, for edge-triggered actions.
+
+        ``update()`` runs once per physics sub-step rather than once per frame
+        — ``simulate_physics()`` calls ``update_sprites()`` for every step but
+        the last, and ``game_loop`` calls it once more. A toggle written as
+        ``x = not x`` would therefore flip ten times per click and land back
+        where it started. Actions that must happen once per click gate on this;
+        actions that are already idempotent (setting focus, starting a drag)
+        do not need it.
+        """
+        if not mouse_state.click_happened:
+            return False
+        if self._last_click_id == mouse_state.click_id:
+            return False
+        self._last_click_id = mouse_state.click_id
+        return True
 
     # ── hover ─────────────────────────────────────────────────────────────────
 

@@ -19,6 +19,10 @@ class MouseState:
     # Widgets that may claim exclusive ownership of a click. Populated by
     # widgets that draw on top of others (an open Dropdown registers here).
     click_claimants = []
+    # Monotonic id for the current click. Sprite update() runs once per
+    # physics sub-step, not once per frame, so widgets use this to perform an
+    # edge-triggered action (a toggle) exactly once per click.
+    click_id = 0
 
     def clear(self):
         """Clear the mouse state for the next frame."""
@@ -42,7 +46,11 @@ class MouseState:
         claims the click outright; otherwise the top-most interactive widget
         under the cursor takes it, so stacked widgets don't all react to one
         click. Plain sprites never become the owner, which keeps their original
-        behaviour of every sprite under the cursor receiving the click."""
+        behaviour of every sprite under the cursor receiving the click.
+
+        Called exactly once per click, from handle_mouse_events (and from the
+        tests' click_at helper), so this is also where the click id advances."""
+        self.click_id += 1
         self.click_claimants[:] = [w for w in self.click_claimants if w.alive()]
         claiming = [w for w in self.click_claimants if w._claims_click()]
         if claiming:

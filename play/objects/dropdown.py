@@ -118,7 +118,14 @@ class Dropdown(WidgetMixin, Box):
         super().update()
 
     def _handle_click(self):
-        """Route this frame's click: select an option, toggle, or close."""
+        """Route this click: select an option, toggle, or close.
+
+        Claimed so it runs once per click rather than once per physics
+        sub-step: otherwise the open/close toggle flips back to where it
+        started, and selecting an option would immediately reopen the menu.
+        """
+        if not self._claim_click():
+            return
         ours = mouse_state.click_hits(self)
         # Recompute the option under the cursor at click time rather than
         # trusting last frame's cached value (the mouse may have moved).

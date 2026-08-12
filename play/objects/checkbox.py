@@ -70,7 +70,9 @@ class Checkbox(WidgetMixin, Box):
         # Disabled widgets never show hover feedback.
         hovered = not self._is_disabled and mouse.is_touching(self)
         self._track_hover(hovered)
-        if mouse_state.click_hits(self) and hovered:
+        # _claim_click() keeps the toggle to once per click; update() runs
+        # once per physics sub-step, so a bare toggle flips back and forth.
+        if hovered and mouse_state.click_hits(self) and self._claim_click():
             self._checked = not self._checked
             self._should_recompute = True
             for cb in self._on_change_callbacks:

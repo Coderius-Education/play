@@ -177,6 +177,48 @@ def test_disabling_mid_drag_does_not_resume_on_re_enable():
     mouse._is_clicked = False
 
 
+# ── one action per click, not one per update() ────────────────────────────────
+#
+# simulate_physics() calls update_sprites() once per physics sub-step and
+# game_loop calls it once more, so every sprite's update() runs ~10x per
+# frame. A toggle written as `x = not x` flips an even number of times and
+# lands back where it started, which made Checkbox and Dropdown inert in a
+# real game while every single-update unit test passed.
+
+
+def _one_frame_of_updates(widget, times=10):
+    for _ in range(times):
+        widget.update()
+
+
+def test_checkbox_toggles_once_per_click_not_once_per_update():
+    cb = play.new_checkbox(x=0, y=0, size_px=40)
+    mouse.x, mouse.y = 0, 0
+    mouse._is_clicked = True
+    mouse_state.click_happened = True
+    mouse_state.resolve_click_owner()
+    try:
+        _one_frame_of_updates(cb)
+        assert cb.checked is True
+    finally:
+        mouse_state.clear()
+        mouse._is_clicked = False
+
+
+def test_dropdown_opens_once_per_click_not_once_per_update():
+    dd = play.new_dropdown(options=["A", "B"], x=0, y=0, width=160, height=40)
+    mouse.x, mouse.y = 0, 0
+    mouse._is_clicked = True
+    mouse_state.click_happened = True
+    mouse_state.resolve_click_owner()
+    try:
+        _one_frame_of_updates(dd)
+        assert dd.is_open is True
+    finally:
+        mouse_state.clear()
+        mouse._is_clicked = False
+
+
 # ── colour setters survive the next frame ─────────────────────────────────────
 
 
