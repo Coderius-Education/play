@@ -67,7 +67,9 @@ class Slider(Sprite):
         # registers clicks at the exact centre.
         self.rect = pygame.Rect(0, 0, width, height + thumb_radius * 2)
         super().__init__(x=x, y=y, anchor=anchor, layer=layer)
-        self.update()
+        # Render only: self.update() would start a drag from a click that is
+        # still live in the frame the slider was created in.
+        super().update()
 
     def update(self):
         """Handle drag input then re-render."""

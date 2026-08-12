@@ -36,7 +36,10 @@ class Box(Sprite):
         self.rect = pygame.Rect(0, 0, 0, 0)
 
         super().__init__(x=x, y=y, anchor=anchor, layer=layer)
-        self.update()
+        # Render only. Subclasses override update() with input handling, and
+        # the frame's click state is still live during __init__, so self.update()
+        # would let a widget built under the cursor activate itself on creation.
+        super().update()
 
     def _hit_dims(self, size_factor):
         """Box hit-shape uses its logical width/height, scaled by size."""

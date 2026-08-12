@@ -37,12 +37,14 @@ class MouseState:
     def resolve_click_owner(self):
         """Ask registered claimants whether the current click is theirs.
 
-        Called once per MOUSEBUTTONDOWN; the first claimant whose open UI is
-        under the mouse becomes the exclusive owner of this click."""
+        Called once per MOUSEBUTTONDOWN; of the claimants whose open UI is
+        under the mouse, the top-most one becomes the exclusive owner of this
+        click."""
         self.click_claimants[:] = [w for w in self.click_claimants if w.alive()]
-        self.click_owner = next(
-            (w for w in self.click_claimants if w._claims_click()), None
-        )
+        claiming = [w for w in self.click_claimants if w._claims_click()]
+        # Registration order says nothing about what is drawn on top, so pick
+        # by layer rather than taking the first claimant.
+        self.click_owner = max(claiming, key=lambda w: w._layer, default=None)
 
 
 mouse_state = MouseState()

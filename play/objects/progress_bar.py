@@ -119,8 +119,11 @@ class ProgressBar(Box):
 
     @min_value.setter
     def min_value(self, v):
+        # Keep the bounds ordered: crossing them over leaves a non-positive
+        # span, which pins percentage at 0.0 for every later value assignment.
         self._min_value = v
-        self._bar_value = max(v, self._bar_value)
+        self._max_value = max(v, self._max_value)
+        self._bar_value = max(v, min(self._max_value, self._bar_value))
         self._should_recompute = True
 
     @property
@@ -131,7 +134,8 @@ class ProgressBar(Box):
     @max_value.setter
     def max_value(self, v):
         self._max_value = v
-        self._bar_value = min(v, self._bar_value)
+        self._min_value = min(v, self._min_value)
+        self._bar_value = max(self._min_value, min(v, self._bar_value))
         self._should_recompute = True
 
     @property

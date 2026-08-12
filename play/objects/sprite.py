@@ -205,17 +205,27 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         return touching
 
     def update(self):
-        """Orchestrate per-frame rendering: apply anchor, call _render(), clear flag."""
+        """Orchestrate per-frame rendering: render, apply anchor, re-render if moved."""
         # A dynamic body that obeys gravity is owned by the physics simulation;
         # re-applying the anchor would snap it back and zero its velocity every
         # frame, so the sprite could never fall or be pushed.
         physics = getattr(self, "physics", None)  # Text updates before physics exists
-        if self._anchor and not (
+        anchored = self._anchor and not (
             physics is not None
             and physics.obeys_gravity
             and physics._pymunk_body.body_type == _pymunk.Body.DYNAMIC
-        ):
+        )
+        # Render before anchoring so rect holds *this* frame's dimensions:
+        # _apply_anchor() derives the sprite's half-width/height from rect, and
+        # last frame's size mispositions anything whose content changes (a
+        # score or timer read-out anchored to a screen edge, for example).
+        self._recompute_image()
+        if anchored:
             self._apply_anchor()
+            self._recompute_image()  # no-op unless the anchor moved the sprite
+
+    def _recompute_image(self):
+        """Redraw into self.image if the sprite is marked dirty."""
         if not self._should_recompute:
             return
         if self._is_hidden:
@@ -381,6 +391,11 @@ You might want to look in your code where you're setting transparency and make s
         :param sprite_or_point: The sprite or point to check if it's touching.
         :return: Whether the sprite is touching the other sprite or point."""
         if isinstance(sprite_or_point, Sprite):
+            # A hidden sprite is non-interactive, but its shape keeps its last
+            # cached transform, so without this the collision test still reports
+            # contacts at the position it was hidden at.
+            if self._is_hidden or sprite_or_point._is_hidden:
+                return False
             try:
                 contact_set = self.physics._pymunk_shape.shapes_collide(
                     sprite_or_point.physics._pymunk_shape
@@ -539,6 +554,17 @@ You might want to look in your code where you're setting transparency and make s
 
         Shared render tail for widgets drawn into *draw_image* that sit centred
         on ``(self.x, self.y)``."""
+        # _hit_dims() scales the pymunk hit-shape by _size, so the drawn image
+        # has to scale with it or clicks land off the visible widget.
+        size = getattr(self, "_size", 100)
+        if size != 100:
+            draw_image = pygame.transform.scale(
+                draw_image,
+                (
+                    max(round(draw_image.get_width() * size / 100), 1),
+                    max(round(draw_image.get_height() * size / 100), 1),
+                ),
+            )
         draw_image.set_alpha(round(self._transparency * 255 / 100))
         self.rect = draw_image.get_rect()
         pos = convert_pos(self.x, self.y)

@@ -123,6 +123,10 @@ class TextInput(Box):
         """Draw box background then blit text/cursor on top."""
         super()._render()  # Box._render()
         self._blit_input_text()
+        # Every other widget dims when disabled; without this a disabled field
+        # is indistinguishable from an editable one.
+        if self._is_disabled:
+            self._draw_disabled_overlay(self.image)
 
     # ── keyboard event handlers ───────────────────────────────────────────────
 

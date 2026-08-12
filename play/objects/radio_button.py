@@ -135,7 +135,9 @@ class RadioButton(Sprite):
                         btn._should_recompute = True
 
         super().__init__(x=x, y=y, anchor=anchor, layer=layer)
-        self.update()
+        # Render only: self.update() would select this button from a click that
+        # is still live in the frame it was created in.
+        super().update()
 
     def update(self):
         """Handle click to select; re-render on hover changes."""
