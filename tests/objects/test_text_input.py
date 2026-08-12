@@ -248,8 +248,10 @@ def test_cursor_toggles_after_500ms():
 
 
 def test_blit_placeholder_when_empty_and_unfocused():
-    placeholder_rgb = color_name_to_rgb("gray")
-    ti = play.new_text_input(placeholder="Type here", placeholder_color="gray")
+    # Not "gray": that is also the default border colour, so the count would
+    # include border pixels and could never fall to zero.
+    placeholder_rgb = color_name_to_rgb("magenta")
+    ti = play.new_text_input(placeholder="Type here", placeholder_color="magenta")
     ti._should_recompute = True
     ti.update()
     assert count_color(ti.image, placeholder_rgb) > 0  # placeholder is drawn
@@ -265,15 +267,20 @@ def test_blit_cursor_when_focused_and_visible():
     ti = play.new_text_input()
     registry.focus(ti)
 
+    # update() also advances the blink timer, which flips _cursor_visible out
+    # from under the test. Re-stamp _last_blink so the interval never elapses
+    # and the state under test is the one that gets rendered.
+    ti._last_blink = pygame.time.get_ticks()
     ti._cursor_visible = True
     ti._should_recompute = True
     ti.update()
-    with_cursor = pygame.image.tostring(ti.image, "RGBA")
+    with_cursor = pygame.image.tobytes(ti.image, "RGBA")
 
+    ti._last_blink = pygame.time.get_ticks()
     ti._cursor_visible = False
     ti._should_recompute = True
     ti.update()
-    without_cursor = pygame.image.tostring(ti.image, "RGBA")
+    without_cursor = pygame.image.tobytes(ti.image, "RGBA")
 
     # The blink has to be visible, not merely non-crashing.
     assert with_cursor != without_cursor

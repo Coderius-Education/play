@@ -133,6 +133,6 @@ def test_disabled_text_input_is_dimmed():
     disabled = play.new_text_input(value="abc", x=0, y=150, disabled=True)
     enabled.update()
     disabled.update()
-    enabled_px = pygame.image.tostring(enabled.image, "RGBA")
-    disabled_px = pygame.image.tostring(disabled.image, "RGBA")
+    enabled_px = pygame.image.tobytes(enabled.image, "RGBA")
+    disabled_px = pygame.image.tobytes(disabled.image, "RGBA")
     assert enabled_px != disabled_px
