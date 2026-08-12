@@ -12,7 +12,7 @@ platformer with keyboard controls, gravity, and collectables.
 This test verifies:
 - @when_key_pressed for movement and jumping
 - obeys_gravity=True with real gravity-driven falling
-- when_stopped_touching for landing detection (player–platform)
+- when_touching / when_stopped_touching for landing detection (player–platform)
 - sprite.hide() for collecting coins
 - is_touching for coin pickup detection
 - the game completes when all coins are collected
@@ -30,6 +30,7 @@ def test_platformer_keyboard():
 
     coins_collected = [0]
     on_ground = [False]
+    ground_contacts = [0]
     jumps = [0]
     TOTAL_COINS = 3
 
@@ -61,11 +62,11 @@ def test_platformer_keyboard():
         coin.start_physics(obeys_gravity=False, can_move=False, bounciness=0.0)
 
     # --- landing detection -------------------------------------------------
-    # NOTE: a @player.when_touching(ground) callback was tried here to record
-    # landings, and never fired once across the whole run even though the
-    # player demonstrably rests on the platform (see the y assertion below).
-    # Worth investigating separately; not asserted here rather than shipping a
-    # check whose behaviour is not understood.
+    @player.when_touching(ground)
+    def standing_on_ground():
+        on_ground[0] = True
+        ground_contacts[0] += 1
+
     @player.when_stopped_touching(ground)
     def left_ground():
         on_ground[0] = False
@@ -130,11 +131,14 @@ def test_platformer_keyboard():
     assert score_text.words == f"Coins: {coins_collected[0]}"
 
     # Gravity plus a solid platform: the player must end up above the ground,
-    # never through it. This is the part of "landing detection" that can be
-    # checked without relying on a collision callback.
+    # never through it, and the collision callback must agree with the physics.
+    # The y check alone passes for a player that never landed at all.
     assert (
         player.y > ground.y
     ), "the player should never fall through the ground platform"
+    assert (
+        ground_contacts[0] > 0
+    ), "when_touching(ground) should fire while the player stands on the platform"
 
 
 if __name__ == "__main__":
