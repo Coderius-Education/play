@@ -3,7 +3,11 @@
 import pygame
 
 from .box import Box
-from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
+from ..utils import (
+    color_name_to_rgb as _color_name_to_rgb,
+    load_font as _load_font,
+    check_value_range as _check_range,
+)
 
 
 class ProgressBar(Box):
@@ -29,6 +33,7 @@ class ProgressBar(Box):
         font_size=14,
         font=None,
     ):
+        _check_range(min_value, max_value, "progress bar")
         self._min_value = min_value
         self._max_value = max_value
         self._bar_value = max(min_value, min(max_value, value))

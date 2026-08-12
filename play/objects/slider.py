@@ -10,6 +10,7 @@ from ..utils import (
     color_name_to_rgb as _color_name_to_rgb,
     load_font as _load_font,
     reject_async_callback as _reject_async,
+    check_value_range as _check_range,
 )
 from ..io.screen import convert_pos, screen
 from ..core.mouse_loop import mouse_state
@@ -40,6 +41,7 @@ class Slider(WidgetMixin, Sprite):
         value_color="black",
         step=None,
     ):
+        _check_range(min_value, max_value, "slider")
         self._min_value = min_value
         self._max_value = max_value
         self._value = max(min_value, min(max_value, value))

@@ -168,3 +168,20 @@ def is_called_from_pygame():
         if "pygame" in filename and "site-packages" in filename:
             return True
     return False
+
+
+def check_value_range(min_value, max_value, widget_name):
+    """Reject a back-to-front value range with an explanation.
+
+    A swapped range is silently useless rather than loud: the widget clamps
+    every value to min_value and its span is negative, so a slider freezes and
+    a progress bar reads empty while ``value`` says otherwise. Saying so at the
+    line that made the widget is far kinder than leaving a beginner to wonder
+    why nothing moves.
+    """
+    if min_value >= max_value:
+        raise ValueError(
+            f"""The {widget_name} you made has min_value={min_value} and max_value={max_value}.
+min_value has to be smaller than max_value, otherwise the {widget_name} can never move.
+Try swapping them around: min_value={max_value}, max_value={min_value}\n"""
+        )
