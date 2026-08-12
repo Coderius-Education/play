@@ -29,7 +29,7 @@ def test_catch_game():
     basket.start_physics(obeys_gravity=False, can_move=False)
 
     fruit = play.new_circle(color="red", x=0, y=100, radius=15)
-    fruit.start_physics(obeys_gravity=True, x_speed=0, y_speed=0, bounciness=0)
+    fruit.start_physics(obeys_gravity=True, x_speed=0, y_speed=-500, bounciness=0)
 
     score_text = play.new_text(words="Score: 0", x=0, y=screen.top - 30, font_size=25)
 
@@ -38,7 +38,7 @@ def test_catch_game():
         pos = play.random_position()
         fruit.x = pos.x
         fruit.y = 100
-        fruit.physics.y_speed = 0
+        fruit.physics.y_speed = -500
         fruit.physics.x_speed = 0
 
     # --- game loop: poll is_touching each frame (common beginner approach) ---
@@ -71,7 +71,11 @@ def test_catch_game():
 
     # --- assertions ---
     assert frames_run[0] >= 1, "Game loop never ran"
-    assert score[0] >= 1, f"Expected at least 1 catch, got {score[0]}"
+    assert score[0] == 3, f"the game should reach its 3-catch goal, got {score[0]}"
+    assert (
+        frames_run[0] < MAX_FRAMES
+    ), "the game should end by reaching 3 catches, not by exhausting the frame budget"
+    assert score_text.words == "Score: 3", f"scoreboard reads {score_text.words!r}"
 
 
 if __name__ == "__main__":

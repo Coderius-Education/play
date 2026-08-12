@@ -21,7 +21,7 @@ This test verifies:
 from tests.conftest import post_key_down, post_key_up
 from tests.projects.conftest import add_safety_timeout
 
-max_frames = 2000
+max_frames = 2000  # ~33s: this game really does use its budget
 
 
 def test_platformer_keyboard():

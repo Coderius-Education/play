@@ -16,14 +16,19 @@ from tests.projects.conftest import (
     assert_pong_winner,
 )
 
-max_frames = 3000
+max_frames = 1500  # 25s at 60fps; pytest's timeout is 60s
 winning_score = 2
 
 
 def test_pong_random():
     import random
 
-    random.seed(42)  # deterministic serves to avoid flaky near-vertical angles
+    # Deterministic serves (near-vertical angles were flaky), but seeding the
+    # *global* RNG leaked into every later test on the same xdist worker --
+    # notably test_catch_game, which draws an unseeded random position.
+    # Save and restore instead.
+    _rng_state = random.getstate()
+    random.seed(42)
 
     import play
     from play.callback.collision_callbacks import WallSide
@@ -86,7 +91,10 @@ def test_pong_random():
             await play.animate()
         play.stop_program()
 
-    play.start_program()
+    try:
+        play.start_program()
+    finally:
+        random.setstate(_rng_state)
 
     # --- assertions --------------------------------------------------------
     assert_pong_winner(score_left, score_right, winning_score)
