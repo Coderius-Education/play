@@ -96,8 +96,7 @@ class Slider(Sprite):
         t = max(0.0, min(1.0, t))
         raw = self._min_value + t * (self._max_value - self._min_value)
 
-        if self._step is not None and self._step > 0:
-            raw = round(raw / self._step) * self._step
+        raw = self._quantize(raw)
 
         new_val = max(self._min_value, min(self._max_value, raw))
         if new_val != self._value:
@@ -181,6 +180,18 @@ class Slider(Sprite):
         self.image = pygame.transform.rotate(draw_image, angle_deg)
         self.rect = self.image.get_rect(center=self.rect.center)
 
+    def _quantize(self, raw):
+        """Snap *raw* to the nearest step, measured from min_value.
+
+        Anchoring to min_value (rather than zero) keeps the reachable values on
+        the grid the range actually starts on: min_value=1, step=2 yields
+        1, 3, 5, ... instead of 2, 4, 6, ...
+        """
+        if self._step is not None and self._step > 0:
+            steps = round((raw - self._min_value) / self._step)
+            raw = self._min_value + steps * self._step
+        return raw
+
     # ── public API ────────────────────────────────────────────────────────────
 
     @property
@@ -190,7 +201,7 @@ class Slider(Sprite):
 
     @value.setter
     def value(self, v):
-        new_val = max(self._min_value, min(self._max_value, v))
+        new_val = max(self._min_value, min(self._max_value, self._quantize(v)))
         if new_val == self._value:
             return
         self._value = new_val
@@ -206,8 +217,9 @@ class Slider(Sprite):
     @min_value.setter
     def min_value(self, v):
         self._min_value = v
-        self._value = max(v, self._value)
         self._should_recompute = True
+        if self._value < v:
+            self.value = v  # clamps and fires when_changed
 
     @property
     def max_value(self):
@@ -217,8 +229,9 @@ class Slider(Sprite):
     @max_value.setter
     def max_value(self, v):
         self._max_value = v
-        self._value = min(v, self._value)
         self._should_recompute = True
+        if self._value > v:
+            self.value = v  # clamps and fires when_changed
 
     @property
     def disabled(self):

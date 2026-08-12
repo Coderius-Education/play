@@ -153,7 +153,13 @@ class TextInput(Box):
         self, event
     ):  # pylint: disable=too-many-return-statements,too-many-branches,too-many-statements
         """Handle navigation, editing, clipboard, and Tab keys from a KEYDOWN event."""
-        mods = pygame.key.get_mods()
+        # Read the modifiers carried by *this* event, not the live keyboard
+        # state: the game loop drains a whole frame of events with one
+        # pygame.event.get(), so get_mods() reports the state after the batch
+        # was pumped and can mis-attribute a Ctrl pressed later in the frame.
+        mods = getattr(event, "mod", None)
+        if mods is None:
+            mods = pygame.key.get_mods()
         ctrl = mods & (pygame.KMOD_CTRL | pygame.KMOD_META)
 
         if event.key == pygame.K_TAB:
@@ -203,10 +209,11 @@ class TextInput(Box):
             self._should_recompute = True
             return
 
-        # Editing is blocked for readonly/disabled
-        if self._readonly or self._is_disabled:
+        if self._is_disabled:
             return
 
+        # Selecting and copying are not edits, so they stay available while
+        # readonly — being able to copy the text is the point of the flag.
         if ctrl and event.key == pygame.K_a:
             self._selection_start = 0
             self._selection_end = len(self._input_value)
@@ -215,12 +222,21 @@ class TextInput(Box):
             return
 
         if ctrl and event.key == pygame.K_c:
+            # Never put a masked value on the system clipboard.
+            if self._password_mode:
+                return
             selected = self._get_selected_text()
             if selected:
                 self._copy_to_clipboard(selected)
             return
 
+        # Editing is blocked for readonly fields
+        if self._readonly:
+            return
+
         if ctrl and event.key == pygame.K_x:
+            if self._password_mode:
+                return
             selected = self._get_selected_text()
             if selected:
                 self._copy_to_clipboard(selected)
@@ -229,31 +245,38 @@ class TextInput(Box):
             return
 
         if ctrl and event.key == pygame.K_v:
+            # Only the clipboard read is guarded: keeping the rest inside the
+            # try would silently swallow exceptions raised by user
+            # when_changed callbacks.
             try:
                 pygame.scrap.init()
                 pasted = pygame.scrap.get_text()
-                if pasted:
-                    if self._selection_start is not None:
-                        self._delete_selection()
-                    if self._max_length is not None:
-                        remaining = max(0, self._max_length - len(self._input_value))
-                        pasted = pasted[:remaining]
-                if pasted:
-                    self._input_value = (
-                        self._input_value[: self._cursor_pos]
-                        + pasted
-                        + self._input_value[self._cursor_pos :]
-                    )
-                    self._cursor_pos += len(pasted)
-                    self._selection_start = self._selection_end = None
-                    self._should_recompute = True
-                    self._fire_change()
             except (
                 pygame.error,
                 OSError,
                 ValueError,
             ):  # scrap not available in all environments
-                pass
+                return
+            if not pasted:
+                return
+            # This is a single-line field; newlines cannot be rendered or
+            # measured, which would desync the cursor from what is drawn.
+            pasted = pasted.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+            if self._selection_start is not None:
+                self._delete_selection()
+            if self._max_length is not None:
+                remaining = max(0, self._max_length - len(self._input_value))
+                pasted = pasted[:remaining]
+            if pasted:
+                self._input_value = (
+                    self._input_value[: self._cursor_pos]
+                    + pasted
+                    + self._input_value[self._cursor_pos :]
+                )
+                self._cursor_pos += len(pasted)
+                self._selection_start = self._selection_end = None
+                self._should_recompute = True
+                self._fire_change()
             return
 
         if event.key == pygame.K_BACKSPACE:

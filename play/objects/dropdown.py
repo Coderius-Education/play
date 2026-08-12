@@ -88,9 +88,14 @@ class Dropdown(Box):
             layer=layer,
         )
 
+    def hide(self):
+        """Hiding closes the menu so an invisible option list can't take clicks."""
+        self._set_open(False)
+        super().hide()
+
     def update(self):
         """Handle clicks on the button and on the open option list."""
-        if not self._is_disabled:
+        if not self._is_disabled and not self._is_hidden:
             if mouse_state.click_hits(self):
                 # Recompute the option under the cursor at click time rather than
                 # trusting last frame's cached value (the mouse may have moved).
@@ -168,8 +173,13 @@ class Dropdown(Box):
         return -1
 
     def _select(self, index):
+        changed = index != self._selected_index
         self._selected_index = index
         self._should_recompute = True
+        # when_changed reports *changes*: re-picking the option that is already
+        # selected is not one.
+        if not changed:
+            return
         val = self._options[index] if index < len(self._options) else None
         for cb in self._on_change_callbacks:
             cb(val, index)

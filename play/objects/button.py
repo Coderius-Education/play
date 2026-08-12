@@ -65,7 +65,12 @@ class Button(Box):
         """Set hover/press/disabled colour then delegate to Sprite.update() → _render()."""
         if self._is_disabled:
             self._color = self._disabled_color
-            self._was_hovered = False
+            # Becoming disabled while hovered must still close out the hover,
+            # otherwise when_unhover never runs for this hover cycle.
+            if self._was_hovered:
+                for cb in self._unhover_callbacks:
+                    cb()
+                self._was_hovered = False
         else:
             hovered = mouse.is_touching(self)
             pressed = hovered and mouse._is_clicked
@@ -162,6 +167,19 @@ class Button(Box):
         return func
 
     # ── properties ────────────────────────────────────────────────────────────
+
+    @property
+    def color(self):
+        """The background colour used when not hovered, pressed or disabled."""
+        return self._base_color
+
+    @color.setter
+    def color(self, value):
+        # update() re-derives self._color from _base_color every frame, so the
+        # inherited Box.color setter (which writes _color) would be overwritten
+        # on the next frame. Write the resting colour instead.
+        self._base_color = value
+        self._should_recompute = True
 
     @property
     def text(self):

@@ -139,8 +139,15 @@ class Checkbox(Box):
 
     @checked.setter
     def checked(self, value):
-        self._checked = bool(value)
+        value = bool(value)
+        if value == self._checked:
+            return
+        self._checked = value
         self._should_recompute = True
+        # Match the click path, which fires when_changed; a write-back handler
+        # cannot recurse because an unchanged value returns above.
+        for cb in self._on_change_callbacks:
+            cb(self._checked)
 
     @property
     def label(self):

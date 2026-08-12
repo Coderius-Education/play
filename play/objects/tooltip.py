@@ -75,6 +75,14 @@ class Tooltip(Sprite):
 
     def update(self):
         """Show/hide based on whether the mouse is over the target."""
+        if self._target is not None and not self._target.alive():
+            # The target was removed. Its cached pymunk shape still answers
+            # point queries, so without this the bubble keeps reappearing over
+            # empty space where the target used to be.
+            self._target = None
+            if not self._is_hidden:
+                self.hide()
+                self._should_recompute = True
         if self._target is not None:
             hovered = mouse.is_touching(self._target)
             if hovered and self._is_hidden:

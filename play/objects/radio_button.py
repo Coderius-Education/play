@@ -30,12 +30,18 @@ class RadioGroup:
 
     def _select(self, selected_button):
         """Called by a RadioButton when it is clicked; deselects all others."""
+        changed = not selected_button._selected
         for btn in self._buttons:
             if btn is not selected_button:
                 btn._selected = False
                 btn._should_recompute = True
         selected_button._selected = True
         selected_button._should_recompute = True
+        # when_changed reports *changes*: re-selecting the already-selected
+        # option (a second click, or an identical programmatic assignment)
+        # is not one.
+        if not changed:
+            return
         for cb in self._on_change_callbacks:
             cb(selected_button.value)
 
