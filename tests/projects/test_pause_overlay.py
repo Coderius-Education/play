@@ -93,6 +93,13 @@ def test_pause_overlay():
         # 2a. The checkbox takes its click; the sprite underneath does not.
         await click(0, -70)
         seen["checkbox"] = (game_clicks[0], sound.checked)
+        seen["checkbox_debug"] = {
+            "hidden": sound.is_hidden,
+            "pos": (sound.x, sound.y),
+            "size": (sound.width, sound.height),
+            "mouse": (play.mouse.x, play.mouse.y),
+            "touching": play.mouse.is_touching(sound),
+        }
 
         # 2b. The Resume button works while the game is paused, and the
         #     sprite underneath still does not see the click.
@@ -126,7 +133,9 @@ def test_pause_overlay():
     assert hidden_checked is False, "a hidden checkbox must not toggle"
 
     checkbox_game, checked = seen["checkbox"]
-    assert checked is True, "the visible checkbox should have toggled"
+    assert checked is True, (
+        f"the visible checkbox should have toggled: {seen['checkbox_debug']}"
+    )
     assert (
         checkbox_game == hidden_game
     ), "the sprite under a visible overlay must not receive the click"
