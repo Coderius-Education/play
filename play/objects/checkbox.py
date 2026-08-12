@@ -13,6 +13,8 @@ from ..core.mouse_loop import mouse_state
 
 
 class Checkbox(Box):
+    _is_widget = True
+
     def __init__(
         self,
         label="",

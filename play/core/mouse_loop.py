@@ -3,6 +3,7 @@
 import pygame
 
 from ..callback import callback_manager, CallbackType
+from ..globals import globals_list
 from ..io.mouse import mouse
 from ..io.screen import screen
 
@@ -37,14 +38,26 @@ class MouseState:
     def resolve_click_owner(self):
         """Ask registered claimants whether the current click is theirs.
 
-        Called once per MOUSEBUTTONDOWN; of the claimants whose open UI is
-        under the mouse, the top-most one becomes the exclusive owner of this
-        click."""
+        Called once per MOUSEBUTTONDOWN. An open overlay (a Dropdown menu)
+        claims the click outright; otherwise the top-most interactive widget
+        under the cursor takes it, so stacked widgets don't all react to one
+        click. Plain sprites never become the owner, which keeps their original
+        behaviour of every sprite under the cursor receiving the click."""
         self.click_claimants[:] = [w for w in self.click_claimants if w.alive()]
         claiming = [w for w in self.click_claimants if w._claims_click()]
-        # Registration order says nothing about what is drawn on top, so pick
-        # by layer rather than taking the first claimant.
-        self.click_owner = max(claiming, key=lambda w: w._layer, default=None)
+        if claiming:
+            # Registration order says nothing about what is drawn on top, so
+            # pick by layer rather than taking the first claimant.
+            self.click_owner = max(claiming, key=lambda w: w._layer)
+            return
+        # sprites() is layer-ordered back-to-front, so the last hit is on top.
+        # mouse.is_touching() already excludes hidden sprites.
+        widgets = [
+            s
+            for s in globals_list.sprites_group.sprites()
+            if s._is_widget and mouse.is_touching(s)
+        ]
+        self.click_owner = widgets[-1] if widgets else None
 
 
 mouse_state = MouseState()

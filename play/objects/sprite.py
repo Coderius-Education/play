@@ -37,6 +37,12 @@ _should_ignore_update = frozenset(
 
 
 class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
+    # Interactive widgets set this True. A click is delivered to the top-most
+    # widget under the cursor only, so stacked widgets don't all react to it.
+    # Plain sprites keep the original behaviour: every sprite under the cursor
+    # receives the click.
+    _is_widget = False
+
     @staticmethod
     def _init_anchor_attrs(instance, x, y, anchor, layer):
         """Write anchor/layer attrs via object.__setattr__ to avoid triggering

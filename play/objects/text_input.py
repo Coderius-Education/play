@@ -23,6 +23,8 @@ class TextInput(Box):
     polling are suspended until the field is blurred (click elsewhere, press
     Escape, or submit with Enter)."""
 
+    _is_widget = True
+
     # character used for password masking
     _MASK_CHAR = "•"  # •
 

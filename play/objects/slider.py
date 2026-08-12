@@ -15,6 +15,8 @@ from ..core.mouse_loop import mouse_state
 
 
 class Slider(Sprite):
+    _is_widget = True
+
     def __init__(
         self,
         min_value=0,

@@ -76,6 +76,8 @@ class RadioGroup:
 
 
 class RadioButton(Sprite):
+    _is_widget = True
+
     def __init__(
         self,
         label="",

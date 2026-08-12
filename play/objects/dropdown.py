@@ -25,6 +25,8 @@ class Dropdown(Box):
     it works within the existing pygame sprite layer system.
     """
 
+    _is_widget = True
+
     # While open, the sprite is hoisted this many layers up so the option list
     # draws above overlapping sprites instead of taking clicks while hidden.
     _OPEN_LAYER_BOOST = 1000
@@ -96,19 +98,8 @@ class Dropdown(Box):
     def update(self):
         """Handle clicks on the button and on the open option list."""
         if not self._is_disabled and not self._is_hidden:
-            if mouse_state.click_hits(self):
-                # Recompute the option under the cursor at click time rather than
-                # trusting last frame's cached value (the mouse may have moved).
-                clicked_option = self._option_at_mouse() if self._dropdown_open else -1
-                # Check if click lands on the open option list
-                if self._dropdown_open and clicked_option >= 0:
-                    self._select(clicked_option)
-                    self._set_open(False)
-                elif mouse.is_touching(self):
-                    self._set_open(not self._dropdown_open)
-                elif self._dropdown_open:
-                    # Click outside: close the menu
-                    self._set_open(False)
+            if mouse_state.click_happened:
+                self._handle_click()
 
             # Track which option row the mouse is hovering over
             if self._dropdown_open:
@@ -123,6 +114,22 @@ class Dropdown(Box):
             else self._base_color
         )
         super().update()
+
+    def _handle_click(self):
+        """Route this frame's click: select an option, toggle, or close."""
+        ours = mouse_state.click_hits(self)
+        # Recompute the option under the cursor at click time rather than
+        # trusting last frame's cached value (the mouse may have moved).
+        clicked_option = self._option_at_mouse() if self._dropdown_open else -1
+        if ours and self._dropdown_open and clicked_option >= 0:
+            self._select(clicked_option)
+            self._set_open(False)
+        elif ours and mouse.is_touching(self):
+            self._set_open(not self._dropdown_open)
+        elif self._dropdown_open:
+            # Any click that is not ours closes the menu — including one owned
+            # by another widget, which click_hits() alone would hide from us.
+            self._set_open(False)
 
     def _set_open(self, open_):
         """Open/close the menu, hoisting the sprite to a higher render layer

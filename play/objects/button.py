@@ -12,6 +12,8 @@ from ..utils import (
 
 
 class Button(Box):
+    _is_widget = True
+
     def __init__(
         self,
         text="Button",
