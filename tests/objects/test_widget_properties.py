@@ -216,3 +216,90 @@ def test_text_input_editing_keeps_cursor_and_value_consistent(initial, ops):
             assert ti._cursor_pos == model_cursor
     finally:
         ti.remove()
+
+
+# ── widget geometry: the hit-shape must follow the drawn widget ───────────────
+#
+# These guard the class of bug where a widget's image and its pymunk hit-shape
+# disagree: the visible control has dead zones, or clicks land on empty space
+# beside it.
+
+# Latin-1/Latin Extended-A, so accented characters a Dutch teaching library
+# actually uses are exercised, not just ASCII.
+_label_char = st.characters(
+    min_codepoint=32, max_codepoint=0x017F, blacklist_categories=("Cs",)
+)
+
+
+@given(
+    size_px=st.integers(min_value=8, max_value=80),
+    label=st.text(alphabet=_label_char, max_size=20),
+)
+@settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+def test_checkbox_centre_is_clickable_and_its_surroundings_are_not(size_px, label):
+    from play.io.mouse import mouse
+
+    checkbox = play.new_checkbox(label=label, x=0, y=0, size_px=size_px)
+    try:
+        checkbox.update()
+        mouse.x, mouse.y = 0, 0
+        assert mouse.is_touching(checkbox), "the centre of a widget is always clickable"
+
+        # Twice the half-width is comfortably outside whatever the label made.
+        mouse.x, mouse.y = checkbox.width + 10, 0
+        assert not mouse.is_touching(
+            checkbox
+        ), "clicks beside the widget must not reach it"
+    finally:
+        checkbox.remove()
+
+
+@given(size=st.integers(min_value=25, max_value=400))
+@settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+def test_checkbox_image_and_hit_shape_scale_together(size):
+    from play.io.mouse import mouse
+
+    checkbox = play.new_checkbox(label="Geluid", x=0, y=0, size_px=24)
+    try:
+        checkbox.update()
+        base_width = checkbox.image.get_width()
+
+        checkbox.size = size
+        checkbox.update()
+        assert checkbox.image.get_width() == pytest.approx(
+            base_width * size / 100, abs=2
+        ), "the drawn image must scale with size"
+
+        # The hit-shape scales from the same factor, so the centre still hits.
+        mouse.x, mouse.y = 0, 0
+        assert mouse.is_touching(checkbox)
+    finally:
+        checkbox.remove()
+
+
+# ── progress bar: percentage stays a fraction under any bound mutation ────────
+
+
+@given(
+    bounds=st.tuples(_bounded_floats, _bounded_floats).filter(lambda b: b[0] < b[1]),
+    initial=_bounded_floats,
+    mutations=st.lists(
+        st.tuples(st.sampled_from(["min", "max", "value"]), _bounded_floats),
+        min_size=1,
+        max_size=6,
+    ),
+)
+@settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+def test_progress_bar_percentage_stays_a_fraction(bounds, initial, mutations):
+    min_v, max_v = bounds
+    bar = play.new_progress_bar(min_value=min_v, max_value=max_v, value=initial)
+    try:
+        attr_for = {"min": "min_value", "max": "max_value", "value": "value"}
+        for field, value in mutations:
+            setattr(bar, attr_for[field], value)
+            # Bounds may never cross: a negative span silently pins the bar.
+            assert bar.min_value <= bar.max_value
+            assert 0.0 <= bar.percentage <= 1.0
+            assert bar.min_value <= bar.value <= bar.max_value
+    finally:
+        bar.remove()

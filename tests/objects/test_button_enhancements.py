@@ -6,6 +6,8 @@ import inspect
 import pytest
 import play
 from play.io.mouse import mouse
+from play.utils import color_name_to_rgb
+from tests.conftest import count_color
 
 
 @pytest.fixture(autouse=True)
@@ -335,22 +337,49 @@ def test_text_color_setter():
     assert count_color(btn.image, color_name_to_rgb("green")) > 0
 
 
-def test_hover_color_setter():
-    btn = play.new_button()
+def test_hover_color_setter_reaches_the_rendered_button():
+    yellow = color_name_to_rgb("yellow")
+    btn = play.new_button(x=0, y=0, width=120, height=50)
     btn.hover_color = "yellow"
     assert btn.hover_color == "yellow"
 
+    mouse.x, mouse.y = 999, 999  # not hovered: the new colour is not shown yet
+    btn.update()
+    assert count_color(btn.image, yellow) == 0
 
-def test_click_color_setter():
-    btn = play.new_button()
+    mouse.x, mouse.y = 0, 0  # hovered: it is
+    btn.update()
+    assert count_color(btn.image, yellow) > 0
+
+
+def test_click_color_setter_reaches_the_rendered_button():
+    orange = color_name_to_rgb("orange")
+    btn = play.new_button(x=0, y=0, width=120, height=50)
     btn.click_color = "orange"
     assert btn.click_color == "orange"
 
+    mouse.x, mouse.y = 0, 0
+    mouse._is_clicked = True
+    try:
+        btn.update()
+        assert count_color(btn.image, orange) > 0
+    finally:
+        mouse._is_clicked = False
 
-def test_disabled_color_setter():
-    btn = play.new_button()
+
+def test_disabled_color_setter_reaches_the_rendered_button():
+    gray = color_name_to_rgb("gray")
+    btn = play.new_button(x=0, y=0, width=120, height=50)
     btn.disabled_color = "gray"
     assert btn.disabled_color == "gray"
+
+    mouse.x, mouse.y = 999, 999
+    btn.update()
+    assert count_color(btn.image, gray) == 0
+
+    btn.disabled = True
+    btn.update()
+    assert count_color(btn.image, gray) > 0
 
 
 def test_font_size_setter_reloads_font():
