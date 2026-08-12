@@ -43,13 +43,14 @@ def test_button_disabled_while_hovered_fires_unhover():
     # Regression: disabling a hovered button cleared _was_hovered without
     # running the unhover callbacks, stranding whatever they toggle.
     btn = play.new_button("Go", x=0, y=0, width=100, height=50)
+    # The constructor runs update() with the mouse still at its (0, 0)
+    # default, so the button starts out hovered. Settle it outside *before*
+    # registering the callbacks, so that closing-out does not record an event.
+    mouse.x, mouse.y = 999, 999
+    btn.update()
     events = []
     btn.when_hover(lambda: events.append("hover"))
     btn.when_unhover(lambda: events.append("unhover"))
-    # The constructor runs update() with the mouse still at its (0, 0)
-    # default, so start outside to get _was_hovered to a known False.
-    mouse.x, mouse.y = 999, 999
-    btn.update()
     mouse.x, mouse.y = 0, 0
     btn.update()
     assert events == ["hover"]
