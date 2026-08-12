@@ -26,9 +26,7 @@ def test_quiz_game():
     seen = {}
 
     question = play.new_text(words=QUESTIONS[0][0], x=0, y=150, font_size=40)
-    right_button = play.new_button(
-        QUESTIONS[0][1], x=-120, y=0, width=160, height=60
-    )
+    right_button = play.new_button(QUESTIONS[0][1], x=-120, y=0, width=160, height=60)
     wrong_button = play.new_button(QUESTIONS[0][2], x=120, y=0, width=160, height=60)
 
     def next_question():
