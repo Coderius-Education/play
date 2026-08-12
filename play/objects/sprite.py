@@ -722,6 +722,7 @@ You might want to look in your code where you're setting transparency and make s
         Returns a dict mapping each CallbackType to a list of saved callbacks.
         """
         sprite_id = id(self)
+        self.events.clear_all_touching()
         callback_types = [
             CallbackType.WHEN_TOUCHING,
             CallbackType.WHEN_TOUCHING_WALL,
@@ -788,6 +789,7 @@ You might want to look in your code where you're setting transparency and make s
                 continue
             for callback_type in sprite_callback_types:
                 callback_manager.remove_callbacks(callback_type, dep_id)
+            dependent.events.clear_all_touching()
             self._cleanup_collision_registry(
                 dependent.physics._pymunk_shape.collision_type
             )

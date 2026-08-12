@@ -74,7 +74,12 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             callback = self.callbacks[True][shape_a.collision_type][
                 shape_b.collision_type
             ]
-            sprite_a.events.set_touching(shape_b.collision_id, callback)
+            # Keyed by the *other shape's* unique collision_type. collision_id
+            # is only ever CollisionType.SPRITE, so keying on it gave every
+            # sprite-sprite pair the same slot: a sprite touching two things
+            # could hold one live callback, and separating from either wiped
+            # the other.
+            sprite_a.events.set_touching(shape_b.collision_type, callback)
         elif (
             shape_b.collision_type in self.callbacks[True]
             and shape_a.collision_type in self.callbacks[True][shape_b.collision_type]
@@ -82,7 +87,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             callback = self.callbacks[True][shape_b.collision_type][
                 shape_a.collision_type
             ]
-            sprite_a.events.set_touching(shape_b.collision_id, callback)
+            sprite_a.events.set_touching(shape_b.collision_type, callback)
         return True
 
     def _handle_end_collision_shape(self, shape_a: Shape, shape_b: Shape):
@@ -120,8 +125,10 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         if sprite_a is None:
             return False  # let caller try the reverse direction
 
-        if sprite_a.events.get_touching(shape_b.collision_id):
-            sprite_a.events.clear_touching(shape_b.collision_id)
+        # Same unique key the begin handler stores under: separating from one
+        # sprite must only clear that sprite's callback.
+        if sprite_a.events.get_touching(shape_b.collision_type):
+            sprite_a.events.clear_touching(shape_b.collision_type)
         fired = False
         if (
             shape_a.collision_type in self.callbacks[False]
@@ -130,7 +137,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             callback = self.callbacks[False][shape_a.collision_type][
                 shape_b.collision_type
             ]
-            sprite_a.events.set_stopped(shape_b.collision_id, callback)
+            sprite_a.events.set_stopped(shape_b.collision_type, callback)
             fired = True
         return fired
 
