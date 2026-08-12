@@ -133,9 +133,9 @@ def test_pause_overlay():
     assert hidden_checked is False, "a hidden checkbox must not toggle"
 
     checkbox_game, checked = seen["checkbox"]
-    assert checked is True, (
-        f"the visible checkbox should have toggled: {seen['checkbox_debug']}"
-    )
+    assert (
+        checked is True
+    ), f"the visible checkbox should have toggled: {seen['checkbox_debug']}"
     assert (
         checkbox_game == hidden_game
     ), "the sprite under a visible overlay must not receive the click"
