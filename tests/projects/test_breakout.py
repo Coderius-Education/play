@@ -26,6 +26,7 @@ def test_breakout():
 
     lives = [3]
     bricks_destroyed = [0]
+    raw_hits = {}
 
     # --- sprites -----------------------------------------------------------
     ball = play.new_circle(color="white", x=0, y=-100, radius=12)
@@ -64,6 +65,10 @@ def test_breakout():
     def _make_brick_callback(brick):
         @ball.when_stopped_touching(brick)
         def brick_hit():
+            # Counted before the is_hidden guard: that guard is what would
+            # swallow a duplicate dispatch, so counting after it would hide
+            # the very bug this test exists for.
+            raw_hits[id(brick)] = raw_hits.get(id(brick), 0) + 1
             if not brick.is_hidden:
                 bricks_destroyed[0] += 1
                 score_text.words = f"Score: {bricks_destroyed[0]}"
@@ -96,7 +101,29 @@ def test_breakout():
     assert (
         bricks_destroyed[0] <= TOTAL_BRICKS
     ), f"can't destroy more than {TOTAL_BRICKS} bricks, got {bricks_destroyed[0]}"
-    assert lives[0] >= 0, "lives should never go negative"
+
+    # The point of the test: each brick has its own callback even though every
+    # brick shares pymunk's default collision_type. One dispatch per brick
+    # means they were not collapsed into a single shape. The old assertions
+    # could not see this -- the is_hidden guard silently absorbed duplicates.
+    assert raw_hits, "no brick collision callback fired at all"
+    assert all(n == 1 for n in raw_hits.values()), (
+        "each brick should be dispatched exactly once; duplicates mean the "
+        f"bricks were treated as the same shape: {sorted(raw_hits.values())}"
+    )
+    assert len(raw_hits) == bricks_destroyed[0], (
+        "every brick that fired should have been destroyed: "
+        f"{len(raw_hits)} fired, {bricks_destroyed[0]} destroyed"
+    )
+
+    # `lives >= 0` could never fail. Lives only drop when the ball reaches the
+    # bottom wall, and the scoreboard has to agree with the counter.
+    assert 0 <= lives[0] <= 3
+    assert lives_text.words == f"Lives: {lives[0]}"
+    destroyed = [b for b in bricks if b.is_hidden]
+    assert (
+        len(destroyed) == bricks_destroyed[0]
+    ), "the hidden bricks should match the destroyed count"
 
 
 if __name__ == "__main__":

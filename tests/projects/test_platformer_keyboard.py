@@ -30,6 +30,7 @@ def test_platformer_keyboard():
 
     coins_collected = [0]
     on_ground = [False]
+    landings = [0]
     jumps = [0]
     TOTAL_COINS = 3
 
@@ -61,6 +62,14 @@ def test_platformer_keyboard():
         coin.start_physics(obeys_gravity=False, can_move=False, bounciness=0.0)
 
     # --- landing detection -------------------------------------------------
+    # on_ground was previously written by left_ground() and never set True or
+    # read anywhere, so the "landing detection" this test documents was not
+    # exercised at all. Both edges are now recorded and asserted.
+    @player.when_touching(ground)
+    def touched_ground():
+        on_ground[0] = True
+        landings[0] += 1
+
     @player.when_stopped_touching(ground)
     def left_ground():
         on_ground[0] = False
@@ -115,6 +124,20 @@ def test_platformer_keyboard():
     # --- assertions --------------------------------------------------------
     assert coins_collected[0] > 0, "should have collected at least one coin"
     assert jumps[0] > 0, "player should have jumped at least once"
+
+    # A counter that disagrees with the world is the bug worth catching: every
+    # coin counted must actually be gone, and the scoreboard must say so.
+    hidden_coins = [c for c in coins if c.is_hidden]
+    assert len(hidden_coins) == coins_collected[0], (
+        f"{coins_collected[0]} coins counted but {len(hidden_coins)} are hidden"
+    )
+    assert score_text.words == f"Coins: {coins_collected[0]}"
+
+    # Landing detection, which the docstring claims and nothing checked.
+    assert landings[0] > 0, "the player should have landed on the ground platform"
+    assert (
+        player.y > ground.y
+    ), "the player should never fall through the ground platform"
 
 
 if __name__ == "__main__":

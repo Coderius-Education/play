@@ -29,6 +29,9 @@ def test_pong_ai():
     score_right = [0]
     ai_moves = [0]
     distances_measured = []
+    # distance_to() is dominated by the fixed x-gap between paddle and ball,
+    # so it cannot show whether the AI tracks. Sample the vertical error too.
+    y_errors = []
 
     ball, paddle_left, paddle_right, score_text = setup_pong()
 
@@ -38,6 +41,7 @@ def test_pong_ai():
         dist = paddle_right.distance_to(ball)
         if len(distances_measured) < 100:
             distances_measured.append(dist)
+        y_errors.append(abs(ball.y - paddle_right.y))
 
         # Move towards ball y with a speed limit (imperfect AI)
         diff = ball.y - paddle_right.y
@@ -71,10 +75,16 @@ def test_pong_ai():
     assert all(
         d >= 0 for d in distances_measured
     ), "distance_to() should return non-negative values"
-    # Verify AI actually reduced distance — compare first and last samples
-    assert (
-        distances_measured[-1] != distances_measured[0]
-    ), "AI paddle should have changed its distance to the ball over time"
+    # The old check here was `distances_measured[-1] != distances_measured[0]`,
+    # which is true for any moving ball even if the AI paddle never moved.
+    # Assert the tracking itself: the paddle stays level with the ball for most
+    # frames. Allow the tail of frames after a score, where the ball teleports
+    # back to the centre and the paddle has to catch up.
+    close_frames = sum(1 for e in y_errors if e < 30)
+    assert close_frames > len(y_errors) * 0.5, (
+        "the AI paddle should stay within 30px of the ball for most frames; "
+        f"it managed {close_frames} of {len(y_errors)}"
+    )
 
 
 if __name__ == "__main__":
