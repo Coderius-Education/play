@@ -12,6 +12,7 @@ This test verifies:
 """
 
 from tests.projects.conftest import (
+    new_scoring_state,
     setup_pong,
     assert_pong_winner,
 )
@@ -40,6 +41,8 @@ def test_pong_random():
     colors_used = []
 
     ball, paddle_left, paddle_right, score_text = setup_pong()
+
+    scoring = new_scoring_state(score_text)
 
     # --- collisions --------------------------------------------------------
     @ball.when_stopped_touching(paddle_left)
@@ -71,6 +74,7 @@ def test_pong_random():
         score_right[0] += 1
         score_text.words = f"{score_left[0]} - {score_right[0]}"
         if score_right[0] >= winning_score:
+            scoring["won"] = True
             play.stop_program()
             return
         random_serve()
@@ -80,6 +84,7 @@ def test_pong_random():
         score_left[0] += 1
         score_text.words = f"{score_left[0]} - {score_right[0]}"
         if score_left[0] >= winning_score:
+            scoring["won"] = True
             play.stop_program()
             return
         random_serve()
@@ -97,7 +102,7 @@ def test_pong_random():
         random.setstate(_rng_state)
 
     # --- assertions --------------------------------------------------------
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert serves[0] > 0, "at least one random serve should have happened"
 
     # Verify random_number produced values in range

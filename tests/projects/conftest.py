@@ -87,6 +87,17 @@ def add_pong_scoring(
     return scoring
 
 
+def new_scoring_state(score_text):
+    """State for a test that writes its own scoring instead of using the helper.
+
+    Set ``scoring["won"] = True`` just before ``play.stop_program()`` in the
+    win branch, then pass this to ``assert_pong_winner``. Without it that
+    assertion cannot tell a game that was won from one the safety timeout
+    stopped, and both look like a pass.
+    """
+    return {"won": False, "score_text": score_text}
+
+
 def add_safety_timeout(max_frames):
     """Register a when_program_starts safety timeout."""
     import play
