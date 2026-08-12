@@ -191,6 +191,16 @@ def _one_frame_of_updates(widget, times=10):
         widget.update()
 
 
+def test_click_helper_matches_the_real_update_cadence():
+    # If num_sim_steps changes, click_at() must follow, or the whole widget
+    # suite quietly goes back to testing a cadence the game never runs.
+    from play.globals import globals_list
+    from tests.conftest import UPDATES_PER_FRAME
+
+    assert UPDATES_PER_FRAME == globals_list.num_sim_steps
+    assert UPDATES_PER_FRAME > 1
+
+
 def test_checkbox_toggles_once_per_click_not_once_per_update():
     cb = play.new_checkbox(x=0, y=0, size_px=40)
     mouse.x, mouse.y = 0, 0
