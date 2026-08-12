@@ -143,9 +143,7 @@ def reject_async_callback(func, kind):
     if inspect.iscoroutinefunction(func):
         # iscoroutinefunction unwraps functools.partial, which has no __name__.
         name = getattr(func, "__name__", repr(func))
-        raise TypeError(
-            f"{name} is async. {kind} callbacks must be regular functions."
-        )
+        raise TypeError(f"{name} is async. {kind} callbacks must be regular functions.")
 
 
 def load_font(font_path_or_none, size):
