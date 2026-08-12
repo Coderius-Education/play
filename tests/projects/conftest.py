@@ -1,26 +1,5 @@
 """Shared helpers for tests/projects/ — reduces boilerplate across pong variants."""
 
-import pytest
-
-# Recorded by add_pong_scoring so assert_pong_winner can tell a real win from
-# the safety timeout quietly expiring. Only armed when add_pong_scoring is used,
-# so tests with their own scoring (test_pong_start_menu) are unaffected.
-_scoring = {"armed": False, "won": False, "score_text": None}
-
-
-@pytest.fixture(autouse=True)
-def _reset_pong_scoring_state():
-    _scoring.update(armed=False, won=False, score_text=None)
-    yield
-
-
-def mark_pong_won(score_text=None):
-    """Record that the win condition fired, for tests with custom scoring."""
-    _scoring["won"] = True
-    _scoring["armed"] = True
-    if score_text is not None:
-        _scoring["score_text"] = score_text
-
 
 def setup_pong(ball_x_speed=300, ball_y_speed=40, ball_obeys_gravity=False):
     """Create the standard pong sprites and start their physics.
@@ -71,7 +50,9 @@ def add_pong_scoring(
     import play
     from play.callback.collision_callbacks import WallSide
 
-    _scoring.update(armed=True, score_text=score_text)
+    # Returned to the caller rather than stored module-side: this file is
+    # importable under two module names, so a module global would exist twice.
+    scoring = {"won": False, "score_text": score_text}
 
     @ball.when_stopped_touching_wall(wall=WallSide.LEFT)
     def right_player_scores():
@@ -80,7 +61,7 @@ def add_pong_scoring(
         if on_score:
             on_score("right")
         if score_right[0] >= winning_score:
-            _scoring["won"] = True
+            scoring["won"] = True
             play.stop_program()
             return
         ball.x = 0
@@ -95,13 +76,15 @@ def add_pong_scoring(
         if on_score:
             on_score("left")
         if score_left[0] >= winning_score:
-            _scoring["won"] = True
+            scoring["won"] = True
             play.stop_program()
             return
         ball.x = 0
         ball.y = 0
         ball.physics.x_speed = -ball_x_speed
         ball.physics.y_speed = -ball_y_speed
+
+    return scoring
 
 
 def add_safety_timeout(max_frames):
@@ -115,20 +98,20 @@ def add_safety_timeout(max_frames):
         play.stop_program()
 
 
-def assert_pong_winner(score_left, score_right, winning_score):
+def assert_pong_winner(score_left, score_right, winning_score, scoring=None):
     """Standard assertions: someone won, and the game ended because of it.
 
     Without the `won` check these assertions pass identically whether the win
     condition or the safety timeout stopped the program, so a game that never
     progressed still looked like a pass.
     """
-    if _scoring["armed"]:
-        assert _scoring["won"], (
+    if scoring is not None:
+        assert scoring["won"], (
             "the game should have ended because someone reached "
             f"{winning_score}, not because the safety timeout expired "
             f"(scores were {score_left[0]} - {score_right[0]})"
         )
-        score_text = _scoring["score_text"]
+        score_text = scoring["score_text"]
         if score_text is not None:
             expected = f"{score_left[0]} - {score_right[0]}"
             assert (

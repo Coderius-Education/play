@@ -57,7 +57,7 @@ def test_pong_ai():
     def ball_leaves_right():
         pass
 
-    add_pong_scoring(
+    scoring = add_pong_scoring(
         ball, score_left, score_right, score_text, winning_score=winning_score
     )
     add_safety_timeout(max_frames)
@@ -65,7 +65,7 @@ def test_pong_ai():
     play.start_program()
 
     # --- assertions --------------------------------------------------------
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert ai_moves[0] > 0, "AI paddle should have moved via repeat_forever"
     assert len(distances_measured) > 0, "distance_to() should have been called"
     assert all(

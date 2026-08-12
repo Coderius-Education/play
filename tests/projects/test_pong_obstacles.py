@@ -50,7 +50,7 @@ def test_pong_obstacles():
     def ball_leaves_obstacle():
         obstacle_hits[0] += 1
 
-    add_pong_scoring(
+    scoring = add_pong_scoring(
         ball,
         score_left,
         score_right,
@@ -62,7 +62,7 @@ def test_pong_obstacles():
 
     play.start_program()
 
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert obstacle_hits[0] > 0, "ball should have hit the obstacle at least once"
 
 

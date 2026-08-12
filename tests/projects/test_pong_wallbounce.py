@@ -44,7 +44,7 @@ def test_pong_wallbounce():
     def ball_leaves_right():
         pass
 
-    add_pong_scoring(
+    scoring = add_pong_scoring(
         ball, score_left, score_right, score_text, winning_score=winning_score
     )
 
@@ -62,7 +62,7 @@ def test_pong_wallbounce():
     play.start_program()
 
     # --- assertions --------------------------------------------------------
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     total_wall = top_touches[0] + bottom_touches[0]
     assert (
         total_wall > 0

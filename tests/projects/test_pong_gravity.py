@@ -44,7 +44,7 @@ def test_pong_gravity():
     def ball_leaves_right():
         pass
 
-    add_pong_scoring(
+    scoring = add_pong_scoring(
         ball,
         score_left,
         score_right,
@@ -63,7 +63,7 @@ def test_pong_gravity():
     set_gravity(vertical=-900, horizontal=0)
 
     # --- assertions --------------------------------------------------------
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     # With rightward gravity the ball is pulled towards the left wall,
     # so the left player (scoring on the right wall) should score at least once.
     assert (

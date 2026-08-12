@@ -65,7 +65,7 @@ def test_pong_pause_key():
     def ball_leaves_right():
         pass
 
-    add_pong_scoring(
+    scoring = add_pong_scoring(
         ball, score_left, score_right, score_text, winning_score=winning_score
     )
 
@@ -102,7 +102,7 @@ def test_pong_pause_key():
 
     play.start_program()
 
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert (
         pause_toggles[0] >= 2
     ), f"expected at least 2 pause toggles, got {pause_toggles[0]}"

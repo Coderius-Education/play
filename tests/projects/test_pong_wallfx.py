@@ -45,7 +45,7 @@ def test_pong_wallfx():
     def ball_leaves_right():
         pass
 
-    add_pong_scoring(
+    scoring = add_pong_scoring(
         ball, score_left, score_right, score_text, winning_score=winning_score
     )
 
@@ -67,7 +67,7 @@ def test_pong_wallfx():
     play.start_program()
 
     # --- assertions --------------------------------------------------------
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert (
         wall_touches_detected[0] > 0
     ), "is_touching_wall() should have detected at least one wall contact"

@@ -75,7 +75,7 @@ def test_pong_powerups():
                 powerup.show()
                 powerup_hide_frame[0] = 0
 
-    add_pong_scoring(
+    scoring = add_pong_scoring(
         ball,
         score_left,
         score_right,
@@ -87,7 +87,7 @@ def test_pong_powerups():
 
     play.start_program()
 
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert powerup_collected[0] > 0, "ball should have hit the power-up at least once"
     assert (
         size_changes[0] > 0

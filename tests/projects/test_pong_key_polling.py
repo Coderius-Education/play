@@ -47,7 +47,7 @@ def test_pong_key_polling():
     def ball_leaves_right():
         pass
 
-    add_pong_scoring(
+    scoring = add_pong_scoring(
         ball, score_left, score_right, score_text, winning_score=winning_score
     )
 
@@ -94,7 +94,7 @@ def test_pong_key_polling():
     play.start_program()
 
     # --- assertions --------------------------------------------------------
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert (
         left_moves[0] > 0
     ), "key_is_pressed('w'/'s') should have moved the left paddle"
