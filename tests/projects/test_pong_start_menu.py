@@ -16,7 +16,7 @@ This test verifies:
 """
 
 from tests.conftest import post_mouse_down, post_mouse_motion, post_mouse_up
-from tests.projects.conftest import assert_pong_winner
+from tests.projects.conftest import assert_pong_winner, new_scoring_state
 
 max_frames = 1500  # 25s at 60fps; pytest's timeout is 60s
 winning_score = 1

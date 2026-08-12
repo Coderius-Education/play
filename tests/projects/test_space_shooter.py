@@ -65,16 +65,19 @@ def test_space_shooter():
         sensor=True,
     )
 
+    def _park_bullet():
+        """Put the bullet back on the launcher below the screen."""
+        bullet.x = 0
+        bullet.y = -290
+        bullet.physics.x_speed = 0
+        bullet.physics.y_speed = 0
+
     # --- bullet hits enemy -------------------------------------------------
     @bullet.when_stopped_touching(enemy)
     def bullet_hit():
         hits[0] += 1
         score_text.words = f"Hits: {hits[0]}"
-        # Reset bullet to below screen so it can be re-fired
-        bullet.x = 0
-        bullet.y = -290
-        bullet.physics.x_speed = 0
-        bullet.physics.y_speed = 0
+        _park_bullet()
         if hits[0] >= WINNING_HITS:
             won[0] = True
             play.stop_program()
@@ -84,6 +87,11 @@ def test_space_shooter():
     async def fire_loop():
         for frame in range(max_frames):
             await play.animate()
+            # A shot that misses -- the enemy turns at a wall mid-flight, say --
+            # flies off the top forever. Park it so it can be fired again;
+            # otherwise one miss ends the shooting for the rest of the run.
+            if bullet.y > 320:
+                _park_bullet()
             # Fire a new bullet every 20 frames if it is parked at the bottom
             if frame % 20 == 0 and bullet.y < -250:
                 bullet.x = enemy.x

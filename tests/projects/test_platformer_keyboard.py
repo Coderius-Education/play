@@ -11,7 +11,7 @@ This test verifies:
 - @when_key_pressed for movement and jumping
 - obeys_gravity=True with real gravity-driven falling
 - when_touching / when_stopped_touching for landing detection (player–platform)
-- sprite.hide() for collecting coins
+- sprite.hide() for collecting coins (sensor bodies: walk-through collectables)
 - is_touching for coin pickup detection
 - the game completes when all coins are collected
 
@@ -69,7 +69,12 @@ def test_platformer_keyboard():
     )
     ground.start_physics(obeys_gravity=False, can_move=False, bounciness=0.0)
     for coin in coins:
-        coin.start_physics(obeys_gravity=False, can_move=False, bounciness=0.0)
+        # Sensors: a collectable should be walked through, not bumped into.
+        # As solid bodies they shoved the player around on contact and the walk
+        # never made it along the row.
+        coin.start_physics(
+            obeys_gravity=False, can_move=False, bounciness=0.0, sensor=True
+        )
 
     # --- landing detection -------------------------------------------------
     @player.when_touching(ground)
@@ -128,6 +133,7 @@ def test_platformer_keyboard():
                     coins_collected[0] += 1
                     score_text.words = f"Coins: {coins_collected[0]}"
             if coins_collected[0] >= TOTAL_COINS:
+                seen["collected_all"] = True
                 break
             await play.animate()
 
@@ -145,7 +151,15 @@ def test_platformer_keyboard():
     ), "when_touching(ground) should fire while the player stands on the platform"
 
     # --- coins -------------------------------------------------------------
-    assert coins_collected[0] > 0, "should have collected at least one coin"
+    # Asserted as "all of them", not "at least one". Walking the row is the
+    # whole second half of the game, and `> 0` passed while the player stalled
+    # on the first coin and burned the entire frame budget.
+    assert (
+        coins_collected[0] == TOTAL_COINS
+    ), f"the walk should collect all {TOTAL_COINS} coins, got {coins_collected[0]}"
+    assert seen.get(
+        "collected_all"
+    ), "the game should end on the last coin, not by running out of frames"
 
     # A counter that disagrees with the world is the bug worth catching: every
     # coin counted must actually be gone, and the scoreboard must say so.
