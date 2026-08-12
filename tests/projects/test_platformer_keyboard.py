@@ -128,9 +128,9 @@ def test_platformer_keyboard():
     # A counter that disagrees with the world is the bug worth catching: every
     # coin counted must actually be gone, and the scoreboard must say so.
     hidden_coins = [c for c in coins if c.is_hidden]
-    assert len(hidden_coins) == coins_collected[0], (
-        f"{coins_collected[0]} coins counted but {len(hidden_coins)} are hidden"
-    )
+    assert (
+        len(hidden_coins) == coins_collected[0]
+    ), f"{coins_collected[0]} coins counted but {len(hidden_coins)} are hidden"
     assert score_text.words == f"Coins: {coins_collected[0]}"
 
     # Landing detection, which the docstring claims and nothing checked.
