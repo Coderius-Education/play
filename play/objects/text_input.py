@@ -432,6 +432,18 @@ class TextInput(Box):
     # ── public API ──────────────────────────────────────────────────────────
 
     @property
+    def color(self):
+        """The background colour used when not focused."""
+        return self._base_input_color
+
+    @color.setter
+    def color(self, value):
+        # update() re-derives self._color from _base_input_color every frame,
+        # so the inherited Box.color setter would be reverted on the next one.
+        self._base_input_color = value
+        self._should_recompute = True
+
+    @property
     def value(self):
         """The current text value of the input."""
         return self._input_value

@@ -288,6 +288,18 @@ class Dropdown(Box):
     # ── public API ────────────────────────────────────────────────────────────
 
     @property
+    def color(self):
+        """The background colour used when not hovered."""
+        return self._base_color
+
+    @color.setter
+    def color(self, value):
+        # update() re-derives self._color from _base_color every frame, so the
+        # inherited Box.color setter would be reverted on the next one.
+        self._base_color = value
+        self._should_recompute = True
+
+    @property
     def selected_value(self):
         """The currently selected option, or None."""
         if 0 <= self._selected_index < len(self._options):

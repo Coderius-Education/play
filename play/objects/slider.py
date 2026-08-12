@@ -75,7 +75,12 @@ class Slider(Sprite):
 
     def update(self):
         """Handle drag input then re-render."""
-        if not self._is_disabled:
+        if self._is_disabled or self._is_hidden:
+            # Non-interactive: drop any drag in progress, otherwise the reset
+            # below never runs and re-enabling resumes the drag without a fresh
+            # click. A hidden slider must not keep moving its value either.
+            self._dragging = False
+        else:
             touching = mouse.is_touching(self)
             if mouse_state.click_hits(self) and touching:
                 self._dragging = True
