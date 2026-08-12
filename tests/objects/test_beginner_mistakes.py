@@ -80,9 +80,11 @@ def test_swapped_min_and_max_says_so(factory):
 
 
 @pytest.mark.parametrize("factory", ["slider", "progress_bar"])
-def test_equal_min_and_max_says_so(factory):
-    with pytest.raises(ValueError, match="min_value has to be smaller"):
-        WIDGET_FACTORIES[factory](min_value=50, max_value=50)
+def test_equal_min_and_max_is_allowed(factory):
+    # A zero span is existing, deliberately tested behaviour (percentage
+    # returns 0.0), so only a genuine swap is treated as a mistake. It is
+    # still a degenerate widget, just not one this guard decides about.
+    WIDGET_FACTORIES[factory](min_value=50, max_value=50)
 
 
 def test_the_range_error_suggests_the_swap():

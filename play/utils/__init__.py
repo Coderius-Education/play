@@ -178,8 +178,13 @@ def check_value_range(min_value, max_value, widget_name):
     a progress bar reads empty while ``value`` says otherwise. Saying so at the
     line that made the widget is far kinder than leaving a beginner to wonder
     why nothing moves.
+
+    An *equal* range is left alone: ``percentage`` returning 0.0 for a zero
+    span is existing, deliberately tested behaviour (see
+    test_progress_bar_percentage_zero_span), so only a genuine swap is an
+    error here.
     """
-    if min_value >= max_value:
+    if min_value > max_value:
         raise ValueError(
             f"""The {widget_name} you made has min_value={min_value} and max_value={max_value}.
 min_value has to be smaller than max_value, otherwise the {widget_name} can never move.
