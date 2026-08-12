@@ -141,8 +141,10 @@ def reject_async_callback(func, kind):
     synchronously, so an ``async def`` handler would never be awaited. *kind* is
     the registrar name used in the error message."""
     if inspect.iscoroutinefunction(func):
+        # iscoroutinefunction unwraps functools.partial, which has no __name__.
+        name = getattr(func, "__name__", repr(func))
         raise TypeError(
-            f"{func.__name__} is async. {kind} callbacks must be regular functions."
+            f"{name} is async. {kind} callbacks must be regular functions."
         )
 
 
@@ -151,7 +153,10 @@ def load_font(font_path_or_none, size):
     if font_path_or_none and font_path_or_none != "default":
         try:
             return pygame.font.Font(font_path_or_none, size)
-        except (FileNotFoundError, OSError):
+        except (OSError, ValueError, pygame.error):
+            # A zero-byte or corrupt font file raises ValueError, and
+            # pygame.error derives from RuntimeError, not OSError — neither
+            # was caught before, so the fallback never ran for those.
             pass
     return pygame.font.SysFont(None, size)
 

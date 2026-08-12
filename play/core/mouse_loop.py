@@ -48,8 +48,17 @@ class MouseState:
 mouse_state = MouseState()
 
 
+# pygame emits synthetic button 4/5 down+up pairs for wheel scrolling (kept for
+# SDL1 compatibility). They are not clicks, and treating them as clicks lets a
+# scroll toggle every widget it passes under the cursor.
+_WHEEL_BUTTONS = (4, 5)
+
+
 def handle_mouse_events(event):
     """Handle mouse events and update the mouse state."""
+    if event.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP):
+        if getattr(event, "button", None) in _WHEEL_BUTTONS:
+            return
     if event.type == pygame.MOUSEBUTTONDOWN:
         mouse_state.click_happened = True
         mouse._is_clicked = True

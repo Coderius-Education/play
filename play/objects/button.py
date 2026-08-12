@@ -61,16 +61,21 @@ class Button(Box):
             layer=layer,
         )
 
+    def _end_hover(self):
+        """Run when_unhover once for an active hover, then clear the flag."""
+        if not self._was_hovered:
+            return
+        for cb in self._unhover_callbacks:
+            cb()
+        self._was_hovered = False
+
     def update(self):
         """Set hover/press/disabled colour then delegate to Sprite.update() → _render()."""
         if self._is_disabled:
             self._color = self._disabled_color
             # Becoming disabled while hovered must still close out the hover,
             # otherwise when_unhover never runs for this hover cycle.
-            if self._was_hovered:
-                for cb in self._unhover_callbacks:
-                    cb()
-                self._was_hovered = False
+            self._end_hover()
         else:
             hovered = mouse.is_touching(self)
             pressed = hovered and mouse._is_clicked
@@ -78,10 +83,9 @@ class Button(Box):
             if hovered and not self._was_hovered:
                 for cb in self._hover_callbacks:
                     cb()
-            elif not hovered and self._was_hovered:
-                for cb in self._unhover_callbacks:
-                    cb()
-            self._was_hovered = hovered
+                self._was_hovered = True
+            elif not hovered:
+                self._end_hover()
 
             if pressed:
                 if self._click_color is not None:
