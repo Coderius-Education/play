@@ -5,6 +5,7 @@ from typing import Optional as _Optional
 import pygame
 
 from .box import Box
+from .widget import WidgetMixin
 from ..io.mouse import mouse
 from ..utils import (
     color_name_to_rgb as _color_name_to_rgb,
@@ -15,15 +16,13 @@ from . import text_input_registry as _registry
 from ..core.mouse_loop import mouse_state
 
 
-class TextInput(Box):
+class TextInput(WidgetMixin, Box):
     """A single-line text entry field.
 
     While a TextInput is focused it captures the keyboard exclusively: the
     game's ``@when_key_pressed`` / ``@when_key_released`` callbacks and key
     polling are suspended until the field is blurred (click elsewhere, press
     Escape, or submit with Enter)."""
-
-    _is_widget = True
 
     # character used for password masking
     _MASK_CHAR = "•"  # •
@@ -77,6 +76,7 @@ class TextInput(Box):
         self._is_disabled = disabled
         self._readonly = readonly
         self._password_mode = password_mode
+        self._init_widget()
         super().__init__(
             color=color,
             x=x,
@@ -95,6 +95,9 @@ class TextInput(Box):
 
     def update(self):
         """Handle focus, cursor blink, box rendering, and text overlay."""
+        self._track_hover(
+            not self._is_disabled and not self._is_hidden and mouse.is_touching(self)
+        )
         if not self._is_disabled and mouse_state.click_hits(self):
             if mouse.is_touching(self):
                 if not self._is_focused:

@@ -3,6 +3,7 @@
 import pygame
 
 from .box import Box
+from .widget import WidgetMixin
 from ..io.mouse import mouse
 from ..utils import (
     color_name_to_rgb as _color_name_to_rgb,
@@ -12,9 +13,7 @@ from ..utils import (
 from ..core.mouse_loop import mouse_state
 
 
-class Checkbox(Box):
-    _is_widget = True
-
+class Checkbox(WidgetMixin, Box):
     def __init__(
         self,
         label="",
@@ -46,6 +45,7 @@ class Checkbox(Box):
         self._is_disabled = disabled
         self._hovered = False  # cached hover state (never True while disabled)
         self._on_change_callbacks = []
+        self._init_widget()
 
         # Width includes the box + label area
         label_w = self._checkbox_font.size(label)[0] if label else 0
@@ -69,6 +69,7 @@ class Checkbox(Box):
         """Toggle checked state on click; re-render on hover changes."""
         # Disabled widgets never show hover feedback.
         hovered = not self._is_disabled and mouse.is_touching(self)
+        self._track_hover(hovered)
         if mouse_state.click_hits(self) and hovered:
             self._checked = not self._checked
             self._should_recompute = True

@@ -1,19 +1,15 @@
 """This module contains the Button class, a Box with a text label and hover/press/disabled state."""
 
-import inspect as _inspect
-
 from .box import Box
+from .widget import WidgetMixin
 from ..io.mouse import mouse
 from ..utils import (
     color_name_to_rgb as _color_name_to_rgb,
     load_font as _load_font,
-    reject_async_callback as _reject_async,
 )
 
 
-class Button(Box):
-    _is_widget = True
-
+class Button(WidgetMixin, Box):
     def __init__(
         self,
         text="Button",
@@ -47,9 +43,7 @@ class Button(Box):
         self._is_disabled = disabled
         self._disabled_color = disabled_color
         self._disabled_text_color = disabled_text_color
-        self._was_hovered = False
-        self._hover_callbacks = []
-        self._unhover_callbacks = []
+        self._init_widget()
         super().__init__(
             color=color,
             x=x,
@@ -63,31 +57,17 @@ class Button(Box):
             layer=layer,
         )
 
-    def _end_hover(self):
-        """Run when_unhover once for an active hover, then clear the flag."""
-        if not self._was_hovered:
-            return
-        for cb in self._unhover_callbacks:
-            cb()
-        self._was_hovered = False
-
     def update(self):
         """Set hover/press/disabled colour then delegate to Sprite.update() → _render()."""
         if self._is_disabled:
             self._color = self._disabled_color
             # Becoming disabled while hovered must still close out the hover,
             # otherwise when_unhover never runs for this hover cycle.
-            self._end_hover()
+            self._track_hover(False)
         else:
             hovered = mouse.is_touching(self)
             pressed = hovered and mouse._is_clicked
-
-            if hovered and not self._was_hovered:
-                for cb in self._hover_callbacks:
-                    cb()
-                self._was_hovered = True
-            elif not hovered:
-                self._end_hover()
+            self._track_hover(hovered)
 
             if pressed:
                 if self._click_color is not None:
@@ -121,56 +101,6 @@ class Button(Box):
             center=(self.image.get_width() // 2, self.image.get_height() // 2)
         )
         self.image.blit(text_surf, text_rect)
-
-    # ── override when_clicked to honour disabled state ───────────────────────
-
-    def _guard_disabled(self, callback):
-        """Wrap *callback* so it's skipped while disabled, preserving async-ness."""
-        if _inspect.iscoroutinefunction(callback):
-
-            async def guarded(*args, **kwargs):
-                if not self._is_disabled:
-                    await callback(*args, **kwargs)
-
-        else:
-
-            def guarded(*args, **kwargs):
-                if not self._is_disabled:
-                    callback(*args, **kwargs)
-
-        guarded.__name__ = getattr(callback, "__name__", "guarded")
-        # Expose the wrapped callback's signature so the dispatcher's arg-count
-        # check (callback_helpers._resolve_callback_args) still works — otherwise
-        # the *args wrapper reads as zero args and call_with_sprite=True raises.
-        try:
-            guarded.__signature__ = _inspect.signature(callback)
-        except (ValueError, TypeError):
-            pass
-        return guarded
-
-    def when_clicked(self, callback, call_with_sprite=False):
-        """Register a click callback; the callback is silently skipped when disabled."""
-        return super().when_clicked(self._guard_disabled(callback), call_with_sprite)
-
-    def when_click_released(self, callback, call_with_sprite=False):
-        """Register a click-release callback; skipped when disabled."""
-        return super().when_click_released(
-            self._guard_disabled(callback), call_with_sprite
-        )
-
-    # ── hover callbacks ───────────────────────────────────────────────────────
-
-    def when_hover(self, func):
-        """Decorator — *func()* is called when the mouse pointer enters the button."""
-        _reject_async(func, "when_hover")
-        self._hover_callbacks.append(func)
-        return func
-
-    def when_unhover(self, func):
-        """Decorator — *func()* is called when the mouse pointer leaves the button."""
-        _reject_async(func, "when_unhover")
-        self._unhover_callbacks.append(func)
-        return func
 
     # ── properties ────────────────────────────────────────────────────────────
 

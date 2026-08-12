@@ -4,6 +4,7 @@ import math as _math
 import pygame
 
 from .sprite import Sprite
+from .widget import WidgetMixin
 from ..io.mouse import mouse
 from ..utils import (
     color_name_to_rgb as _color_name_to_rgb,
@@ -14,9 +15,7 @@ from ..io.screen import convert_pos, screen
 from ..core.mouse_loop import mouse_state
 
 
-class Slider(Sprite):
-    _is_widget = True
-
+class Slider(WidgetMixin, Sprite):
     def __init__(
         self,
         min_value=0,
@@ -64,6 +63,7 @@ class Slider(Sprite):
         self._step = step
         self._on_change_callbacks = []
         self._image = None
+        self._init_widget()
         # Seed the rect with the real widget size so the pymunk hit-shape is
         # built correctly; a 0x0 rect yields a degenerate point shape that only
         # registers clicks at the exact centre.
@@ -80,8 +80,10 @@ class Slider(Sprite):
             # below never runs and re-enabling resumes the drag without a fresh
             # click. A hidden slider must not keep moving its value either.
             self._dragging = False
+            self._track_hover(False)
         else:
             touching = mouse.is_touching(self)
+            self._track_hover(touching)
             if mouse_state.click_hits(self) and touching:
                 self._dragging = True
             if not mouse._is_clicked:

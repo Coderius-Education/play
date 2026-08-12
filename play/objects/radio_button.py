@@ -3,6 +3,7 @@
 import pygame
 
 from .sprite import Sprite
+from .widget import WidgetMixin
 from ..io.mouse import mouse
 from ..utils import (
     color_name_to_rgb as _color_name_to_rgb,
@@ -75,9 +76,7 @@ class RadioGroup:
         return func
 
 
-class RadioButton(Sprite):
-    _is_widget = True
-
+class RadioButton(WidgetMixin, Sprite):
     def __init__(
         self,
         label="",
@@ -118,6 +117,7 @@ class RadioButton(Sprite):
         self._selected = selected
         self._hovered = False  # cached hover state (never True while disabled)
         self._image = None
+        self._init_widget()
         # Seed the rect with the real widget size so the pymunk hit-shape is
         # built correctly (a 0x0 rect yields a degenerate point shape that makes
         # clicks miss or bleed between stacked radios).
@@ -145,6 +145,7 @@ class RadioButton(Sprite):
         """Handle click to select; re-render on hover changes."""
         # Disabled widgets never show hover feedback.
         hovered = not self._is_disabled and mouse.is_touching(self)
+        self._track_hover(hovered)
         if mouse_state.click_hits(self) and hovered:
             if self._group is not None:
                 self._group._select(self)

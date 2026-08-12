@@ -4,6 +4,7 @@ import math as _math
 import pygame
 
 from .box import Box
+from .widget import WidgetMixin
 from ..io.mouse import mouse
 from ..utils import (
     color_name_to_rgb as _color_name_to_rgb,
@@ -14,7 +15,7 @@ from ..io.screen import convert_pos
 from ..core.mouse_loop import mouse_state
 
 
-class Dropdown(Box):
+class Dropdown(WidgetMixin, Box):
     """A dropdown/select widget.
 
     When closed the widget renders as a single-row button showing the current
@@ -24,8 +25,6 @@ class Dropdown(Box):
     The open menu is rendered as an extension of the sprite's own image so
     it works within the existing pygame sprite layer system.
     """
-
-    _is_widget = True
 
     # While open, the sprite is hoisted this many layers up so the option list
     # draws above overlapping sprites instead of taking clicks while hidden.
@@ -75,6 +74,7 @@ class Dropdown(Box):
         self._is_disabled = disabled
         self._placeholder = placeholder
         self._hovered_option = -1  # which option row the mouse is over
+        self._init_widget()
 
         super().__init__(
             color=color,
@@ -97,7 +97,9 @@ class Dropdown(Box):
 
     def update(self):
         """Handle clicks on the button and on the open option list."""
-        if not self._is_disabled and not self._is_hidden:
+        interactive = not self._is_disabled and not self._is_hidden
+        self._track_hover(interactive and mouse.is_touching(self))
+        if interactive:
             if mouse_state.click_happened:
                 self._handle_click()
 
