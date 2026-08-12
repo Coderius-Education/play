@@ -99,10 +99,9 @@ def test_dodge_game():
 
     # --- assertions ---
     assert frames_run[0] >= 1, "Game loop never ran"
-    assert hits_taken[0] == STARTING_LIVES, (
-        f"expected {STARTING_LIVES} hits to run the lives down, got "
-        f"{hits_taken[0]}"
-    )
+    assert (
+        hits_taken[0] == STARTING_LIVES
+    ), f"expected {STARTING_LIVES} hits to run the lives down, got {hits_taken[0]}"
     assert lives[0] == 0, f"lives should reach 0 for game over, got {lives[0]}"
     assert lives_text.words == "Lives: 0", "the lives display should show the game over"
     assert (
