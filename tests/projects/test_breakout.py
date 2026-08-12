@@ -102,18 +102,21 @@ def test_breakout():
         bricks_destroyed[0] <= TOTAL_BRICKS
     ), f"can't destroy more than {TOTAL_BRICKS} bricks, got {bricks_destroyed[0]}"
 
-    # The point of the test: each brick has its own callback even though every
-    # brick shares pymunk's default collision_type. One dispatch per brick
-    # means they were not collapsed into a single shape. The old assertions
-    # could not see this -- the is_hidden guard silently absorbed duplicates.
+    # Each brick has its own callback even though every brick shares pymunk's
+    # default collision_type. If they were collapsed into one shape, a single
+    # collision would dispatch every brick's callback and hide bricks the ball
+    # never reached -- so the property to check is that the bricks which fired
+    # are exactly the bricks which vanished.
+    #
+    # Not asserted: one dispatch per brick. when_stopped_touching legitimately
+    # fires more than once for the same pair as the ball separates and
+    # re-approaches, so counts like [2, 4] are normal rather than duplicates.
     assert raw_hits, "no brick collision callback fired at all"
-    assert all(n == 1 for n in raw_hits.values()), (
-        "each brick should be dispatched exactly once; duplicates mean the "
-        f"bricks were treated as the same shape: {sorted(raw_hits.values())}"
-    )
-    assert len(raw_hits) == bricks_destroyed[0], (
-        "every brick that fired should have been destroyed: "
-        f"{len(raw_hits)} fired, {bricks_destroyed[0]} destroyed"
+    fired = {i for i, brick in enumerate(bricks) if id(brick) in raw_hits}
+    vanished = {i for i, brick in enumerate(bricks) if brick.is_hidden}
+    assert fired == vanished, (
+        "the bricks that were hit and the bricks that disappeared should be "
+        f"the same set; hit {sorted(fired)}, vanished {sorted(vanished)}"
     )
 
     # `lives >= 0` could never fail. Lives only drop when the ball reaches the
