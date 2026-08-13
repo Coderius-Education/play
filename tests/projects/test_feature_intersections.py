@@ -191,17 +191,6 @@ def test_hidden_widget_does_not_take_clicks_from_the_one_below():
     assert upper.checked is False, "a hidden widget should not react to clicks"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "a disabled widget still wins click ownership and then declines to "
-        "act, so the click reaches nothing. resolve_click_owner() selects on "
-        "`s._is_widget and mouse.is_touching(s)`; is_touching excludes hidden "
-        "sprites, which is why hiding works, but nothing excludes disabled "
-        "ones — contradicting that function's own docstring, which says the "
-        "top-most *interactive* widget takes the click"
-    ),
-)
 def test_disabled_widget_does_not_take_clicks_from_the_one_below():
     """A disabled widget is visible but inert — it must not block either."""
     lower = play.new_checkbox(x=0, y=0, size_px=40, layer=10)

@@ -59,11 +59,16 @@ class MouseState:
             self.click_owner = max(claiming, key=lambda w: w._layer)
             return
         # sprites() is layer-ordered back-to-front, so the last hit is on top.
-        # mouse.is_touching() already excludes hidden sprites.
+        # mouse.is_touching() already excludes hidden sprites; disabled ones
+        # have to be excluded here. A disabled widget is not interactive, so
+        # letting it win ownership loses the click entirely: it declines to
+        # act, and the widget underneath never hears about it.
         widgets = [
             s
             for s in globals_list.sprites_group.sprites()
-            if s._is_widget and mouse.is_touching(s)
+            if s._is_widget
+            and not getattr(s, "_is_disabled", False)
+            and mouse.is_touching(s)
         ]
         self.click_owner = widgets[-1] if widgets else None
 
