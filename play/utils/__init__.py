@@ -1,5 +1,6 @@
 """A bunch of random math functions."""
 
+import os
 import warnings
 from functools import wraps
 import inspect
@@ -159,14 +160,31 @@ def load_font(font_path_or_none, size):
     return pygame.font.SysFont(None, size)
 
 
-def is_called_from_pygame():
-    """Check if the current method is being called from pygame's internal code."""
-    stack = inspect.stack()
+_PYGAME_PREFIX = (
+    os.path.normcase(os.path.dirname(os.path.abspath(pygame.__file__))) + os.sep
+)
 
-    for frame_info in stack:
-        filename = frame_info.filename
-        if "pygame" in filename and "site-packages" in filename:
+
+def is_called_from_pygame():
+    """Check if the current method is being called from pygame's internal code.
+
+    Matched against pygame's real package directory rather than by looking for
+    substrings in the path. The old check also required "site-packages", which
+    Debian and Ubuntu do not use — they install to dist-packages — so it could
+    never match there and every internal call from pygame.sprite warned the
+    user about their own library's normal behaviour. Testing for a bare
+    "pygame" substring fails the other way: it would silence a genuine warning
+    for anyone whose project happens to live under a path containing "pygame".
+
+    Walks the frames directly instead of using inspect.stack(), which builds a
+    full FrameInfo list and reads source context for every frame; this runs on
+    every sprite add and remove.
+    """
+    frame = inspect.currentframe()
+    while frame is not None:
+        if os.path.normcase(frame.f_code.co_filename).startswith(_PYGAME_PREFIX):
             return True
+        frame = frame.f_back
     return False
 
 
