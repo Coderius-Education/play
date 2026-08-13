@@ -159,6 +159,48 @@ def pytest_collection_finish(session):
         pass
 
 
+COLLISION_HANDLER_ERRORS = []
+_RECORDER_INSTALLED = []
+
+
+def _install_collision_error_recorder():
+    """Make exceptions raised inside collision handlers fail the test.
+
+    pymunk calls these across a cffi boundary, which catches whatever they
+    raise, prints a traceback to stderr and carries on. The suite sees a clean
+    pass. That silence is total: mutating the guards in _handle_collision to
+    raise KeyError on every wall collision left all 29 collision tests passing.
+    Nothing in that function can be verified while its failures are invisible.
+
+    Re-registers the handlers wrapped, rather than patching the registry, since
+    pymunk is holding the bound methods captured in its constructor.
+    """
+    if _RECORDER_INSTALLED:
+        return
+    from play.callback.collision_callbacks import collision_registry
+    from play.physics import physics_space
+
+    def _wrap(func):
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as exc:  # noqa: BLE001 - recorded, then re-raised
+                COLLISION_HANDLER_ERRORS.append(f"{type(exc).__name__}: {exc}")
+                raise
+
+        return wrapper
+
+    begin = _wrap(collision_registry._handle_collision)
+    separate = _wrap(collision_registry._handle_end_collision)
+    try:
+        physics_space.on_collision(begin=begin, separate=separate)
+    except AttributeError:
+        handler = physics_space.add_default_collision_handler()
+        handler.begin = begin
+        handler.separate = separate
+    _RECORDER_INSTALLED.append(True)
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Disarm auto-start once the session is over.
 
@@ -227,6 +269,9 @@ def clean_play_state(request):
 
     from play.physics import physics_space
     from play.callback import callback_manager
+
+    _install_collision_error_recorder()
+    COLLISION_HANDLER_ERRORS.clear()
 
     # Clean play globals
     play.globals.globals_list.reset()
@@ -337,6 +382,12 @@ def clean_play_state(request):
     # looks identical either way. Failing here by default is what stops that
     # from being silent; a test that genuinely has no ending of its own can say
     # so with @pytest.mark.allow_safety_timeout.
+    assert (
+        not COLLISION_HANDLER_ERRORS
+    ), "a collision handler raised, and pymunk swallowed it:\n  " + "\n  ".join(
+        COLLISION_HANDLER_ERRORS[:5]
+    )
+
     if _timed_out["fired"] and not request.node.get_closest_marker(
         "allow_safety_timeout"
     ):
