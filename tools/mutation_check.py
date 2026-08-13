@@ -127,6 +127,14 @@ def main():
     parser.add_argument("target", help="python file to mutate")
     parser.add_argument("--tests", required=True, help="tests to run per mutant")
     parser.add_argument("--limit", type=int, default=40, help="max mutants")
+    parser.add_argument(
+        "--only",
+        help=(
+            "comma-separated mutant indices to run. Use it to re-check the "
+            "survivors of a fast slice against the whole suite: a survivor "
+            "only ever means the tests that ran did not constrain it"
+        ),
+    )
     parser.add_argument("--timeout", type=int, default=180)
     args = parser.parse_args()
 
@@ -136,6 +144,12 @@ def main():
     total = count_opportunities(tree)
     planned = min(total, args.limit)
 
+    if args.only:
+        indices = [int(part) for part in args.only.split(",") if part.strip()]
+        planned = len(indices)
+    else:
+        indices = range(planned)
+
     command = f"python -m pytest {args.tests} -q -p no:randomly"
     print(f"{path}: {total} mutation opportunities, running {planned}")
     print(f"per-mutant command: {command}\n")
@@ -143,7 +157,7 @@ def main():
     survivors = []
     started = time.time()
     try:
-        for index in range(planned):
+        for index in indices:
             mutator = _Mutator(target=index)
             mutated = mutator.visit(copy.deepcopy(tree))
             if mutator.description is None:
