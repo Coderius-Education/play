@@ -27,8 +27,9 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
     """
 
     def __init__(self):
-        self.callbacks = {True: {}, False: {}}
+        self.callbacks = {}
         self.shape_registry = {}
+        self.reset()
 
         try:
             physics_space.on_collision(
@@ -38,6 +39,19 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             handler = physics_space.add_default_collision_handler()
             handler.begin = self._handle_collision
             handler.separate = self._handle_end_collision
+
+    def reset(self):
+        """Clear every registered callback and shape.
+
+        Exists so tests can return the registry to its starting state by
+        calling the same code the constructor uses. Reassigning
+        ``registry.callbacks`` from outside worked, but it meant the
+        constructor's own initialisation was overwritten before every test and
+        could never be observed — mutation testing flagged that line as one no
+        test constrained.
+        """
+        self.callbacks = {True: {}, False: {}}
+        self.shape_registry.clear()
 
     def _handle_collision(self, arbiter, _, __):
         shape_a, shape_b = arbiter.shapes

@@ -315,8 +315,10 @@ def clean_play_state(request):
 
     from play.callback.collision_callbacks import collision_registry
 
-    collision_registry.callbacks = {True: {}, False: {}}
-    collision_registry.shape_registry.clear()
+    # Call the registry's own reset rather than reassigning its dict: doing
+    # that from here overwrote the constructor's initialisation before every
+    # test, leaving that line permanently unverifiable.
+    collision_registry.reset()
 
     from play.objects import text_input_registry as _ti_registry
 
