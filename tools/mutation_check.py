@@ -11,8 +11,26 @@ a place where the code could be wrong today and stay green.
 Scoped on purpose: one mutant costs a full run of the chosen tests, so point it
 at one module and the fastest tests that cover it rather than the whole suite.
 
-Exit status is 1 when any mutant survives, so this can gate CI once a module is
-clean.
+Work in two passes, and do not skip the second. A survivor says only that *the
+tests you ran* did not constrain that line, which is not the same as a gap:
+
+  1. a fast slice, to find candidates
+  2. --only over those candidates against every test that could plausibly
+     cover them, to find out which are real
+
+Skipping step 2 produces confident nonsense. On this project a first pass
+reported 12 of 25 survivors in mouse_loop.py, clustered so neatly inside the
+pygame-event handler that the obvious reading was that the whole real event
+path went untested. Re-running them against tests/events killed 8 of the 12:
+the tests existed, they were just not in the slice.
+
+A survivor that outlives step 2 is still not automatically a gap. Some are
+equivalent mutants — code whose change cannot be observed, such as a class
+attribute an __init__ immediately overwrites, or the default of a getattr for
+an attribute every caller sets. Those want deleting, not testing.
+
+Exit status is 1 when any mutant survives or could not be measured, so this can
+gate CI once a module is clean.
 """
 
 import argparse
