@@ -8,6 +8,7 @@ between tests to prevent state bleed.
 
 import logging
 import os
+import sys as _sys
 import time
 import pytest
 
@@ -156,6 +157,32 @@ def pytest_collection_finish(session):
             pass
     except ImportError:
         pass
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Disarm auto-start once the session is over.
+
+    Creating a sprite arms auto_start, which runs the game loop as the
+    interpreter shuts down — the intended kindness for a student who forgot
+    play.start_program(). clean_play_state disarms it at the *start* of each
+    test, so the last test's arming survives the session: pytest prints its
+    summary, then sits through a phantom game until that test's safety-stop
+    deadline expires. That is the 30 seconds a single-file run spends after
+    reporting every test as passed.
+
+    Only bites without xdist; its workers exit before the trace can fire,
+    which is why CI never sees it.
+
+    Looked up in sys.modules rather than imported: under xdist the tests run
+    in workers and this also runs in the controller, which otherwise never
+    imports play. Importing it there is not free — `python -c "import play"`
+    segfaults at interpreter shutdown all on its own — so an unconditional
+    import here turns a clean exit into a 139.
+    """
+    auto_start = _sys.modules.get("play.api.auto_start")
+    if auto_start is None:
+        return
+    auto_start._cleanup_auto_start()
 
 
 @pytest.fixture(autouse=True)
