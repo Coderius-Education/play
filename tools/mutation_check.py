@@ -100,7 +100,15 @@ def count_opportunities(tree):
 
 
 def run_tests(command, timeout):
-    """Return (killed, summary). Reads pytest's summary line, not exit status."""
+    """Return (verdict, summary) where verdict is killed/survived/inconclusive.
+
+    Reads pytest's summary line, not exit status. Unparseable output is
+    reported as inconclusive rather than assumed killed: this tool exists to
+    find places the tests do not constrain, so a failure to measure must never
+    be reported as a success. An earlier version returned "killed" here, and a
+    stray second -q — which makes pytest drop the summary line — turned ten
+    unmeasured mutants into ten apparent passes.
+    """
     try:
         proc = subprocess.run(
             command, shell=True, capture_output=True, text=True, timeout=timeout
@@ -108,7 +116,7 @@ def run_tests(command, timeout):
     except subprocess.TimeoutExpired:
         # A mutant that hangs is a mutant the tests noticed, in the sense that
         # matters: the suite did not sail past it.
-        return True, "timed out"
+        return "killed", "timed out"
 
     output = proc.stdout + proc.stderr
     summary = ""
@@ -116,10 +124,10 @@ def run_tests(command, timeout):
         if PASS_MARKER in line or any(m in line for m in FAIL_MARKERS):
             summary = line.strip()
     if any(marker in output for marker in FAIL_MARKERS):
-        return True, summary or "failed"
+        return "killed", summary or "failed"
     if PASS_MARKER in output:
-        return False, summary or "passed"
-    return True, summary or "no tests ran"
+        return "survived", summary or "passed"
+    return "inconclusive", summary or "no pytest summary found in output"
 
 
 def main():
@@ -155,6 +163,7 @@ def main():
     print(f"per-mutant command: {command}\n")
 
     survivors = []
+    inconclusive = []
     started = time.time()
     try:
         for index in indices:
@@ -170,11 +179,17 @@ def main():
                 continue
 
             path.write_text(source)
-            killed, summary = run_tests(command, args.timeout)
-            status = "killed " if killed else "SURVIVED"
-            print(f"  [{index:>3}] {status}  {mutator.description}  ({summary})")
-            if not killed:
+            verdict, summary = run_tests(command, args.timeout)
+            label = {
+                "killed": "killed  ",
+                "survived": "SURVIVED",
+                "inconclusive": "?UNKNOWN",
+            }[verdict]
+            print(f"  [{index:>3}] {label}  {mutator.description}  ({summary})")
+            if verdict == "survived":
                 survivors.append(mutator.description)
+            elif verdict == "inconclusive":
+                inconclusive.append(f"{mutator.description} ({summary})")
     finally:
         path.write_text(original)
 
@@ -182,7 +197,13 @@ def main():
     print(f"\n{len(survivors)} survived of {planned} in {elapsed:.0f}s")
     for description in survivors:
         print(f"  SURVIVED  {description}")
-    return 1 if survivors else 0
+    if inconclusive:
+        print(f"\n{len(inconclusive)} could not be measured — fix these first:")
+        for description in inconclusive:
+            print(f"  ?UNKNOWN  {description}")
+        print("  (a common cause is passing -q in --tests: pytest then drops")
+        print("   the summary line this tool reads)")
+    return 1 if survivors or inconclusive else 0
 
 
 if __name__ == "__main__":
