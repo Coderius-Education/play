@@ -1,5 +1,115 @@
 """Shared helpers for tests/projects/ — reduces boilerplate across pong variants."""
 
+import pytest
+
+
+# ---------------------------------------------------------------------------
+# Per-frame invariant watchdog
+# ---------------------------------------------------------------------------
+
+# Stop recording after this many violations. One broken invariant usually
+# repeats every frame for the rest of the run, and a thousand identical lines
+# buries the first one, which is the one that matters.
+MAX_VIOLATIONS = 5
+
+
+def _finite(value):
+    return value == value and value not in (float("inf"), float("-inf"))
+
+
+def check_frame_invariants(known):
+    """Return a list of invariant violations for the current frame.
+
+    These hold for any game at any moment, so every project test can check them
+    on every frame for free. That is the point: a project test asserts its own
+    ending, which a bug can leave intact while corrupting everything on the way
+    there. ``test_platformer_keyboard`` passed for months while never touching
+    its platform.
+
+    ``known`` carries state across frames so a sprite that disappears can still
+    be checked for a leaked physics body.
+    """
+    from play.globals import globals_list
+    from play.physics import physics_space
+
+    violations = []
+    live = globals_list.sprites_group.sprites()
+    body_ids = {id(b) for b in physics_space.bodies}
+    shape_ids = {id(s) for s in physics_space.shapes}
+    live_ids = set()
+
+    for sprite in live:
+        live_ids.add(id(sprite))
+
+        if not (_finite(sprite.x) and _finite(sprite.y)):
+            violations.append(
+                f"{sprite!r} has a non-finite position ({sprite.x}, {sprite.y})"
+            )
+
+        physics = getattr(sprite, "physics", None)
+        if physics is None:
+            continue
+
+        body, shape = physics._pymunk_body, physics._pymunk_shape
+        known[id(sprite)] = (repr(sprite), body, shape)
+
+        # A sprite's body belongs in the space exactly when its physics is
+        # running. A body left behind after pause() still collides, which
+        # reaches the user as a callback firing for something they stopped.
+        if physics._is_paused:
+            if id(body) in body_ids:
+                violations.append(
+                    f"{sprite!r} is paused but its body is still simulated"
+                )
+        else:
+            if id(body) not in body_ids:
+                violations.append(
+                    f"{sprite!r} has running physics but no body in the space"
+                )
+            if id(shape) not in shape_ids:
+                violations.append(
+                    f"{sprite!r} has running physics but no shape in the space"
+                )
+
+    # A sprite that left the group must not have left a body behind: that is a
+    # phantom collider the user can no longer see or reach.
+    for sprite_id, (description, body, _shape) in known.items():
+        if sprite_id not in live_ids and id(body) in body_ids:
+            violations.append(
+                f"{description} was removed but its body is still simulated"
+            )
+
+    return violations
+
+
+@pytest.fixture(autouse=True)
+def project_invariants(clean_play_state):
+    """Check the frame invariants on every frame of every project test.
+
+    Depends on clean_play_state so it registers after that fixture has reset
+    the callback queues, otherwise this watchdog would be cleared before the
+    test runs.
+    """
+    import play
+
+    violations = []
+    known = {}
+
+    @play.repeat_forever
+    def _watchdog():
+        if len(violations) >= MAX_VIOLATIONS:
+            return
+        try:
+            violations.extend(check_frame_invariants(known))
+        except Exception as exc:  # pragma: no cover - defensive
+            violations.append(f"the invariant check itself raised {exc!r}")
+
+    yield
+
+    assert not violations, "frame invariants broken:\n  " + "\n  ".join(
+        violations[:MAX_VIOLATIONS]
+    )
+
 
 def setup_pong(ball_x_speed=300, ball_y_speed=40, ball_obeys_gravity=False):
     """Create the standard pong sprites and start their physics.

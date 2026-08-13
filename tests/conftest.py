@@ -276,10 +276,12 @@ def clean_play_state(request):
     marker = request.node.get_closest_marker("slow")
     _seconds = marker.args[0] if marker and marker.args else 30
     _deadline = time.monotonic() + _seconds
+    _timed_out = {"fired": False}
 
     @play.repeat_forever
     def _safety_stop():
         if time.monotonic() >= _deadline:
+            _timed_out["fired"] = True
             play.stop_program()
 
     yield
@@ -301,3 +303,18 @@ def clean_play_state(request):
             physics_space.remove(constraint)
         except Exception:
             pass
+
+    # The safety stop is an emergency brake, not an ending. A test that reaches
+    # it did not stop itself, which usually means the behaviour it describes
+    # never happened — and its assertions passed anyway, since "the game ended"
+    # looks identical either way. Failing here by default is what stops that
+    # from being silent; a test that genuinely has no ending of its own can say
+    # so with @pytest.mark.allow_safety_timeout.
+    if _timed_out["fired"] and not request.node.get_closest_marker(
+        "allow_safety_timeout"
+    ):
+        pytest.fail(
+            f"the {_seconds}s safety timeout stopped this test — it never "
+            "reached an ending of its own. Mark it with "
+            "@pytest.mark.allow_safety_timeout if that is intended."
+        )
