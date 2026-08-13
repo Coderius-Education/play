@@ -37,6 +37,7 @@ import argparse
 import ast
 import copy
 import pathlib
+import signal
 import subprocess
 import sys
 import time
@@ -148,6 +149,26 @@ def run_tests(command, timeout):
     return "inconclusive", summary or "no pytest summary found in output"
 
 
+def _restore_on_signal(path, original):
+    """Put the file back if the run is killed rather than finishing.
+
+    The try/finally around the loop covers an exception, but not a signal:
+    Python's default SIGTERM handling ends the process without unwinding, so a
+    `timeout` wrapper firing mid-run leaves a mutated source file on disk. That
+    happened here — an interrupted sprite.py run left the Sprite class in its
+    mutated state, which breaks essentially everything until someone notices
+    and reverts it.
+    """
+
+    def handler(signum, _frame):
+        path.write_text(original)
+        print(f"\ninterrupted by signal {signum}; {path} restored")
+        sys.exit(130)
+
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(sig, handler)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("target", help="python file to mutate")
@@ -166,6 +187,7 @@ def main():
 
     path = pathlib.Path(args.target)
     original = path.read_text()
+    _restore_on_signal(path, original)
     tree = ast.parse(original)
     total = count_opportunities(tree)
     planned = min(total, args.limit)
