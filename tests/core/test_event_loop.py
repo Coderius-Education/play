@@ -5,6 +5,7 @@ platforms (including Windows where ProactorEventLoop is the default).
 """
 
 import asyncio
+import logging
 import sys
 
 import pytest
@@ -43,6 +44,35 @@ def test_loop_has_exception_handler():
     # asyncio stores the handler internally; we verify it's set by checking
     # it's not the default (None).
     assert loop.get_exception_handler() is not None
+
+
+def test_destroyed_pending_task_is_not_reported_as_critical(caplog):
+    """Tasks alive at interpreter shutdown must not shout CRITICAL at the user.
+
+    asyncio hands "Task was destroyed but it is pending!" to the loop's
+    exception handler, which used to log it as CRITICAL — after the program had
+    already finished, about something the user cannot act on.
+    """
+    loop = play.loop.get_loop()
+
+    with caplog.at_level(logging.DEBUG, logger="play"):
+        play.loop._handle_exception(
+            loop, {"message": "Task was destroyed but it is pending!"}
+        )
+
+    assert not [r for r in caplog.records if r.levelno >= logging.CRITICAL]
+
+
+def test_real_async_failures_are_still_reported_as_critical(caplog):
+    """The quiet path above must not swallow genuine errors."""
+    loop = play.loop.get_loop()
+
+    with caplog.at_level(logging.DEBUG, logger="play"):
+        play.loop._handle_exception(
+            loop, {"message": "Some other asyncio problem", "future": None}
+        )
+
+    assert [r for r in caplog.records if r.levelno >= logging.CRITICAL]
 
 
 def test_loop_type_on_windows():

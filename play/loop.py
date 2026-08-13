@@ -10,10 +10,24 @@ _loop = None  # pylint: disable=invalid-name
 _creator_pid = None  # pylint: disable=invalid-name
 
 
+_DESTROYED_PENDING = "Task was destroyed but it is pending!"
+
+
 def _handle_exception(the_loop, context):
     exception = context.get("exception")
     task = context.get("future")
     task_name = task.get_name() if task else "unknown"
+    message = context.get("message", "Unhandled exception in async task")
+
+    if not exception and message.startswith(_DESTROYED_PENDING):
+        # asyncio reports every task still alive when the interpreter tears it
+        # down. That is the normal state of affairs once the program has
+        # stopped — the loop is gone, so nothing is left to run those tasks —
+        # and there is nothing the user can do about it. Shouting CRITICAL
+        # after their program has already finished is pure noise, and the loop
+        # must not be stopped again on the way out.
+        play_logger.debug(message)
+        return
 
     if exception:
         tb_lines = traceback.format_exception(
@@ -22,9 +36,7 @@ def _handle_exception(the_loop, context):
         tb_str = "".join(tb_lines)
         play_logger.critical("Unhandled exception in task '%s':\n%s", task_name, tb_str)
     else:
-        play_logger.critical(
-            context.get("message", "Unhandled exception in async task")
-        )
+        play_logger.critical(message)
 
     the_loop.stop()
 
