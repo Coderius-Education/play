@@ -196,3 +196,96 @@ def test_core_constructor_arguments_round_trip(factory_name, argument):
     assert hasattr(
         widget, argument
     ), f"{factory_name} accepts {argument} but does not expose it to read back"
+
+
+# ---------------------------------------------------------------------------
+# range setters keep their bounds ordered
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "factory",
+    [
+        lambda: play.new_slider(min_value=0, max_value=10, value=5),
+        lambda: play.new_progress_bar(min_value=0, max_value=10, value=5),
+    ],
+    ids=["slider", "progress_bar"],
+)
+def test_raising_min_above_max_keeps_the_range_ordered(factory):
+    """A crossed range leaves a negative span, which reads as a frozen widget.
+
+    Construction rejects a swapped range outright; the setters cannot, because
+    `w.min_value = 100; w.max_value = 200` passes through an inverted state on
+    its way to a perfectly good one. They keep the bounds ordered instead.
+    """
+    widget = factory()
+
+    widget.min_value = 100
+
+    assert (
+        widget.max_value >= widget.min_value
+    ), f"range inverted: {widget.min_value} > {widget.max_value}"
+
+
+@pytest.mark.parametrize(
+    "factory",
+    [
+        lambda: play.new_slider(min_value=0, max_value=10, value=5),
+        lambda: play.new_progress_bar(min_value=0, max_value=10, value=5),
+    ],
+    ids=["slider", "progress_bar"],
+)
+def test_lowering_max_below_min_keeps_the_range_ordered(factory):
+    widget = factory()
+
+    widget.max_value = -50
+
+    assert (
+        widget.min_value <= widget.max_value
+    ), f"range inverted: {widget.min_value} > {widget.max_value}"
+
+
+def test_moving_a_slider_range_upwards_in_two_steps_works():
+    """The sequence the setters deliberately tolerate rather than reject."""
+    slider = play.new_slider(min_value=0, max_value=10, value=5)
+
+    slider.min_value = 100
+    slider.max_value = 200
+
+    assert (slider.min_value, slider.max_value) == (100, 200)
+    assert 100 <= slider.value <= 200
+
+
+# ---------------------------------------------------------------------------
+# dropdown layer bookkeeping
+# ---------------------------------------------------------------------------
+
+
+def test_setting_a_dropdowns_layer_while_open_survives_closing():
+    """An open menu sits hoisted; an assignment means where it belongs.
+
+    The resting layer is captured when the menu opens, so without recording a
+    later assignment, closing would restore the old value and discard it.
+    """
+    menu = play.new_dropdown(options=["a", "b"], x=0, y=0, layer=10)
+    menu._set_open(True)
+
+    menu.layer = 50
+
+    menu._set_open(False)
+    assert menu.layer == 50, f"the assignment was discarded on close ({menu.layer})"
+
+
+def test_opening_a_dropdown_repeatedly_does_not_escalate_its_layer():
+    """_set_open drives the layer itself, so it must bypass the public setter.
+
+    Going through it would record the boosted layer as the resting one and
+    boost that again on the next open, climbing without limit.
+    """
+    menu = play.new_dropdown(options=["a", "b"], x=0, y=0, layer=10)
+
+    for _ in range(5):
+        menu._set_open(True)
+        menu._set_open(False)
+
+    assert menu.layer == 10, f"layer drifted to {menu.layer} after repeated opens"

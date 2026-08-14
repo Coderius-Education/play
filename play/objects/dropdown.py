@@ -149,16 +149,40 @@ class Dropdown(WidgetMixin, Box):
         self._dropdown_open = open_
         if open_:
             self._closed_layer = self._layer
-            self.layer = self._closed_layer + self._OPEN_LAYER_BOOST
+            self._set_drawn_layer(self._closed_layer + self._OPEN_LAYER_BOOST)
             # Claim clicks that land on the open menu so widgets drawn
             # underneath it don't also react to them.
             if self not in mouse_state.click_claimants:
                 mouse_state.click_claimants.append(self)
         else:
-            self.layer = self._closed_layer
+            self._set_drawn_layer(self._closed_layer)
             if self in mouse_state.click_claimants:
                 mouse_state.click_claimants.remove(self)
         self._should_recompute = True
+
+    def _set_drawn_layer(self, value):
+        """Move the sprite without touching the remembered resting layer.
+
+        Used by _set_open, which drives the layer itself; going through the
+        public setter there would record the boosted layer as the resting one
+        and boost it again on every open.
+        """
+        Box.layer.fset(self, value)
+
+    @Box.layer.setter
+    def layer(self, value):
+        """Move the dropdown, remembering where it should sit when closed.
+
+        While the menu is open the sprite is hoisted above its resting layer
+        so the option list draws over whatever it overlaps. An assignment
+        during that time means "this is where I belong", not "draw me here
+        now" — without recording it, closing the menu would restore the layer
+        captured when it opened and silently discard the assignment.
+        """
+        if self._dropdown_open:
+            self._closed_layer = value
+            value += self._OPEN_LAYER_BOOST
+        Box.layer.fset(self, value)
 
     def _claims_click(self):
         """Whether the current click lands on this widget's open menu."""
