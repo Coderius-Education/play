@@ -201,6 +201,29 @@ def _install_collision_error_recorder():
     _RECORDER_INSTALLED.append(True)
 
 
+def _drop_pymunk_at_exit():
+    """Stop pymunk's module teardown from segfaulting the interpreter.
+
+    A process that imports play and exits without running a game dies with
+    SIGSEGV during C-level finalisation — after Python is done, which is why
+    faulthandler prints nothing and every test can pass first. It is pymunk's
+    own module cleanup: removing it from sys.modules at exit avoids the
+    teardown path entirely and the process exits 0.
+
+    A real game is unaffected, because start_program()'s teardown already
+    tears pygame down in an order that avoids it. This is here rather than in
+    play/ because the visible cost is to tooling — a pytest run reporting
+    exit 139 after every test passed — and a library should not be mutating
+    sys.modules on someone else's behalf for that.
+    """
+    import atexit
+
+    atexit.register(lambda: _sys.modules.pop("pymunk", None))
+
+
+_drop_pymunk_at_exit()
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Disarm auto-start once the session is over.
 

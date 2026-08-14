@@ -14,6 +14,7 @@ import pygame
 import pytest
 
 import play
+from play.callback.collision_callbacks import WallSide
 from play.io.screen import screen
 from tests.projects.conftest import add_safety_timeout
 
@@ -24,18 +25,6 @@ def _post_resize(width, height):
     pygame.event.post(pygame.event.Event(pygame.VIDEORESIZE, {"w": width, "h": height}))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "create_walls() runs once at import and is never called again. The "
-        "VIDEORESIZE handler updates screen.width/height and the display but "
-        "leaves the pymunk walls at the original size, so after a resize the "
-        "ball bounces off a boundary that is no longer where the window ends. "
-        "Pre-existing on master. The fix is not a re-call: create_walls() "
-        "appends to globals_list.walls, so rebuilding needs the old wall "
-        "bodies removed from the space first"
-    ),
-)
 def test_walls_follow_a_resize():
     """A ball must bounce off the new right wall, not the old one.
 
@@ -76,12 +65,7 @@ def test_walls_follow_a_resize():
 
 
 def test_a_ball_is_still_contained_after_a_resize():
-    """Whatever the walls do, the ball must not escape entirely.
-
-    This passes today for the wrong reason — the ball is held by the stale
-    wall at the old screen edge, not by one matching the new size. It is kept
-    as the safety property: a resize must never leave the playfield open.
-    """
+    """Rebuilding the walls must not leave the playfield open."""
     ball = play.new_circle(color="black", x=0, y=0, radius=10)
     ball.start_physics(
         obeys_gravity=False, x_speed=400, y_speed=0, friction=0, mass=10, bounciness=1.0
@@ -139,3 +123,41 @@ def test_an_anchored_widget_follows_a_resize():
     assert (
         after[0][0] > before[0][0]
     ), "a wider screen should push a right-anchored sprite further right"
+
+
+def test_wall_callbacks_survive_a_resize():
+    """A when_touching_wall registered before the resize must still fire.
+
+    Callbacks are keyed on the wall shape's collision_type, and rebuilding
+    makes fresh pymunk segments. Without carrying the identity across, every
+    wall callback a game registered would point at a wall that no longer
+    exists — the quiet way this fix could break more than it repaired.
+    """
+    hits = []
+
+    ball = play.new_circle(color="black", x=0, y=0, radius=10)
+    ball.start_physics(
+        obeys_gravity=False, x_speed=400, y_speed=0, friction=0, mass=10, bounciness=1.0
+    )
+
+    @ball.when_touching_wall(wall=WallSide.RIGHT)
+    def hit_right():
+        hits.append(1)
+        play.stop_program()
+
+    @play.when_program_starts
+    async def driver():
+        for _ in range(3):
+            await play.animate()
+        _post_resize(1200, 800)
+        for _ in range(200):
+            await play.animate()
+        play.stop_program()
+
+    add_safety_timeout(max_frames)
+    play.start_program()
+
+    assert hits, (
+        "the RIGHT-wall callback stopped firing after the resize, so the "
+        "rebuilt wall lost the identity the registration was made against"
+    )

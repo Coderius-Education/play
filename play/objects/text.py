@@ -5,7 +5,7 @@ import os
 import pygame
 from .sprite import Sprite
 from ..io.screen import convert_pos
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from ..utils import color_name_to_rgb as _color_name_to_rgb, render_text as _render_text
 from ..io.logging import play_logger
 
 
@@ -50,8 +50,8 @@ class Text(Sprite):
     def _render(self):
         """Render the text surface with scale, rotation, and alpha."""
         pos = convert_pos(self.x, self.y)
-        draw_image = self._pygame_font.render(
-            self._words, True, _color_name_to_rgb(self._color)
+        draw_image = _render_text(
+            self._pygame_font, self._words, True, _color_name_to_rgb(self._color)
         )
         if self._size != 100:
             new_w = max(round(draw_image.get_width() * self._size / 100), 1)

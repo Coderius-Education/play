@@ -65,24 +65,15 @@ def test_awkward_text_renders(widget_name, case_name):
     widget.update()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "pygame's font.render() raises 'Text has zero width' for text that "
-        "renders to nothing, and every widget passes user text straight to "
-        "it. One invisible character pasted into a label ends the program. "
-        "Fixing it means a guarded render shared by all nine widget modules, "
-        "which is a rendering change across the whole widget set"
-    ),
-)
 @pytest.mark.parametrize("widget_name", sorted(WIDGETS))
 @pytest.mark.parametrize("case_name", sorted(ZERO_WIDTH))
 def test_zero_width_text_does_not_crash(widget_name, case_name):
     """Text that renders to nothing must render as nothing, not raise.
 
-    pygame's font.render() raises "Text has zero width" for these. Every
-    widget passes user text straight to it, so a single invisible character
-    anywhere in a label ends the program.
+    pygame's font.render() raises "Text has zero width" for these, and every
+    widget used to hand it user text directly, so a single invisible character
+    in a label ended the program. They now go through utils.render_text,
+    which returns an empty surface of the right height instead.
     """
     widget = WIDGETS[widget_name](ZERO_WIDTH[case_name])
     widget.update()

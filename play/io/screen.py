@@ -199,6 +199,31 @@ def remove_walls():
     globals_list.walls.clear()
 
 
+def rebuild_walls():
+    """Recreate the walls at the current screen size.
+
+    create_walls() runs once at import, so without this a resize moved the
+    picture and left the physics boundary behind: the ball kept bouncing off
+    where the window used to end, which looks like a rendering glitch and
+    plays like a wall in mid-air.
+
+    Wall callbacks are keyed on the wall shape's collision_type, so building
+    fresh segments would orphan every when_touching_wall the game registered.
+    The identity is carried across to the replacement for each side, which
+    keeps those registrations pointing at the wall they were made for.
+    """
+    previous = {getattr(wall, "wall_side", None): wall for wall in globals_list.walls}
+    remove_walls()
+    create_walls()
+    for wall in globals_list.walls:
+        old = previous.get(wall.wall_side)
+        if old is None:
+            continue
+        wall.collision_type = old.collision_type
+        if getattr(old, "_play_collision_type_set", False):
+            wall._play_collision_type_set = True
+
+
 def remove_wall(index):
     """Remove a wall from the physics space.
     :param index: The index of the wall to remove. 0: top, 1: bottom, 2: left, 3: right.

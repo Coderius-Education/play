@@ -7,6 +7,7 @@ from .sprite import Sprite
 from .widget import WidgetMixin
 from ..io.mouse import mouse
 from ..utils import (
+    render_text as _render_text,
     color_name_to_rgb as _color_name_to_rgb,
     load_font as _load_font,
     reject_async_callback as _reject_async,
@@ -134,8 +135,8 @@ class Slider(WidgetMixin, Sprite):
                 if isinstance(self._value, float) and self._value == int(self._value)
                 else str(self._value)
             )
-            label_surf = self._slider_font.render(
-                label, True, _color_name_to_rgb(self._value_color)
+            label_surf = _render_text(
+                self._slider_font, label, True, _color_name_to_rgb(self._value_color)
             )
             canvas_w = w + 6 + label_surf.get_width()
         else:

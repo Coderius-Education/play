@@ -4,6 +4,7 @@ import pygame
 
 from .box import Box
 from ..utils import (
+    render_text as _render_text,
     color_name_to_rgb as _color_name_to_rgb,
     load_font as _load_font,
     check_value_range as _check_range,
@@ -96,8 +97,8 @@ class ProgressBar(Box):
         # Optional percentage label
         if self._show_label:
             pct = int(t * 100)
-            label_surf = self._font.render(
-                f"{pct}%", True, _color_name_to_rgb(self._label_color)
+            label_surf = _render_text(
+                self._font, f"{pct}%", True, _color_name_to_rgb(self._label_color)
             )
             lx = (w - label_surf.get_width()) // 2
             ly = (h - label_surf.get_height()) // 2

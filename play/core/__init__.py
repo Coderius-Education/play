@@ -22,7 +22,7 @@ from .physics_loop import simulate_physics
 from .sprites_loop import update_sprites as _update_sprites
 from ..callback import callback_manager, CallbackType
 from ..globals import globals_list
-from ..io.screen import screen
+from ..io.screen import screen, rebuild_walls as _rebuild_walls
 from ..loop import get_loop as _get_loop
 from ..io.keypress import keyboard_state
 from ..objects.text_input_registry import (
@@ -65,6 +65,9 @@ def _handle_pygame_events():
             screen.width = event.w
             screen.height = event.h
             screen.update_display()
+            # The walls are pymunk segments built from the old dimensions, so
+            # they have to be rebuilt or the playfield keeps its old boundary.
+            _rebuild_walls()
             callback_manager.run_callbacks(CallbackType.WHEN_RESIZED)
 
     return True

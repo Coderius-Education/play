@@ -6,6 +6,7 @@ from .sprite import Sprite
 from .widget import WidgetMixin
 from ..io.mouse import mouse
 from ..utils import (
+    render_text as _render_text,
     color_name_to_rgb as _color_name_to_rgb,
     load_font as _load_font,
     reject_async_callback as _reject_async,
@@ -193,8 +194,11 @@ class RadioButton(WidgetMixin, Sprite):
 
         # Label
         if self._label_text:
-            label_surf = self._radio_font.render(
-                self._label_text, True, _color_name_to_rgb(self._label_color)
+            label_surf = _render_text(
+                self._radio_font,
+                self._label_text,
+                True,
+                _color_name_to_rgb(self._label_color),
             )
             ly = (h - label_surf.get_height()) // 2
             draw_image.blit(label_surf, (self._size_px + 10, ly))

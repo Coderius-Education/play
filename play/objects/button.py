@@ -4,6 +4,7 @@ from .box import Box
 from .widget import WidgetMixin
 from ..io.mouse import mouse
 from ..utils import (
+    render_text as _render_text,
     color_name_to_rgb as _color_name_to_rgb,
     load_font as _load_font,
 )
@@ -96,7 +97,7 @@ class Button(WidgetMixin, Box):
             color = _color_name_to_rgb(self._disabled_text_color)
         else:
             color = _color_name_to_rgb(self._text_color)
-        text_surf = self._button_font.render(self._button_text, True, color)
+        text_surf = _render_text(self._button_font, self._button_text, True, color)
         text_rect = text_surf.get_rect(
             center=(self.image.get_width() // 2, self.image.get_height() // 2)
         )

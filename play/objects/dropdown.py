@@ -7,6 +7,7 @@ from .box import Box
 from .widget import WidgetMixin
 from ..io.mouse import mouse
 from ..utils import (
+    render_text as _render_text,
     color_name_to_rgb as _color_name_to_rgb,
     load_font as _load_font,
     reject_async_callback as _reject_async,
@@ -196,7 +197,9 @@ class Dropdown(WidgetMixin, Box):
         # selected is not one.
         if not changed:
             return
-        val = self._options[index] if index < len(self._options) else None
+        # Guarded at both ends: index -1 means nothing is selected, and a bare
+        # `index < len` would report the *last* option for it.
+        val = self._options[index] if 0 <= index < len(self._options) else None
         for cb in self._on_change_callbacks:
             cb(val, index)
 
@@ -232,16 +235,16 @@ class Dropdown(WidgetMixin, Box):
             if 0 <= self._selected_index < len(self._options)
             else self._placeholder
         )
-        label_surf = self._dropdown_font.render(
-            label, True, _color_name_to_rgb(self._text_color)
+        label_surf = _render_text(
+            self._dropdown_font, label, True, _color_name_to_rgb(self._text_color)
         )
         ly = (self._height - label_surf.get_height()) // 2
         draw_image.blit(label_surf, (bw + 8, ly))
 
         # Arrow indicator (▼ / ▲)
         arrow = "▲" if self._dropdown_open else "▼"
-        arrow_surf = self._dropdown_font.render(
-            arrow, True, _color_name_to_rgb(self._text_color)
+        arrow_surf = _render_text(
+            self._dropdown_font, arrow, True, _color_name_to_rgb(self._text_color)
         )
         draw_image.blit(arrow_surf, (w - arrow_surf.get_width() - 8, ly))
 
@@ -268,8 +271,11 @@ class Dropdown(WidgetMixin, Box):
                     bg,
                     (bw, row_y + bw, w - 2 * bw, self._height - 2 * bw),
                 )
-                opt_surf = self._dropdown_font.render(
-                    str(option), True, _color_name_to_rgb(self._text_color)
+                opt_surf = _render_text(
+                    self._dropdown_font,
+                    str(option),
+                    True,
+                    _color_name_to_rgb(self._text_color),
                 )
                 oly = row_y + (self._height - opt_surf.get_height()) // 2
                 draw_image.blit(opt_surf, (bw + 8, oly))
@@ -322,8 +328,11 @@ class Dropdown(WidgetMixin, Box):
 
     @selected_index.setter
     def selected_index(self, v):
-        self._selected_index = max(-1, min(len(self._options) - 1, v))
-        self._should_recompute = True
+        # Routed through _select so that setting the value in code notifies
+        # when_changed, the way checked=, value= and selected_value= do on
+        # every other widget. Without it a dropdown changed by the game
+        # silently skipped the handler its siblings would have run.
+        self._select(max(-1, min(len(self._options) - 1, v)))
 
     @property
     def options(self):

@@ -91,16 +91,14 @@ def test_dropdown_when_changed_passes_value_and_index():
     assert seen == [("b", 1)], f"expected (value, index), got {seen}"
 
 
-def test_setting_a_dropdown_in_code_does_not_notify():
-    """The second inconsistency, and the one more likely to bite.
+def test_setting_a_dropdown_in_code_notifies():
+    """Assigning selected_index fires when_changed, like every sibling widget.
 
-    checked=, value= and selected_value= all fire when_changed on the other
-    widgets, so a game can set state in code and let its own handler react.
-    Assigning selected_index does not, which means a dropdown changed by the
-    game silently skips the handler that every sibling widget would run.
-
-    Pinned as the current behaviour rather than asserted as correct: changing
-    it is a behaviour change for anyone relying on either side of it.
+    It used to be the exception: checked=, value= and selected_value= all
+    notify, so a game could set state in code and let its own handler react,
+    but a dropdown changed that way silently skipped the handler. Aligned
+    deliberately — this test previously pinned the old behaviour and had to be
+    rewritten when it changed, which is what it was for.
     """
     seen = []
     menu = play.new_dropdown(options=["a", "b"])
@@ -108,11 +106,33 @@ def test_setting_a_dropdown_in_code_does_not_notify():
 
     menu.selected_index = 1
 
-    assert menu.selected_value == "b", "the assignment should still take effect"
-    assert seen == [], (
-        "selected_index currently does not notify; if that changed, update "
-        "this test and check it matches the other widgets"
-    )
+    assert menu.selected_value == "b"
+    assert seen == [("b", 1)], f"expected one (value, index) report, got {seen}"
+
+
+def test_setting_a_dropdown_to_the_same_option_does_not_notify():
+    """when_changed reports changes; re-selecting what is already selected
+    is not one, and would otherwise fire on every assignment."""
+    seen = []
+    menu = play.new_dropdown(options=["a", "b"], selected_index=1)
+    menu.when_changed(lambda *args: seen.append(args))
+
+    menu.selected_index = 1
+
+    assert seen == []
+
+
+def test_clearing_a_dropdown_selection_reports_nothing_selected():
+    """index -1 means nothing is selected, so the handler must not be handed
+    the last option — which a bare `index < len(options)` check would do."""
+    seen = []
+    menu = play.new_dropdown(options=["a", "b"], selected_index=1)
+    menu.when_changed(lambda *args: seen.append(args))
+
+    menu.selected_index = -1
+
+    assert menu.selected_value is None
+    assert seen == [(None, -1)], f"expected (None, -1), got {seen}"
 
 
 # ---------------------------------------------------------------------------

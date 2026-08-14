@@ -8,6 +8,7 @@ from .box import Box
 from .widget import WidgetMixin
 from ..io.mouse import mouse
 from ..utils import (
+    render_text as _render_text,
     color_name_to_rgb as _color_name_to_rgb,
     load_font as _load_font,
     reject_async_callback as _reject_async,
@@ -383,7 +384,7 @@ class TextInput(WidgetMixin, Box):
         scroll_x = max(0, cursor_x_full - max_w)
 
         if display:
-            text_surf = font.render(display, True, text_color)
+            text_surf = _render_text(font, display, True, text_color)
             y_pos = (self.image.get_height() - text_surf.get_height()) // 2
             src_x = scroll_x
             src_w = min(text_surf.get_width() - src_x, max_w)
@@ -425,7 +426,7 @@ class TextInput(WidgetMixin, Box):
                 self.image.blit(sel_surf, (padding + x_a, sy))
                 # Re-blit text on top of the highlight so it's readable.
                 if disp:
-                    text_surf = font.render(disp, True, text_color)
+                    text_surf = _render_text(font, disp, True, text_color)
                     src_x = scroll_x
                     src_w = min(text_surf.get_width() - src_x, max_w)
                     if src_w > 0:

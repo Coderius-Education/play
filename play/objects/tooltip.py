@@ -5,7 +5,11 @@ import pygame
 
 from .sprite import Sprite
 from ..io.mouse import mouse
-from ..utils import color_name_to_rgb as _color_name_to_rgb, load_font as _load_font
+from ..utils import (
+    color_name_to_rgb as _color_name_to_rgb,
+    load_font as _load_font,
+    render_text as _render_text,
+)
 from ..io.screen import convert_pos
 
 
@@ -108,7 +112,8 @@ class Tooltip(Sprite):
         font = self._tooltip_font
         lines = self._tooltip_text.split("\n")
         rendered = [
-            font.render(ln, True, _color_name_to_rgb(self._text_color)) for ln in lines
+            _render_text(font, ln, True, _color_name_to_rgb(self._text_color))
+            for ln in lines
         ]
 
         text_w = max(s.get_width() for s in rendered) if rendered else 0

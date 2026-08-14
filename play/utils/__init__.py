@@ -160,6 +160,25 @@ def load_font(font_path_or_none, size):
     return pygame.font.SysFont(None, size)
 
 
+def render_text(font, text, antialias, color):
+    """Render *text*, tolerating strings that come out with no width.
+
+    pygame raises ``error: Text has zero width`` for text that renders to
+    nothing — a soft hyphen, a zero-width space, a zero-width joiner. Those
+    reach a label by entirely ordinary means: pasted from a worksheet, a web
+    page or a chat message. Ending the program over an invisible character is
+    not a reasonable answer for anyone, and least of all for the beginners
+    this library is for.
+
+    The surface keeps the font's line height so the widget lays out around an
+    empty label exactly as it would around a blank one.
+    """
+    try:
+        return font.render(text, antialias, color)
+    except pygame.error:
+        return pygame.Surface((0, font.get_height()), pygame.SRCALPHA)
+
+
 _PYGAME_PREFIX = (
     os.path.normcase(os.path.dirname(os.path.abspath(pygame.__file__))) + os.sep
 )
