@@ -233,13 +233,8 @@ class Slider(WidgetMixin, Sprite):
 
     @min_value.setter
     def min_value(self, v):
-        # Keep the bounds ordered, the way ProgressBar's setters already do.
-        # Crossing them leaves a negative span, and a slider with a negative
-        # span freezes: it reads as broken rather than as a mistake.
-        #
-        # Deliberately not _check_range() here even though construction uses
-        # it: raising would break `s.min_value = 100; s.max_value = 200`,
-        # where the intermediate state is inverted and the end state is fine.
+        # Ordered rather than _check_range()'d: raising would break the valid
+        # `s.min_value = 100; s.max_value = 200` sequence.
         self._min_value = v
         self._max_value = max(v, self._max_value)
         self._should_recompute = True

@@ -33,10 +33,7 @@ def start_program():
     globals_list.should_auto_start = False
 
     async def _run_start_then_loop():
-        # Schedule all when_program_starts callbacks as concurrent tasks so they
-        # run alongside the game loop (not blocking it).  A single yield lets each
-        # callback execute its initial synchronous portion (e.g. setting starting
-        # positions) before the first game frame renders, fixing the 1-frame flash.
+        # The yield lets each callback set up before the first frame renders.
         callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
         await _asyncio.sleep(0)
         _get_loop().create_task(_game_loop())

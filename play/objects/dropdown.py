@@ -163,9 +163,8 @@ class Dropdown(WidgetMixin, Box):
     def _set_drawn_layer(self, value):
         """Move the sprite without touching the remembered resting layer.
 
-        Used by _set_open, which drives the layer itself; going through the
-        public setter there would record the boosted layer as the resting one
-        and boost it again on every open.
+        _set_open drives the layer itself; the public setter would record the
+        boosted value as the resting one and boost it again on every open.
         """
         Box.layer.fset(self, value)
 
@@ -173,11 +172,8 @@ class Dropdown(WidgetMixin, Box):
     def layer(self, value):
         """Move the dropdown, remembering where it should sit when closed.
 
-        While the menu is open the sprite is hoisted above its resting layer
-        so the option list draws over whatever it overlaps. An assignment
-        during that time means "this is where I belong", not "draw me here
-        now" — without recording it, closing the menu would restore the layer
-        captured when it opened and silently discard the assignment.
+        An open menu is hoisted above its resting layer, so an assignment made
+        then would otherwise be discarded when the menu closes.
         """
         if self._dropdown_open:
             self._closed_layer = value
@@ -352,10 +348,7 @@ class Dropdown(WidgetMixin, Box):
 
     @selected_index.setter
     def selected_index(self, v):
-        # Routed through _select so that setting the value in code notifies
-        # when_changed, the way checked=, value= and selected_value= do on
-        # every other widget. Without it a dropdown changed by the game
-        # silently skipped the handler its siblings would have run.
+        # Via _select so assigning notifies when_changed, like every sibling.
         self._select(max(-1, min(len(self._options) - 1, v)))
 
     @property

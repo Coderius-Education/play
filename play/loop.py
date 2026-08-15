@@ -20,12 +20,7 @@ def _handle_exception(the_loop, context):
     message = context.get("message", "Unhandled exception in async task")
 
     if not exception and message.startswith(_DESTROYED_PENDING):
-        # asyncio reports every task still alive when the interpreter tears it
-        # down. That is the normal state of affairs once the program has
-        # stopped — the loop is gone, so nothing is left to run those tasks —
-        # and there is nothing the user can do about it. Shouting CRITICAL
-        # after their program has already finished is pure noise, and the loop
-        # must not be stopped again on the way out.
+        # Expected once the loop has stopped, and nothing the user can act on.
         play_logger.debug(message)
         return
 

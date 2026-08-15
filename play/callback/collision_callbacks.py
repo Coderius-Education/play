@@ -43,12 +43,8 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
     def reset(self):
         """Clear every registered callback and shape.
 
-        Exists so tests can return the registry to its starting state by
-        calling the same code the constructor uses. Reassigning
-        ``registry.callbacks`` from outside worked, but it meant the
-        constructor's own initialisation was overwritten before every test and
-        could never be observed — mutation testing flagged that line as one no
-        test constrained.
+        Shared with the constructor so tests reset through the same code
+        instead of reassigning ``callbacks`` from outside.
         """
         self.callbacks = {True: {}, False: {}}
         self.shape_registry.clear()
@@ -88,11 +84,8 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             callback = self.callbacks[True][shape_a.collision_type][
                 shape_b.collision_type
             ]
-            # Keyed by the *other shape's* unique collision_type. collision_id
-            # is only ever CollisionType.SPRITE, so keying on it gave every
-            # sprite-sprite pair the same slot: a sprite touching two things
-            # could hold one live callback, and separating from either wiped
-            # the other.
+            # Keyed on the other shape's collision_type: collision_id is always
+            # CollisionType.SPRITE, so every pair would share one slot.
             sprite_a.events.set_touching(shape_b.collision_type, callback)
         elif (
             shape_b.collision_type in self.callbacks[True]
@@ -139,8 +132,6 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         if sprite_a is None:
             return False  # let caller try the reverse direction
 
-        # Same unique key the begin handler stores under: separating from one
-        # sprite must only clear that sprite's callback.
         if sprite_a.events.get_touching(shape_b.collision_type):
             sprite_a.events.clear_touching(shape_b.collision_type)
         fired = False
