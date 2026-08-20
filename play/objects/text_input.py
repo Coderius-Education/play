@@ -163,10 +163,8 @@ class TextInput(WidgetMixin, Box):
         self, event
     ):  # pylint: disable=too-many-return-statements,too-many-branches,too-many-statements
         """Handle navigation, editing, clipboard, and Tab keys from a KEYDOWN event."""
-        # Read the modifiers carried by *this* event, not the live keyboard
-        # state: the game loop drains a whole frame of events with one
-        # pygame.event.get(), so get_mods() reports the state after the batch
-        # was pumped and can mis-attribute a Ctrl pressed later in the frame.
+        # Modifiers from *this* event, not get_mods(): a whole frame of events is
+        # drained at once, so live state can mis-attribute a later Ctrl.
         mods = getattr(event, "mod", None)
         if mods is None:
             mods = pygame.key.get_mods()

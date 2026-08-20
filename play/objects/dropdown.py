@@ -305,12 +305,8 @@ class Dropdown(WidgetMixin, Box):
 
         draw_image.set_alpha(round(self._transparency * 255 / 100))
 
-        # Position: the closed button stays centred at the play-coordinate y and
-        # the option list expands downward. The image (which may be taller than
-        # the button when open) blits from rect.topleft, so we keep rect.height
-        # at the *closed* height — otherwise _apply_anchor would re-anchor using
-        # the full open height and an edge-anchored dropdown would jump when it
-        # opens.
+        # rect.height stays at the *closed* height, or _apply_anchor would
+        # re-anchor on the open height and an edge-anchored dropdown would jump.
         pos = convert_pos(self.x, self.y)
         angle_deg = _math.degrees(self.physics._pymunk_body.angle)
         self.image = pygame.transform.rotate(draw_image, angle_deg)

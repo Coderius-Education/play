@@ -37,10 +37,8 @@ _should_ignore_update = frozenset(
 
 
 class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
-    # Interactive widgets set this True. A click is delivered to the top-most
-    # widget under the cursor only, so stacked widgets don't all react to it.
-    # Plain sprites keep the original behaviour: every sprite under the cursor
-    # receives the click.
+    # Interactive widgets set this True: a click goes to the top-most widget
+    # only, while plain sprites under the cursor all receive it.
     _is_widget = False
 
     @staticmethod
@@ -221,10 +219,8 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
             and physics.obeys_gravity
             and physics._pymunk_body.body_type == _pymunk.Body.DYNAMIC
         )
-        # Render before anchoring so rect holds *this* frame's dimensions:
-        # _apply_anchor() derives the sprite's half-width/height from rect, and
-        # last frame's size mispositions anything whose content changes (a
-        # score or timer read-out anchored to a screen edge, for example).
+        # Render first so rect holds *this* frame's size: _apply_anchor reads it,
+        # and a stale one mispositions anything whose content changes.
         self._recompute_image()
         if anchored:
             self._apply_anchor()
