@@ -2,12 +2,21 @@
 
 import os as _os
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import TYPE_CHECKING, Optional
 
 import pygame
 
 if TYPE_CHECKING:
     from .objects.text_input import TextInput
+
+
+class ProgramState(Enum):
+    """Where the program is in its lifecycle."""
+
+    NOT_STARTED = "not_started"
+    RUNNING = "running"
+    STOPPED = "stopped"
 
 
 @dataclass
@@ -31,8 +40,7 @@ class Globals:
     display: object = None  # This will be set in the screen module
     controllers: list = field(default_factory=list)
 
-    program_started: bool = False
-    program_stopped: bool = False
+    program_state: ProgramState = ProgramState.NOT_STARTED
     should_auto_start: bool = False
     initial_pid: int = field(default_factory=_os.getpid)
     start_program_fn: object = None  # set by play.api.utils to avoid cyclic import
@@ -55,8 +63,7 @@ class Globals:
         self.width = 800
         self.height = 600
         self.num_sim_steps = 10
-        self.program_started = False
-        self.program_stopped = False
+        self.program_state = ProgramState.NOT_STARTED
         self.should_auto_start = False
         self.focused_text_input = None
 

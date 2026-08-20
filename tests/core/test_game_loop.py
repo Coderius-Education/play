@@ -228,3 +228,20 @@ def test_stop_program_from_when_program_starts_exits():
 
     play.start_program()
     assert ran == [1]
+
+
+def test_start_program_after_stop_still_refuses():
+    # The three lifecycle states live in one field now; a stopped program must
+    # stay as unrestartable as a running one.
+    import play
+    from play.globals import globals_list, ProgramState
+
+    @play.repeat_forever
+    def _stop_immediately():
+        play.stop_program()
+
+    play.start_program()
+    assert globals_list.program_state is ProgramState.STOPPED
+
+    with pytest.raises(RuntimeError, match="already started"):
+        play.start_program()

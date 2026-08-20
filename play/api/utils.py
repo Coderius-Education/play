@@ -8,7 +8,7 @@ import pygame
 
 from ..callback import callback_manager, CallbackType
 from ..core import game_loop as _game_loop
-from ..globals import globals_list
+from ..globals import globals_list, ProgramState
 from ..io.keypress import keyboard_state
 from ..loop import get_loop as _get_loop
 from ..physics import set_physics_simulation_steps as _set_physics_simulation_steps
@@ -21,15 +21,14 @@ def start_program():
 
     play.start_program() should almost certainly go at the very end of your program.
     """
-    if globals_list.program_started:
+    if globals_list.program_state is not ProgramState.NOT_STARTED:
         raise RuntimeError(
             "You've already started the program! Calling play.start_program() "
             "twice can cause errors. Check to make sure it's only called once "
             "at the very bottom of your file."
         )
 
-    globals_list.program_started = True
-    globals_list.program_stopped = False
+    globals_list.program_state = ProgramState.RUNNING
     globals_list.should_auto_start = False
 
     async def _run_start_then_loop():
@@ -43,13 +42,11 @@ def start_program():
             _get_loop().run_until_complete(_run_start_then_loop())
         except RuntimeError:
             # loop.stop() raced with startup: fine if the program asked to stop.
-            if not globals_list.program_stopped:
+            if globals_list.program_state is not ProgramState.STOPPED:
                 raise
-        # If stop_program() ran during the very first frame (or during a
-        # when_program_starts callback), its loop.stop() is absorbed by
-        # run_until_complete's own stop signal — without this check the
-        # program would keep running forever after asking to stop.
-        if not globals_list.program_stopped:
+        # run_until_complete absorbs a stop_program() from the first frame, so
+        # without this check the program would run on after asking to stop.
+        if globals_list.program_state is not ProgramState.STOPPED:
             _get_loop().run_forever()
     finally:
         logger = _logging.getLogger("asyncio")
@@ -64,7 +61,7 @@ def stop_program():
 
     play.stop_program() should almost certainly go at the very end of your program.
     """
-    globals_list.program_stopped = True
+    globals_list.program_state = ProgramState.STOPPED
     _get_loop().stop()
 
 
