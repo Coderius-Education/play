@@ -63,7 +63,7 @@ class Physics:
         """Return (effective_radius, effective_w, effective_h) for the sprite."""
         if is_circle:
             return self.sprite._radius * size_factor, 0.0, 0.0
-        if self.sprite.__class__.__name__ == "Box":
+        if self.sprite.__class__.__name__ in ("Box", "Video"):
             return (
                 0.0,
                 self.sprite._width * size_factor,

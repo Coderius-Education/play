@@ -8,6 +8,7 @@ from .generators import (
     new_circle,
     new_image,
     new_sound,
+    new_video,
     new_database,
 )
 from .events import (
@@ -24,6 +25,11 @@ from .events import (
     while_mouse_pressed,
     when_mouse_clicked,
     when_click_released,
+    when_video_ends,
+    when_video_starts,
+    when_video_plays,
+    when_video_pauses,
+    when_video_frame_changes,
 )
 from .utils import (
     start_program,

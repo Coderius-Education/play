@@ -7,6 +7,7 @@ from ..objects import (
     Text as _Text,
     Image as _Image,
     Sound as _Sound,
+    Video as _Video,
 )
 
 
@@ -172,3 +173,57 @@ def new_database(
     :param db_filename: The name of the database file.
     """
     return Database(db_filename=db_filename)
+
+
+def new_video(  # pylint: disable=too-many-locals
+    file_name: str = "video.mp4",
+    x: int = 0,
+    y: int = 0,
+    width: int = None,
+    height: int = None,
+    size: int = 100,
+    angle: int = 0,
+    transparency: int = 100,
+    volume: float = 1.0,
+    speed: float = 1.0,
+    loop: bool = False,
+    autoplay: bool = False,
+    controls: bool = True,
+    muted: bool = False,
+) -> _Video:
+    """Make a new video that plays on screen.
+
+    :param file_name: The video file to play, for example 'clip.mp4'.
+    :param x: The x-coordinate of the video.
+    :param y: The y-coordinate of the video.
+    :param width: How wide the video is on screen. Defaults to the video's
+        own width. Giving only a width or only a height keeps the shape.
+    :param height: How tall the video is on screen.
+    :param size: The size of the video, as a percentage.
+    :param angle: The angle of the video.
+    :param transparency: The transparency of the video (0 to 100).
+    :param volume: How loud the video's sound is (0.0 to 1.0).
+    :param speed: How fast the video plays. This also changes the pitch.
+    :param loop: Whether the video starts again when it ends.
+    :param autoplay: Whether the video starts playing straight away.
+    :param controls: Whether to show the built-in controls when the mouse is
+        over the video.
+    :param muted: Whether the video starts with its sound turned off.
+    :return: A new video object.
+    """
+    return _Video(
+        file_name=file_name,
+        x=x,
+        y=y,
+        width=width,
+        height=height,
+        size=size,
+        angle=angle,
+        transparency=transparency,
+        volume=volume,
+        speed=speed,
+        loop=loop,
+        autoplay=autoplay,
+        controls=controls,
+        muted=muted,
+    )

@@ -9,6 +9,27 @@ pip install coderius-play
 ## Usage
 Please visit [the documentation](https://play.coderius.nl/).
 
+### Playing video
+`play.new_video()` shows an `.mp4` on screen, with built-in controls that appear
+when the mouse is over it:
+
+```python
+import play
+
+video = play.new_video("clip.mp4", width=480, autoplay=True)
+
+@video.when_video_ends
+def finished():
+    print("that's all folks")
+
+play.start_program()
+```
+
+The video can also be driven from code with `video.play()`, `video.pause()`,
+`video.seek(10)`, `video.time`, `video.volume`, `video.speed` and `video.loop`.
+Video decoding uses [PyAV](https://pypi.org/project/av/), which is installed
+along with coderius-play and brings its own FFmpeg, so nothing else is needed.
+
 ## Testing
 ```bash
 pytest --forked tests

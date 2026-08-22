@@ -81,6 +81,92 @@ def post_key_up(pygame_key):
     pygame.event.post(pygame.event.Event(pygame.KEYUP, {"key": pygame_key}))
 
 
+def make_test_video(path, seconds=2.0, fps=10, width=64, height=48, audio=True):
+    """Encode a small test video, so no binary file has to live in the repo.
+
+    Every frame is a distinct shade of grey (frame ``i`` is ``i * 8``), which
+    lets a test work out which frame is on screen. ``mpeg4`` is used rather than
+    ``libx264`` because it ships with every FFmpeg build.
+
+    :return: The path that was written.
+    """
+    import av  # imported here so collection works without av installed
+    import numpy as np
+
+    container = av.open(str(path), mode="w")
+    video_stream = container.add_stream("mpeg4", rate=fps)
+    video_stream.width = width
+    video_stream.height = height
+    video_stream.pix_fmt = "yuv420p"
+
+    audio_stream = None
+    if audio:
+        audio_stream = container.add_stream("aac", rate=44100)
+        audio_stream.layout = "stereo"
+
+    for index in range(int(seconds * fps)):
+        frame = np.full((height, width, 3), (index * 8) % 256, dtype=np.uint8)
+        for packet in video_stream.encode(
+            av.VideoFrame.from_ndarray(frame, format="rgb24")
+        ):
+            container.mux(packet)
+
+    if audio_stream is not None:
+        rate = 44100
+        moment = np.arange(int(rate * seconds)) / rate
+        tone = (np.sin(2 * np.pi * 440 * moment) * 8000).astype(np.int16)
+        both = np.stack([tone, tone])
+        for start in range(0, both.shape[1] - 1024, 1024):
+            chunk = np.ascontiguousarray(both[:, start : start + 1024])
+            audio_frame = av.AudioFrame.from_ndarray(
+                chunk, format="s16p", layout="stereo"
+            )
+            audio_frame.sample_rate = rate
+            for packet in audio_stream.encode(audio_frame):
+                container.mux(packet)
+
+    for packet in video_stream.encode():
+        container.mux(packet)
+    if audio_stream is not None:
+        for packet in audio_stream.encode():
+            container.mux(packet)
+    container.close()
+    return str(path)
+
+
+@pytest.fixture(scope="session")
+def video_file(tmp_path_factory):
+    """A short test video with a sound track."""
+    return make_test_video(tmp_path_factory.mktemp("video") / "clip.mp4")
+
+
+@pytest.fixture(scope="session")
+def silent_video_file(tmp_path_factory):
+    """A short test video with no sound track."""
+    return make_test_video(tmp_path_factory.mktemp("video") / "silent.mp4", audio=False)
+
+
+class FakeClock:
+    """A clock the tests move by hand, so playback is deterministic."""
+
+    def __init__(self):
+        self.now = 0.0
+
+    def __call__(self):
+        return self.now
+
+    def advance(self, seconds):
+        """Move the clock forward."""
+        self.now += seconds
+        return self.now
+
+
+@pytest.fixture
+def fake_clock():
+    """A hand-driven clock for video tests."""
+    return FakeClock()
+
+
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
@@ -222,6 +308,12 @@ def clean_play_state(request):
             play.stop_program()
 
     yield
+
+    # Teardown: stop any video decoding threads before anything else, so they
+    # don't outlive the test and keep decoding into the next one.
+    from play.objects.video import close_all_videos
+
+    close_all_videos()
 
     # Teardown: remove all pymunk bodies/shapes so C destructors don't race
     # with interpreter shutdown and cause a segfault on process exit.

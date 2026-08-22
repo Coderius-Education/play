@@ -290,3 +290,78 @@ def when_click_released(func):
             text.words = 'mouse click released'
     """
     return mouse.when_click_released(func)
+
+
+def _video_event(method_name):
+    """Build a module-level decorator that registers a video event."""
+
+    def decorator_factory(*videos):
+        def decorator(func):
+            for video in videos:
+                getattr(video, method_name)(func)
+            return func
+
+        return decorator
+
+    return decorator_factory
+
+
+# @decorator
+def when_video_ends(*videos):
+    """Run a function when any of the given videos reaches its end.
+
+    Example:
+
+        video = play.new_video('clip.mp4')
+
+        @play.when_video_ends(video)
+        def done():
+            print('finished!')
+
+    :param videos: The videos to watch.
+    :return: The decorator function.
+    """
+    return _video_event("when_video_ends")(*videos)
+
+
+# @decorator
+def when_video_starts(*videos):
+    """Run a function the first time any of the given videos starts playing.
+
+    :param videos: The videos to watch.
+    :return: The decorator function.
+    """
+    return _video_event("when_video_starts")(*videos)
+
+
+# @decorator
+def when_video_plays(*videos):
+    """Run a function whenever any of the given videos starts or resumes.
+
+    :param videos: The videos to watch.
+    :return: The decorator function.
+    """
+    return _video_event("when_video_plays")(*videos)
+
+
+# @decorator
+def when_video_pauses(*videos):
+    """Run a function whenever any of the given videos is paused.
+
+    :param videos: The videos to watch.
+    :return: The decorator function.
+    """
+    return _video_event("when_video_pauses")(*videos)
+
+
+# @decorator
+def when_video_frame_changes(*videos):
+    """Run a function each time any of the given videos shows a new frame.
+
+    The function may take a ``time`` parameter: how far into the video the new
+    frame is, in seconds.
+
+    :param videos: The videos to watch.
+    :return: The decorator function.
+    """
+    return _video_event("when_video_frame_changes")(*videos)
