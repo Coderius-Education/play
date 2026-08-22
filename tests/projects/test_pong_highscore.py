@@ -17,6 +17,7 @@ import os
 import tempfile
 
 from tests.projects.conftest import (
+    new_scoring_state,
     setup_pong,
     add_safety_timeout,
     assert_pong_winner,
@@ -44,6 +45,8 @@ def test_pong_highscore():
 
         ball, paddle_left, paddle_right, score_text = setup_pong()
 
+        scoring = new_scoring_state(score_text)
+
         highscore_text = play.new_text(words="High Score: 0", x=0, y=230, font_size=20)
 
         # --- collisions ----------------------------------------------------
@@ -70,6 +73,7 @@ def test_pong_highscore():
             score_text.words = f"{score_left[0]} - {score_right[0]}"
             check_highscore()
             if score_right[0] >= winning_score:
+                scoring["won"] = True
                 play.stop_program()
                 return
             ball.x = 0
@@ -83,6 +87,7 @@ def test_pong_highscore():
             score_text.words = f"{score_left[0]} - {score_right[0]}"
             check_highscore()
             if score_left[0] >= winning_score:
+                scoring["won"] = True
                 play.stop_program()
                 return
             ball.x = 0
@@ -94,7 +99,7 @@ def test_pong_highscore():
 
         play.start_program()
 
-        assert_pong_winner(score_left, score_right, winning_score)
+        assert_pong_winner(score_left, score_right, winning_score, scoring)
         assert highscore_updated[
             0
         ], "high score should have been updated (started at 0)"

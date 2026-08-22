@@ -167,3 +167,14 @@ def test_sprite_is_touching_point():
     from play.objects.sprite import point_touching_sprite
 
     assert point_touching_sprite((0, 0), s1) is True
+
+
+def test_hidden_sprite_point_touch_is_symmetric():
+    # Regression: hidden sprites are non-interactive on BOTH point-hit paths.
+    from play.objects.sprite import point_touching_sprite
+
+    s = play.new_box(color="blue", x=0, y=0, width=100, height=100)
+    assert s.is_touching((0, 0)) is True
+    s.hide()
+    assert point_touching_sprite((0, 0), s) is False
+    assert s.is_touching((0, 0)) is False

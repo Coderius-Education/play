@@ -13,11 +13,12 @@ This test verifies:
 """
 
 from tests.projects.conftest import (
+    new_scoring_state,
     setup_pong,
     assert_pong_winner,
 )
 
-max_frames = 5000
+max_frames = 1500  # 25s at 60fps; pytest's timeout is 60s
 winning_score = 2
 countdown_frames = 10
 
@@ -33,6 +34,8 @@ def test_pong_serve_delay():
     serve_direction = [0]
 
     ball, paddle_left, paddle_right, score_text = setup_pong()
+
+    scoring = new_scoring_state(score_text)
 
     countdown_text = play.new_text(words="", x=0, y=0, font_size=50)
 
@@ -51,6 +54,7 @@ def test_pong_serve_delay():
         score_right[0] += 1
         score_text.words = f"{score_left[0]} - {score_right[0]}"
         if score_right[0] >= winning_score:
+            scoring["won"] = True
             play.stop_program()
             return
         ball.x = 0
@@ -64,6 +68,7 @@ def test_pong_serve_delay():
         score_left[0] += 1
         score_text.words = f"{score_left[0]} - {score_right[0]}"
         if score_left[0] >= winning_score:
+            scoring["won"] = True
             play.stop_program()
             return
         ball.x = 0
@@ -102,7 +107,7 @@ def test_pong_serve_delay():
 
     play.start_program()
 
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert serves[0] > 0, "at least one serve with countdown should have happened"
     assert len(countdown_values) > 0, "countdown text should have been updated"
     # Verify countdown ran in order: 3, 2, 1, 0 (Go!)

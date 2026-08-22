@@ -1,14 +1,20 @@
 """Pong with @when_touching_wall visual effects — realistic full-game project test.
 
-When the ball touches the top or bottom wall, a counter increments and
-the ball briefly changes color.  This uses the @when_touching_wall
-decorator (as opposed to when_stopped_touching_wall used for scoring,
-or is_touching_wall() polling used in test_pong_wallfx).
+When the ball touches the top or bottom wall a counter increments.  This uses
+the @when_touching_wall decorator, as opposed to when_stopped_touching_wall
+used for scoring.
 
 This test verifies:
 - @sprite.when_touching_wall decorator fires while the sprite overlaps a wall
-- wall= parameter filters to specific walls (TOP/BOTTOM only)
+- wall= parameter filters to specific walls, with TOP and BOTTOM asserted
+  separately so that one working filter cannot cover for a broken one
 - the callback fires correctly alongside standard pong scoring
+
+The serve is steep and slow on purpose.  With the usual fast, flat pong serve
+the ball reaches a side wall and scores before it has climbed anywhere near
+the top of the screen, so neither wall filter gets a chance to fire; a summed
+`top + bottom > 0` assertion hid that.  At 80px/s across and 450px/s up the
+ball crosses the full height twice before it crosses the width once.
 """
 
 from tests.projects.conftest import (
@@ -18,8 +24,10 @@ from tests.projects.conftest import (
     assert_pong_winner,
 )
 
-max_frames = 3000
-winning_score = 2
+max_frames = 1500  # 25s at 60fps; pytest's timeout is 60s
+winning_score = 1
+BALL_X_SPEED = 80
+BALL_Y_SPEED = 450
 
 
 def test_pong_wallbounce():
@@ -32,7 +40,8 @@ def test_pong_wallbounce():
     bottom_touches = [0]
 
     ball, paddle_left, paddle_right, score_text = setup_pong(
-        ball_y_speed=200,
+        ball_x_speed=BALL_X_SPEED,
+        ball_y_speed=BALL_Y_SPEED,
     )
 
     # --- collisions --------------------------------------------------------
@@ -44,8 +53,14 @@ def test_pong_wallbounce():
     def ball_leaves_right():
         pass
 
-    add_pong_scoring(
-        ball, score_left, score_right, score_text, winning_score=winning_score
+    scoring = add_pong_scoring(
+        ball,
+        score_left,
+        score_right,
+        score_text,
+        ball_x_speed=BALL_X_SPEED,
+        ball_y_speed=BALL_Y_SPEED,
+        winning_score=winning_score,
     )
 
     # --- wall touch callbacks (the feature under test) ---------------------
@@ -62,11 +77,9 @@ def test_pong_wallbounce():
     play.start_program()
 
     # --- assertions --------------------------------------------------------
-    assert_pong_winner(score_left, score_right, winning_score)
-    total_wall = top_touches[0] + bottom_touches[0]
-    assert (
-        total_wall > 0
-    ), "@when_touching_wall should have fired for top or bottom wall"
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
+    assert top_touches[0] > 0, "@when_touching_wall(wall=TOP) never fired"
+    assert bottom_touches[0] > 0, "@when_touching_wall(wall=BOTTOM) never fired"
 
 
 if __name__ == "__main__":

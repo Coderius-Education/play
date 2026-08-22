@@ -12,12 +12,13 @@ This test verifies:
 """
 
 from tests.projects.conftest import (
+    new_scoring_state,
     setup_pong,
     add_safety_timeout,
     assert_pong_winner,
 )
 
-max_frames = 5000
+max_frames = 1500  # 25s at 60fps; pytest's timeout is 60s
 winning_score = 2
 
 
@@ -31,6 +32,8 @@ def test_pong_pause():
     position_stable_during_pause = [True]
 
     ball, paddle_left, paddle_right, score_text = setup_pong()
+
+    scoring = new_scoring_state(score_text)
 
     # --- serve with pause/unpause cycle ------------------------------------
     async def pause_and_serve(direction):
@@ -69,6 +72,7 @@ def test_pong_pause():
         score_right[0] += 1
         score_text.words = f"{score_left[0]} - {score_right[0]}"
         if score_right[0] >= winning_score:
+            scoring["won"] = True
             play.stop_program()
             return
         await pause_and_serve(1)
@@ -78,6 +82,7 @@ def test_pong_pause():
         score_left[0] += 1
         score_text.words = f"{score_left[0]} - {score_right[0]}"
         if score_left[0] >= winning_score:
+            scoring["won"] = True
             play.stop_program()
             return
         await pause_and_serve(-1)
@@ -86,7 +91,7 @@ def test_pong_pause():
 
     play.start_program()
 
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert pause_cycles[0] > 0, "at least one pause/unpause cycle should have occurred"
     assert position_stable_during_pause[
         0

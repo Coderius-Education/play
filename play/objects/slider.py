@@ -1,0 +1,297 @@
+"""Slider — a draggable range-input widget."""
+
+import math as _math
+import pygame
+
+from .sprite import Sprite
+from .widget import WidgetMixin
+from ..io.mouse import mouse
+from ..utils import (
+    render_text as _render_text,
+    color_name_to_rgb as _color_name_to_rgb,
+    load_font as _load_font,
+    reject_async_callback as _reject_async,
+    check_value_range as _check_range,
+)
+from ..io.screen import convert_pos, screen
+from ..core.mouse_loop import mouse_state
+
+
+class Slider(WidgetMixin, Sprite):
+    def __init__(
+        self,
+        min_value=0,
+        max_value=100,
+        value=50,
+        x=0,
+        y=0,
+        width=200,
+        height=20,
+        track_color="lightgray",
+        fill_color="royalblue",
+        thumb_color="royalblue",
+        thumb_radius=12,
+        border_radius=10,
+        transparency=100,
+        anchor=None,
+        layer=10,
+        disabled=False,
+        show_value=False,
+        font_size=16,
+        font=None,
+        value_color="black",
+        step=None,
+    ):
+        _check_range(min_value, max_value, "slider")
+        self._min_value = min_value
+        self._max_value = max_value
+        self._value = max(min_value, min(max_value, value))
+        self._width = width
+        self._height = height
+        self._track_color = track_color
+        self._fill_color = fill_color
+        self._thumb_color = thumb_color
+        # A thumb wider than half the track leaves track_width negative in
+        # _update_value_from_mouse, which silently pins the slider to
+        # min_value on every drag. Keep at least a 2px draggable track.
+        self._thumb_radius = max(0, min(thumb_radius, (width - 2) // 2))
+        self._border_radius = border_radius
+        self._transparency = transparency
+        self._size = 100
+        self._angle = 0
+        self._is_disabled = disabled
+        self._dragging = False
+        self._show_value = show_value
+        self._slider_font = _load_font(font, font_size)
+        self._slider_font_size = font_size
+        self._slider_font_path = font
+        self._value_color = value_color
+        self._step = step
+        self._on_change_callbacks = []
+        self._image = None
+        self._init_widget()
+        # Seed the rect with the real widget size so the pymunk hit-shape is
+        # built correctly; a 0x0 rect yields a degenerate point shape that only
+        # registers clicks at the exact centre.
+        self.rect = pygame.Rect(0, 0, width, height + self._thumb_radius * 2)
+        super().__init__(x=x, y=y, anchor=anchor, layer=layer)
+        # Render only: self.update() would start a drag from a click that is
+        # still live in the frame the slider was created in.
+        super().update()
+
+    def update(self):
+        """Handle drag input then re-render."""
+        if self._is_disabled or self._is_hidden:
+            # Non-interactive: drop any drag in progress, otherwise the reset
+            # below never runs and re-enabling resumes the drag without a fresh
+            # click. A hidden slider must not keep moving its value either.
+            self._dragging = False
+            self._track_hover(False)
+        else:
+            touching = mouse.is_touching(self)
+            self._track_hover(touching)
+            if mouse_state.click_hits(self) and touching:
+                self._dragging = True
+            if not mouse._is_clicked:
+                self._dragging = False
+            if self._dragging:
+                self._update_value_from_mouse()
+        super().update()
+
+    def _update_value_from_mouse(self):
+        """Compute the slider value from the current mouse x position."""
+        # Track left/right edges in pygame screen space
+        pos = convert_pos(self.x, self.y)
+        track_left = pos[0] - self._width // 2 + self._thumb_radius
+        track_right = pos[0] + self._width // 2 - self._thumb_radius
+        track_width = track_right - track_left
+
+        # Mouse x in pygame screen coords
+        mouse_px = mouse.x + screen.width / 2.0
+
+        t = (mouse_px - track_left) / track_width if track_width > 0 else 0
+        t = max(0.0, min(1.0, t))
+        raw = self._min_value + t * (self._max_value - self._min_value)
+
+        raw = self._quantize(raw)
+
+        new_val = max(self._min_value, min(self._max_value, raw))
+        if new_val != self._value:
+            self._value = new_val
+            self._should_recompute = True
+            for cb in self._on_change_callbacks:
+                cb(self._value)
+
+    def _render(self):
+        """Draw the track, filled portion, and thumb circle."""
+        w, h = self._width, self._height
+        canvas_h = h + self._thumb_radius * 2
+
+        # Render the value label first so we can widen the canvas to fit it.
+        label_surf = None
+        if self._show_value:
+            label = (
+                str(int(self._value))
+                if isinstance(self._value, float) and self._value == int(self._value)
+                else str(self._value)
+            )
+            label_surf = _render_text(
+                self._slider_font, label, True, _color_name_to_rgb(self._value_color)
+            )
+            canvas_w = w + 6 + label_surf.get_width()
+        else:
+            canvas_w = w
+
+        draw_image = pygame.Surface((canvas_w, canvas_h), pygame.SRCALPHA)
+
+        cy = canvas_h // 2  # vertical centre
+
+        # Track background
+        track_rect = pygame.Rect(0, cy - h // 2, w, h)
+        pygame.draw.rect(
+            draw_image,
+            _color_name_to_rgb(self._track_color),
+            track_rect,
+            border_radius=self._border_radius,
+        )
+
+        # Filled portion — fill ends at the thumb centre so both use the same formula
+        span = self._max_value - self._min_value
+        t = (self._value - self._min_value) / span if span > 0 else 0.0
+        thumb_x = int(t * (w - 2 * self._thumb_radius)) + self._thumb_radius
+        if thumb_x > 0:
+            fill_rect = pygame.Rect(0, cy - h // 2, thumb_x, h)
+            pygame.draw.rect(
+                draw_image,
+                _color_name_to_rgb(self._fill_color),
+                fill_rect,
+                border_radius=self._border_radius,
+            )
+
+        # Thumb
+        pygame.draw.circle(
+            draw_image,
+            _color_name_to_rgb(self._thumb_color),
+            (thumb_x, cy),
+            self._thumb_radius,
+        )
+
+        # Dim when disabled (covers the whole canvas, including the label)
+        if self._is_disabled:
+            self._draw_disabled_overlay(draw_image)
+
+        # Value label, to the right of the track
+        if label_surf is not None:
+            draw_image.blit(label_surf, (w + 6, cy - label_surf.get_height() // 2))
+
+        draw_image.set_alpha(round(self._transparency * 255 / 100))
+
+        # Centre the *track* region (left ``w`` pixels) on the sprite position so
+        # the drag math in _update_value_from_mouse stays consistent regardless of
+        # the extra label width on the right.
+        self.rect = draw_image.get_rect()
+        pos = convert_pos(self.x, self.y)
+        self.rect.x = pos[0] - w // 2
+        self.rect.y = pos[1] - canvas_h // 2
+        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
+        self.image = pygame.transform.rotate(draw_image, angle_deg)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def _quantize(self, raw):
+        """Snap *raw* to the nearest step, measured from min_value.
+
+        Anchoring to min_value (rather than zero) keeps the reachable values on
+        the grid the range actually starts on: min_value=1, step=2 yields
+        1, 3, 5, ... instead of 2, 4, 6, ...
+        """
+        if self._step is not None and self._step > 0:
+            steps = round((raw - self._min_value) / self._step)
+            raw = self._min_value + steps * self._step
+        return raw
+
+    # ── public API ────────────────────────────────────────────────────────────
+
+    @property
+    def value(self):
+        """The current slider value (between min_value and max_value)."""
+        return self._value
+
+    @value.setter
+    def value(self, v):
+        new_val = max(self._min_value, min(self._max_value, self._quantize(v)))
+        if new_val == self._value:
+            return
+        self._value = new_val
+        self._should_recompute = True
+        for cb in self._on_change_callbacks:
+            cb(self._value)
+
+    @property
+    def min_value(self):
+        """The minimum value of the slider range."""
+        return self._min_value
+
+    @min_value.setter
+    def min_value(self, v):
+        # Ordered rather than _check_range()'d: raising would break the valid
+        # `s.min_value = 100; s.max_value = 200` sequence.
+        self._min_value = v
+        self._max_value = max(v, self._max_value)
+        self._should_recompute = True
+        if self._value < v:
+            self.value = v  # clamps and fires when_changed
+
+    @property
+    def max_value(self):
+        """The maximum value of the slider range."""
+        return self._max_value
+
+    @max_value.setter
+    def max_value(self, v):
+        # Mirror of the min_value setter above.
+        self._max_value = v
+        self._min_value = min(v, self._min_value)
+        self._should_recompute = True
+        if self._value > v:
+            self.value = v  # clamps and fires when_changed
+
+    @property
+    def disabled(self):
+        """Whether the slider is non-interactive."""
+        return self._is_disabled
+
+    @disabled.setter
+    def disabled(self, v):
+        self._is_disabled = bool(v)
+        self._should_recompute = True
+
+    def when_changed(self, func):
+        """Decorator — *func(value)* is called whenever the slider moves."""
+        _reject_async(func, "when_changed")
+        self._on_change_callbacks.append(func)
+        return func
+
+    def clone(self):
+        return Slider(
+            min_value=self._min_value,
+            max_value=self._max_value,
+            value=self._value,
+            x=self._anchor_ox if self._anchor else self.x,
+            y=self._anchor_oy if self._anchor else self.y,
+            width=self._width,
+            height=self._height,
+            track_color=self._track_color,
+            fill_color=self._fill_color,
+            thumb_color=self._thumb_color,
+            thumb_radius=self._thumb_radius,
+            border_radius=self._border_radius,
+            transparency=self._transparency,
+            anchor=self._anchor,
+            layer=self._layer,
+            disabled=self._is_disabled,
+            show_value=self._show_value,
+            font_size=self._slider_font_size,
+            font=self._slider_font_path,
+            value_color=self._value_color,
+            step=self._step,
+        )

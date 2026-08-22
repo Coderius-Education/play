@@ -1,5 +1,6 @@
 """A bunch of random math functions."""
 
+import os
 import warnings
 from functools import wraps
 import inspect
@@ -134,12 +135,89 @@ You can find the RGB form of a color on websites like this: https://www.rapidtab
         ) from exc
 
 
-def is_called_from_pygame():
-    """Check if the current method is being called from pygame's internal code."""
-    stack = inspect.stack()
+def reject_async_callback(func, kind):
+    """Raise TypeError if *func* is a coroutine function.
 
-    for frame_info in stack:
-        filename = frame_info.filename
-        if "pygame" in filename and "site-packages" in filename:
+    Widget callback registrars (when_changed/when_submit/when_hover/...) run
+    synchronously, so an ``async def`` handler would never be awaited. *kind* is
+    the registrar name used in the error message."""
+    if inspect.iscoroutinefunction(func):
+        # iscoroutinefunction unwraps functools.partial, which has no __name__.
+        name = getattr(func, "__name__", repr(func))
+        raise TypeError(f"{name} is async. {kind} callbacks must be regular functions.")
+
+
+def load_font(font_path_or_none, size):
+    """Load a pygame font from a .ttf path, or fall back to the system default."""
+    if font_path_or_none and font_path_or_none != "default":
+        try:
+            return pygame.font.Font(font_path_or_none, size)
+        except (OSError, ValueError, pygame.error):
+            # A zero-byte or corrupt font file raises ValueError, and
+            # pygame.error derives from RuntimeError, not OSError — neither
+            # was caught before, so the fallback never ran for those.
+            pass
+    return pygame.font.SysFont(None, size)
+
+
+def render_text(font, text, antialias, color):
+    """Render *text*, tolerating strings that come out with no width.
+
+    pygame raises ``error: Text has zero width`` for text that renders to
+    nothing (a soft hyphen, a zero-width space), which would end the program
+    over an invisible character in a label.
+    """
+    try:
+        return font.render(text, antialias, color)
+    except pygame.error:
+        return pygame.Surface((0, font.get_height()), pygame.SRCALPHA)
+
+
+_PYGAME_PREFIX = (
+    os.path.normcase(os.path.dirname(os.path.abspath(pygame.__file__))) + os.sep
+)
+
+
+def is_called_from_pygame():
+    """Check if the current method is being called from pygame's internal code.
+
+    Matched against pygame's real package directory rather than by looking for
+    substrings in the path. The old check also required "site-packages", which
+    Debian and Ubuntu do not use — they install to dist-packages — so it could
+    never match there and every internal call from pygame.sprite warned the
+    user about their own library's normal behaviour. Testing for a bare
+    "pygame" substring fails the other way: it would silence a genuine warning
+    for anyone whose project happens to live under a path containing "pygame".
+
+    Walks the frames directly instead of using inspect.stack(), which builds a
+    full FrameInfo list and reads source context for every frame; this runs on
+    every sprite add and remove.
+    """
+    frame = inspect.currentframe()
+    while frame is not None:
+        if os.path.normcase(frame.f_code.co_filename).startswith(_PYGAME_PREFIX):
             return True
+        frame = frame.f_back
     return False
+
+
+def check_value_range(min_value, max_value, widget_name):
+    """Reject a back-to-front value range with an explanation.
+
+    A swapped range is silently useless rather than loud: the widget clamps
+    every value to min_value and its span is negative, so a slider freezes and
+    a progress bar reads empty while ``value`` says otherwise. Saying so at the
+    line that made the widget is far kinder than leaving a beginner to wonder
+    why nothing moves.
+
+    An *equal* range is left alone: ``percentage`` returning 0.0 for a zero
+    span is existing, deliberately tested behaviour (see
+    test_progress_bar_percentage_zero_span), so only a genuine swap is an
+    error here.
+    """
+    if min_value > max_value:
+        raise ValueError(
+            f"""The {widget_name} you made has min_value={min_value} and max_value={max_value}.
+min_value has to be smaller than max_value, otherwise the {widget_name} can never move.
+Try swapping them around: min_value={max_value}, max_value={min_value}\n"""
+        )

@@ -199,6 +199,25 @@ def remove_walls():
     globals_list.walls.clear()
 
 
+def rebuild_walls():
+    """Recreate the walls at the current screen size.
+
+    Each replacement inherits its predecessor's collision_type: wall callbacks
+    are keyed on it, so fresh segments would orphan every when_touching_wall
+    the game registered.
+    """
+    previous = {getattr(wall, "wall_side", None): wall for wall in globals_list.walls}
+    remove_walls()
+    create_walls()
+    for wall in globals_list.walls:
+        old = previous.get(wall.wall_side)
+        if old is None:
+            continue
+        wall.collision_type = old.collision_type
+        if getattr(old, "_play_collision_type_set", False):
+            wall._play_collision_type_set = True
+
+
 def remove_wall(index):
     """Remove a wall from the physics space.
     :param index: The index of the wall to remove. 0: top, 1: bottom, 2: left, 3: right.

@@ -5,10 +5,19 @@ This module contains the API for the game.
 from .generators import (
     new_text,
     new_box,
+    new_button,
+    new_checkbox,
     new_circle,
+    new_dropdown,
     new_image,
+    new_progress_bar,
+    new_radio_button,
+    new_radio_group,
+    new_slider,
     new_sound,
     new_database,
+    new_text_input,
+    new_tooltip,
 )
 from .events import (
     when_program_starts,

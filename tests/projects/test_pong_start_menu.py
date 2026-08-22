@@ -16,9 +16,9 @@ This test verifies:
 """
 
 from tests.conftest import post_mouse_down, post_mouse_motion, post_mouse_up
-from tests.projects.conftest import assert_pong_winner
+from tests.projects.conftest import assert_pong_winner, new_scoring_state
 
-max_frames = 5000
+max_frames = 1500  # 25s at 60fps; pytest's timeout is 60s
 winning_score = 1
 
 
@@ -41,6 +41,7 @@ def test_pong_start_menu():
     paddle_left = play.new_box(color="blue", x=-350, y=0, width=15, height=80)
     paddle_right = play.new_box(color="red", x=350, y=0, width=15, height=80)
     score_text = play.new_text(words="0 - 0", x=0, y=260, font_size=30)
+    scoring = new_scoring_state(score_text)
 
     # --- game-over sprites (hidden at start) --------------------------------
     gameover_text = play.new_text(words="", x=0, y=40, font_size=50)
@@ -94,6 +95,7 @@ def test_pong_start_menu():
     def end_game():
         state[0] = "gameover"
         state_transitions.append("playing→gameover")
+        scoring["won"] = True
         ball.hide()
         paddle_left.hide()
         paddle_right.hide()
@@ -158,7 +160,7 @@ def test_pong_start_menu():
     assert (
         "playing→gameover" in state_transitions
     ), "game should have transitioned from playing to gameover"
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert gameover_text.is_shown, "game-over text should be visible at the end"
     assert ball.is_hidden, "ball should be hidden after game over"
 

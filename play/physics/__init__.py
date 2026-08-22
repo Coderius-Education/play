@@ -10,7 +10,6 @@ from ..utils import clamp as _clamp
 
 
 class Physics:
-
     def __init__(
         self,
         sprite,
@@ -59,18 +58,6 @@ class Physics:
 
         self._make_pymunk()
 
-    def _compute_effective_dims(self, is_circle, size_factor):
-        """Return (effective_radius, effective_w, effective_h) for the sprite."""
-        if is_circle:
-            return self.sprite._radius * size_factor, 0.0, 0.0
-        if self.sprite.__class__.__name__ == "Box":
-            return (
-                0.0,
-                self.sprite._width * size_factor,
-                self.sprite._height * size_factor,
-            )
-        return 0.0, self.sprite.width, self.sprite.height
-
     def _compute_body_type(self):
         """Determine the pymunk body type based on movement and stability properties."""
         if not self.can_move:
@@ -88,12 +75,12 @@ class Physics:
 
         mass = self.mass if self.can_move else 0
         size_factor = (self.sprite._size or 100) / 100
-        is_circle = self.sprite.__class__.__name__ == "Circle"
 
-        # Compute effective dimensions with size scaling for Box and Circle
-        effective_radius, effective_w, effective_h = self._compute_effective_dims(
-            is_circle, size_factor
-        )
+        # The sprite tells us its hit-shape dimensions (Box/Circle scale by size;
+        # other sprites fall back to the current rect). A positive radius means a
+        # circular shape.
+        effective_radius, effective_w, effective_h = self.sprite._hit_dims(size_factor)
+        is_circle = effective_radius > 0
 
         if self.stable:
             moment = float("inf")

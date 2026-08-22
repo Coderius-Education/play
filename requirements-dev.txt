@@ -1,0 +1,5 @@
+# Tooling the CI workflow gates on, pinned to the versions it installs in
+# .github/workflows/pull_request.yaml so a local run matches CI exactly.
+black==25.1.0
+pylint==3.3.6
+pytest-xdist

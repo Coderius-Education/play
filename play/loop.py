@@ -10,10 +10,19 @@ _loop = None  # pylint: disable=invalid-name
 _creator_pid = None  # pylint: disable=invalid-name
 
 
+_DESTROYED_PENDING = "Task was destroyed but it is pending!"
+
+
 def _handle_exception(the_loop, context):
     exception = context.get("exception")
     task = context.get("future")
     task_name = task.get_name() if task else "unknown"
+    message = context.get("message", "Unhandled exception in async task")
+
+    if not exception and message.startswith(_DESTROYED_PENDING):
+        # Expected once the loop has stopped, and nothing the user can act on.
+        play_logger.debug(message)
+        return
 
     if exception:
         tb_lines = traceback.format_exception(
@@ -22,9 +31,7 @@ def _handle_exception(the_loop, context):
         tb_str = "".join(tb_lines)
         play_logger.critical("Unhandled exception in task '%s':\n%s", task_name, tb_str)
     else:
-        play_logger.critical(
-            context.get("message", "Unhandled exception in async task")
-        )
+        play_logger.critical(message)
 
     the_loop.stop()
 

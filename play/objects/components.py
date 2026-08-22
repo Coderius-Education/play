@@ -45,6 +45,14 @@ class EventComponent:
         :param default: Value to return if key is absent."""
         return self._touching_callback.get(key, default)
 
+    def clear_all_touching(self):
+        """Drop every active touching collision.
+
+        Used when the sprite's pymunk shape is replaced: the recorded keys
+        belong to the old shape, so pymunk will never send the separate that
+        would clear them and the callback would run forever."""
+        self._touching_callback = {}
+
     def set_stopped(self, key, callback):
         """Record a stopped-touching collision callback.
         :param key: Collision key.
