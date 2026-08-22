@@ -21,6 +21,20 @@ def make_video(path, clock, **kwargs):
     return Video(path, _time_fn=clock, **kwargs)
 
 
+def wait_for_frames(video, count=2, timeout=5.0):
+    """Give the decoding thread time to fill its queue.
+
+    _tick never blocks on the decoder, so without this a loaded machine can
+    reach the assertions before a single frame has been handed over.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if video._player.decoder.queue.qsize() >= count:
+            return True
+        time.sleep(0.01)
+    return False
+
+
 def pump():
     """Let the callbacks that were fired actually run.
 
@@ -314,6 +328,7 @@ def test_controls_can_be_switched_off(video_file, fake_clock):
 def test_the_game_loop_ticks_the_video(video_file, fake_clock):
     video = make_video(video_file, fake_clock)
     video.play()
+    wait_for_frames(video, 4)
     fake_clock.advance(0.5)
 
     run_frame()
