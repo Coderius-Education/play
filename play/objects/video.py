@@ -29,6 +29,21 @@ _CONTROLS_FADE_SECONDS = 0.25
 _CONTROLS_HIDE_AFTER = 2.0
 _SEEK_STEP = 5.0
 
+# Interactive scrubbing seeks every dragged frame. _latch_frame's normal
+# wait=True budget (0.5s) would stall the whole game loop for that long on
+# every one of those frames, so scrubbing uses a much shorter budget instead.
+_SCRUB_WAIT_SECONDS = 0.05
+
+# CallbackType members that are keyed by id(video) and must be cleared when a
+# video is closed, or callback_manager keeps the Video (and its buffers) alive.
+_VIDEO_CALLBACK_TYPES = (
+    CallbackType.WHEN_VIDEO_ENDS,
+    CallbackType.WHEN_VIDEO_STARTS,
+    CallbackType.WHEN_VIDEO_PLAYS,
+    CallbackType.WHEN_VIDEO_PAUSES,
+    CallbackType.WHEN_VIDEO_FRAME,
+)
+
 
 def close_all_videos():
     """Stop and close every video that is still alive."""
@@ -136,7 +151,10 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         player.volume = min(max(volume, 0.0), 1.0)
         player.muted = muted
         player.loop = loop
-        player.speed = speed if speed > 0 else 1.0
+        if speed <= 0:
+            logger.warning("Video speed must be greater than 0.")
+            speed = 1.0
+        player.speed = speed
         player.last_activity = _time_fn()
         self._player = player
 
@@ -269,6 +287,16 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
 
         :param seconds: Where to jump to, in seconds from the start.
         """
+        self._seek_to(seconds)
+
+    def _seek_to(self, seconds, wait_seconds=0.5):
+        """Do the actual seek, with a configurable wait budget for a fresh frame.
+
+        :param wait_seconds: How long to block for a freshly-decoded frame when
+            paused. Interactive scrubbing passes a much shorter budget than the
+            default, since it seeks on every dragged frame and a long wait here
+            would stall the whole game loop.
+        """
         player = self._player
         target = min(max(float(seconds), 0.0), self.length)
         was_playing = player.state == "playing"
@@ -284,7 +312,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         if was_playing:
             self._start_audio(target)
         else:
-            self._latch_frame(target, wait=True)
+            self._latch_frame(target, wait=True, wait_seconds=wait_seconds)
         self._should_recompute = True
 
     @property
@@ -447,11 +475,12 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
             player.state = "paused"
             self.play()
 
-    def _latch_frame(self, current, wait=False):
+    def _latch_frame(self, current, wait=False, wait_seconds=0.5):
         """Show the newest decoded frame that is due at ``current`` seconds.
 
         :param current: The playback position, in seconds.
         :param wait: Block briefly for a frame (used when seeking or starting).
+        :param wait_seconds: How long ``wait`` is allowed to block for.
         :return: True if the displayed frame changed.
         """
         player = self._player
@@ -459,7 +488,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         if decoder is None:
             return False
 
-        deadline = _time.monotonic() + 0.5 if wait else 0.0
+        deadline = _time.monotonic() + wait_seconds if wait else 0.0
         changed = False
 
         while True:
@@ -683,7 +712,8 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
     def _scrub_to(self, point):
         area = self._scrub_area()
         fraction = (point[0] - area.left) / max(area.width, 1)
-        self.seek(min(max(fraction, 0.0), 1.0) * self.length)
+        target = min(max(fraction, 0.0), 1.0) * self.length
+        self._seek_to(target, wait_seconds=_SCRUB_WAIT_SECONDS)
 
     def _volume_to(self, point):
         area = self._volume_area()
@@ -856,6 +886,11 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
             player.decoder = None
         player.state = "idle"
         _live_videos.discard(self)
+        # Otherwise callback_manager keeps this Video (and its decoded-frame
+        # canvas and in-memory audio buffer) alive forever via the closures
+        # registered in _register().
+        for callback_type in _VIDEO_CALLBACK_TYPES:
+            callback_manager.remove_callbacks(callback_type, id(self))
 
     def remove(self):
         """Remove the video from the screen and stop playing it."""
