@@ -12,18 +12,24 @@ This test verifies:
 """
 
 from tests.projects.conftest import (
+    new_scoring_state,
     setup_pong,
     assert_pong_winner,
 )
 
-max_frames = 3000
+max_frames = 1500  # 25s at 60fps; pytest's timeout is 60s
 winning_score = 2
 
 
 def test_pong_random():
     import random
 
-    random.seed(42)  # deterministic serves to avoid flaky near-vertical angles
+    # Deterministic serves (near-vertical angles were flaky), but seeding the
+    # *global* RNG leaked into every later test on the same xdist worker --
+    # notably test_catch_game, which draws an unseeded random position.
+    # Save and restore instead.
+    _rng_state = random.getstate()
+    random.seed(42)
 
     import play
     from play.callback.collision_callbacks import WallSide
@@ -35,6 +41,8 @@ def test_pong_random():
     colors_used = []
 
     ball, paddle_left, paddle_right, score_text = setup_pong()
+
+    scoring = new_scoring_state(score_text)
 
     # --- collisions --------------------------------------------------------
     @ball.when_stopped_touching(paddle_left)
@@ -66,6 +74,7 @@ def test_pong_random():
         score_right[0] += 1
         score_text.words = f"{score_left[0]} - {score_right[0]}"
         if score_right[0] >= winning_score:
+            scoring["won"] = True
             play.stop_program()
             return
         random_serve()
@@ -75,6 +84,7 @@ def test_pong_random():
         score_left[0] += 1
         score_text.words = f"{score_left[0]} - {score_right[0]}"
         if score_left[0] >= winning_score:
+            scoring["won"] = True
             play.stop_program()
             return
         random_serve()
@@ -86,10 +96,13 @@ def test_pong_random():
             await play.animate()
         play.stop_program()
 
-    play.start_program()
+    try:
+        play.start_program()
+    finally:
+        random.setstate(_rng_state)
 
     # --- assertions --------------------------------------------------------
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert serves[0] > 0, "at least one random serve should have happened"
 
     # Verify random_number produced values in range

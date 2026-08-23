@@ -115,6 +115,8 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         autoplay=False,
         controls=True,
         muted=False,
+        anchor=None,
+        layer=0,
         _time_fn=_time.monotonic,
     ):  # pylint: disable=too-many-locals
         """Play a video file.
@@ -133,14 +135,14 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         :param autoplay: Whether to start playing immediately.
         :param controls: Whether to show the built-in control bar on hover.
         :param muted: Whether to start muted.
+        :param anchor: Anchor the video to a screen edge or the center.
+        :param layer: The render layer (higher draws on top).
         """
         info = probe(file_name)
 
         self._file_name = file_name
         self._info = info
         self._width, self._height = self._fit_size(info, width, height)
-        self._x = x
-        self._y = y
         self._size = size
         self._angle = angle
         self._transparency = transparency
@@ -158,7 +160,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         player.last_activity = _time_fn()
         self._player = player
 
-        super().__init__()
+        super().__init__(x=x, y=y, anchor=anchor, layer=layer)
 
         if info.duration > _LONG_VIDEO_SECONDS:
             logger.warning(
@@ -772,6 +774,10 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         super().update()
 
     ##### size #####
+
+    def _hit_dims(self, size_factor):
+        """Video hit-shape uses its logical width/height, scaled by size."""
+        return 0.0, self._width * size_factor, self._height * size_factor
 
     @property
     def width(self):

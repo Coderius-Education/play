@@ -197,3 +197,51 @@ def test_frame_rate_setting():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+def test_stop_program_during_first_frame_exits():
+    # Regression: loop.stop() from the very first frame was absorbed by
+    # run_until_complete's own stop signal, after which run_forever() ran
+    # unbounded — headless test runs hung on this.
+    import play
+
+    frames = [0]
+
+    @play.repeat_forever
+    def _stop_immediately():
+        frames[0] += 1
+        play.stop_program()
+
+    play.start_program()  # a regression would hang here until the safety stop
+    assert frames[0] == 1
+
+
+def test_stop_program_from_when_program_starts_exits():
+    import play
+
+    ran = []
+
+    @play.when_program_starts
+    def _stop_now():
+        ran.append(1)
+        play.stop_program()
+
+    play.start_program()
+    assert ran == [1]
+
+
+def test_start_program_after_stop_still_refuses():
+    # The three lifecycle states live in one field now; a stopped program must
+    # stay as unrestartable as a running one.
+    import play
+    from play.globals import globals_list, ProgramState
+
+    @play.repeat_forever
+    def _stop_immediately():
+        play.stop_program()
+
+    play.start_program()
+    assert globals_list.program_state is ProgramState.STOPPED
+
+    with pytest.raises(RuntimeError, match="already started"):
+        play.start_program()

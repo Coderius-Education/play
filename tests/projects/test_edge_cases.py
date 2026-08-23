@@ -63,14 +63,20 @@ def test_edge_empty_callbacks():
     ball.start_physics(obeys_gravity=False, x_speed=300, bounciness=1.0)
     wall.start_physics(obeys_gravity=False, can_move=False, bounciness=1.0)
 
-    # Register empty callbacks — students often do this as placeholders
+    # Register near-empty callbacks — students often do this as placeholders.
+    # They count invocations rather than doing nothing at all, so the test can
+    # tell "the event system stayed quiet because it works" apart from "the
+    # events never fired", which a bare `pass` cannot.
+    touched_wall_sprite = [0]
+    touched_screen_wall = [0]
+
     @ball.when_stopped_touching(wall)
     def nothing():
-        pass
+        touched_wall_sprite[0] += 1
 
     @ball.when_touching_wall
     def also_nothing():
-        pass
+        touched_screen_wall[0] += 1
 
     @play.when_any_key_pressed
     def key_noop(key):
@@ -79,7 +85,16 @@ def test_edge_empty_callbacks():
     add_safety_timeout(max_frames)
 
     play.start_program()
-    # If we get here without crashing, the test passes
+
+    # The ball is launched rightwards into the wall sprite and then bounces on
+    # to the screen edge, so both callbacks must have run. Without this the
+    # test passed even if the event system never dispatched anything.
+    assert (
+        touched_wall_sprite[0] > 0
+    ), "the ball should have stopped touching the wall sprite at least once"
+    assert (
+        touched_screen_wall[0] > 0
+    ), "the ball should have touched a screen wall at least once"
 
 
 def test_edge_rapid_hide_show():

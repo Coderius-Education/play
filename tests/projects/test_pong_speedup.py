@@ -11,6 +11,7 @@ This test verifies:
 """
 
 from tests.projects.conftest import (
+    new_scoring_state,
     setup_pong,
     add_safety_timeout,
     assert_pong_winner,
@@ -32,6 +33,8 @@ def test_pong_speedup():
     max_speed_ever = [300.0]
 
     ball, paddle_left, paddle_right, score_text = setup_pong()
+
+    scoring = new_scoring_state(score_text)
 
     # --- paddle collisions: speed up on each hit --------------------------
     @ball.when_stopped_touching(paddle_left)
@@ -63,6 +66,7 @@ def test_pong_speedup():
         ball.physics.y_speed = 40
         current_speed[0] = 300.0
         if score_right[0] >= winning_score:
+            scoring["won"] = True
             play.stop_program()
 
     @ball.when_stopped_touching_wall(wall=WallSide.RIGHT)
@@ -75,13 +79,14 @@ def test_pong_speedup():
         ball.physics.y_speed = -40
         current_speed[0] = 300.0
         if score_left[0] >= winning_score:
+            scoring["won"] = True
             play.stop_program()
 
     add_safety_timeout(max_frames)
 
     play.start_program()
 
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert paddle_hits[0] > 0, "ball should have hit at least one paddle"
     assert (
         max_speed_ever[0] > 300

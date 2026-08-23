@@ -14,7 +14,6 @@ def mock_sprite():
 
 
 class TestEventComponent:
-
     def test_is_clicked(self, mock_sprite):
         """Test getting and setting is_clicked."""
         component = EventComponent(mock_sprite)

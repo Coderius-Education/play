@@ -40,7 +40,7 @@ def test_pong():
     def ball_leaves_right_paddle():
         ball_paddle_hits[0] += 1
 
-    add_pong_scoring(
+    scoring = add_pong_scoring(
         ball, score_left, score_right, score_text, winning_score=winning_score
     )
     add_safety_timeout(max_frames)
@@ -49,7 +49,7 @@ def test_pong():
 
     play.start_program()
 
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert ball_paddle_hits[0] > 0, "ball should have hit at least one paddle"
 
 

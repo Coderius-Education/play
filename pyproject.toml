@@ -4,6 +4,7 @@ timeout = 60
 markers = [
     "slow(seconds): mark test with a longer safety-stop deadline (default 30s)",
     "xdist_group(name): assign test to a named xdist worker group to prevent concurrent execution",
+    "allow_safety_timeout: test legitimately runs until the safety timeout stops it",
 ]
 filterwarnings = [
     "ignore:This process .* is multi-threaded, use of fork\\(\\) may lead to deadlocks in the child:DeprecationWarning",
@@ -11,6 +12,6 @@ filterwarnings = [
 
 [tool.pylint.MASTER]
 max-line-length = 120
-disable = ["too-many-arguments", "too-many-positional-arguments","c-extension-no-member", "no-member", "import-error", "missing-class-docstring", "duplicate-code", "protected-access", "global-statement","too-many-instance-attributes", "fixme"]
+disable = ["too-many-arguments", "too-many-positional-arguments","c-extension-no-member", "no-member", "import-error", "missing-class-docstring", "duplicate-code", "protected-access", "global-statement","too-many-instance-attributes", "too-many-locals", "fixme"]
 good-names = ["x","k","y","i","dx","dy","x1","y1","a","b"]
 

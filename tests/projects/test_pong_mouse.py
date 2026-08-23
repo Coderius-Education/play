@@ -46,7 +46,7 @@ def test_pong_mouse():
     def ball_leaves_right():
         pass
 
-    add_pong_scoring(
+    scoring = add_pong_scoring(
         ball, score_left, score_right, score_text, winning_score=winning_score
     )
 
@@ -63,7 +63,7 @@ def test_pong_mouse():
 
     play.start_program()
 
-    assert_pong_winner(score_left, score_right, winning_score)
+    assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert mouse_updates[0] > 0, "repeat_forever should have run (mouse tracking)"
 
 

@@ -3,7 +3,7 @@
 import sys as _sys
 
 from ..callback import callback_manager
-from ..globals import globals_list
+from ..globals import globals_list, ProgramState
 from ..utils import run_once as _run_once
 
 
@@ -16,7 +16,10 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
 
     def _on_main_return(_frame, event, _arg):  # pylint: disable=unused-argument
         if event == "return":
-            if globals_list.should_auto_start and not globals_list.program_started:
+            if (
+                globals_list.should_auto_start
+                and globals_list.program_state is ProgramState.NOT_STARTED
+            ):
                 try:
                     globals_list.start_program_fn()
                 except RuntimeError as exc:
@@ -85,7 +88,7 @@ def _cleanup_auto_start():
 
     Used by test fixtures to prevent state leakage between tests.
     """
-    globals_list.program_started = False
+    globals_list.program_state = ProgramState.NOT_STARTED
     globals_list.should_auto_start = False
     _schedule_auto_start.has_run = False
     callback_manager.on_first_callback = _schedule_auto_start
