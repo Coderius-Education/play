@@ -98,6 +98,22 @@ def test_when_video_starts_fires_once(video_file, fake_clock):
     assert fired == [True]
 
 
+def test_when_video_starts_fires_with_autoplay(video_file, fake_clock):
+    # The obvious student pattern: autoplay=True, then register the callback.
+    # Autoplay is deferred to the first frame precisely so this works.
+    video = make_video(video_file, fake_clock, autoplay=True)
+    fired = []
+
+    @video.when_video_starts
+    def started():
+        fired.append(True)
+
+    video._tick()
+    pump()
+
+    assert fired == [True]
+
+
 def test_when_video_plays_fires_on_every_resume(video_file, fake_clock):
     video = make_video(video_file, fake_clock)
     fired = []
@@ -320,6 +336,39 @@ def test_controls_can_be_switched_off(video_file, fake_clock):
 
     assert video._handle_frame_events() is False
     assert video.playing is False
+
+
+def test_shortcuts_are_off_when_controls_are_off(video_file, fake_clock):
+    import pygame
+
+    video = make_video(video_file, fake_clock, width=320, height=240, controls=False)
+    point_on(video, 160, 60)
+    keyboard_state.pressed_this_frame.add(pygame.K_SPACE)
+
+    video._handle_frame_events()
+
+    # controls=False means the game owns the keyboard; hovering the video must
+    # not make Space pause it.
+    assert video.playing is False
+
+
+def test_a_widget_on_top_takes_the_click_away_from_the_video(video_file, fake_clock):
+    video = make_video(video_file, fake_clock, width=320, height=240)
+    video._player.controls_alpha = 255
+
+    point_on(video, 160, 60)  # on the picture, above the control bar
+    mouse._is_clicked = True
+    mouse_state.click_happened = True
+    # A widget (say a button drawn over the video) owns this click.
+    mouse_state.click_owner = object()
+
+    assert video._handle_frame_events() is False
+    assert video.playing is False
+
+    # The same click with no owner does reach the video.
+    mouse_state.click_owner = None
+    assert video._handle_frame_events() is False
+    assert video.playing is True
 
 
 ##### the game loop #####

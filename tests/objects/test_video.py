@@ -82,7 +82,19 @@ def test_shows_first_frame_without_autoplay(video_file, fake_clock):
 def test_autoplay_starts_playing(video_file, fake_clock):
     video = make_video(video_file, fake_clock, autoplay=True)
 
+    # Autoplay is deferred to the first frame so that callbacks registered
+    # right after construction still see the start events.
+    assert video.playing is False
+    video._tick()
     assert video.playing is True
+
+
+def test_autoplay_can_be_cancelled_before_the_first_frame(video_file, fake_clock):
+    video = make_video(video_file, fake_clock, autoplay=True)
+
+    video.stop()
+    video._tick()
+    assert video.playing is False
 
 
 ##### playback #####
@@ -473,3 +485,30 @@ def test_the_control_bar_sits_inside_the_video(video_file, fake_clock):
     picture = video.image.get_at((160, bar_top - 20))[0]
     bar = video.image.get_at((300, 236))[0]
     assert bar < picture + 5
+
+
+##### missing metadata #####
+
+
+def test_unknown_duration_does_not_end_instantly(video_file, fake_clock, monkeypatch):
+    # Some streams carry no duration; probe() then reports 0.0. The clock used
+    # to clamp to that, so the video "ended" on its very first frame.
+    from play.objects import video as video_module
+
+    real_probe = video_module.probe
+
+    def probe_without_duration(path):
+        info = real_probe(path)
+        info.duration = 0.0
+        return info
+
+    monkeypatch.setattr(video_module, "probe", probe_without_duration)
+    video = make_video(video_file, fake_clock)
+
+    video.play()
+    fake_clock.advance(0.5)
+    video._tick()
+
+    assert video.playing is True
+    assert video.finished is False
+    assert video.time == pytest.approx(0.5, abs=0.01)

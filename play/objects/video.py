@@ -1,6 +1,7 @@
 """This module contains the Video class, which plays a video file on screen."""
 
 import math as _math
+import queue as _queue
 import time as _time
 import weakref
 
@@ -82,6 +83,7 @@ class _VideoPlayer:  # pylint: disable=too-few-public-methods
         self.muted = False
         self.loop = False
         self.started_once = False
+        self.autoplay_pending = False
 
         self.pending = None  # a decoded frame that is not due yet
         self.current_time = 0.0
@@ -180,8 +182,10 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         self._latch_frame(0.0, wait=True)
         self.update()
 
-        if autoplay:
-            self.play()
+        # Deferred to the first _tick rather than started here: firing
+        # when_video_starts during construction would run before the user can
+        # possibly have registered a callback for it.
+        player.autoplay_pending = autoplay
 
     @staticmethod
     def _fit_size(info, width, height):
@@ -224,11 +228,16 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         if player.state != "playing":
             return player.base
         elapsed = (player.time_fn() - player.started_at) * player.speed
+        if self.length <= 0:
+            # Duration unknown (missing metadata): let the clock run free
+            # instead of clamping it to zero and ending the video instantly.
+            return player.base + elapsed
         return min(player.base + elapsed, self.length)
 
     def play(self):
         """Start playing, or carry on after a pause."""
         player = self._player
+        player.autoplay_pending = False
         if player.state == "playing":
             return
         if player.state == "ended":
@@ -268,6 +277,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         """Stop the video and go back to the beginning."""
         self._stop_audio()
         player = self._player
+        player.autoplay_pending = False
         was_playing = player.state == "playing"
         player.state = "idle"
         player.base = 0.0
@@ -300,7 +310,9 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
             would stall the whole game loop.
         """
         player = self._player
-        target = min(max(float(seconds), 0.0), self.length)
+        target = max(float(seconds), 0.0)
+        if self.length > 0:
+            target = min(target, self.length)
         was_playing = player.state == "playing"
 
         self._stop_audio()
@@ -453,13 +465,19 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
     def _tick(self):
         """Advance playback. Called once per frame by the game loop."""
         player = self._player
+        if player.autoplay_pending:
+            self.play()
         now = player.time_fn()
         current = self._clock()
 
         if self._latch_frame(current):
             self._fire(CallbackType.WHEN_VIDEO_FRAME)
 
-        if player.state == "playing" and current >= self.length - 1e-6:
+        if (
+            player.state == "playing"
+            and self.length > 0
+            and current >= self.length - 1e-6
+        ):
             self._reach_end()
 
         self._tick_controls(now)
@@ -526,7 +544,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         while True:
             try:
                 generation, timestamp, payload = decoder.queue.get_nowait()
-            except Exception:  # pylint: disable=broad-except
+            except _queue.Empty:
                 if deadline and _time.monotonic() < deadline:
                     _time.sleep(0.002)
                     continue
@@ -643,7 +661,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         if inside:
             player.last_activity = player.time_fn()
 
-        if inside:
+        if inside and self._controls:
             self._handle_shortcuts(keyboard_state)
 
         if self._handle_drags(point, mouse_state):
@@ -652,12 +670,15 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         if not self._controls or player.controls_alpha <= 0 or not inside:
             return False
 
-        if mouse_state.click_happened and self._start_drag(point):
+        # click_hits, not click_happened: a widget drawn on top of the video
+        # owns the click, and the video must not also react to it.
+        clicked = mouse_state.click_hits(self)
+        if clicked and self._start_drag(point):
             return True
 
         # A click on the picture itself toggles play, and still counts as a
         # click on the video for the user's own when_clicked.
-        if mouse_state.click_happened and point[1] < self._height - self._bar_height():
+        if clicked and point[1] < self._height - self._bar_height():
             self.toggle_play()
         return False
 
@@ -887,6 +908,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         if player is None:
             return
         self._stop_audio()
+        player.autoplay_pending = False
         if player.decoder is not None:
             player.decoder.stop()
             player.decoder = None
