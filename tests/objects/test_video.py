@@ -575,3 +575,171 @@ def test_play_twice_and_pause_twice_are_no_ops(video_file, fake_clock):
     video.pause()  # already paused: nothing to do
     assert video.paused is True
     assert video.time == pytest.approx(0.5, abs=0.01)
+
+
+##### contracts the mutation round showed were unpinned #####
+
+
+def test_stop_on_an_idle_video_fires_no_pause_event(video_file, fake_clock):
+    video = make_video(video_file, fake_clock)
+    fired = []
+
+    video.when_video_pauses(lambda: fired.append(True))
+    video.stop()
+
+    import asyncio
+    import play.loop
+
+    for _ in range(3):
+        play.loop.get_loop().run_until_complete(asyncio.sleep(0))
+    assert fired == [], "stopping an idle video must not report a pause"
+
+
+def test_seek_while_playing_keeps_playing(video_file, fake_clock):
+    video = make_video(video_file, fake_clock)
+    video.play()
+
+    video.seek(1.0)
+
+    assert video.playing is True
+    fake_clock.advance(0.25)
+    assert video.time == pytest.approx(1.25, abs=0.01)
+
+
+def test_fractional_speed_is_accepted(video_file, fake_clock):
+    video = make_video(video_file, fake_clock)
+
+    video.speed = 0.5
+
+    assert video.speed == 0.5
+    video.play()
+    fake_clock.advance(1.0)
+    assert video.time == pytest.approx(0.5, abs=0.01)
+
+
+def test_speed_change_while_paused_starts_no_audio(video_file, fake_clock):
+    video = make_video(video_file, fake_clock)
+    video.play()
+    video.pause()
+
+    video.speed = 2.0
+
+    assert video._player.sound is None, "a paused video must stay silent"
+
+
+def test_speed_resamples_the_audio(video_file, fake_clock):
+    video = make_video(video_file, fake_clock)
+    normal = video._pcm_slice(0.0)
+    if normal is None:
+        pytest.skip("no mixer in this environment")
+
+    video._player.speed = 2.0
+    double = video._pcm_slice(0.0)
+
+    assert double is not None
+    assert len(double) == pytest.approx(len(normal) / 2, rel=0.05)
+
+
+def test_controls_are_never_burnt_into_the_frame(video_file, fake_clock):
+    # Native size: update() must draw the bar on a copy. Without the copy the
+    # bar lands on the shared canvas and pollutes every later frame.
+    video = make_video(video_file, fake_clock)  # native 64x48
+    video._player.controls_alpha = 255
+    video._should_recompute = True
+
+    before = video._player.canvas.get_at((5, 44))[:3]
+    video.update()
+    after = video._player.canvas.get_at((5, 44))[:3]
+
+    assert after == before, "the control bar leaked onto the frame canvas"
+
+
+def test_a_closed_video_stays_inert(video_file, fake_clock):
+    video = make_video(video_file, fake_clock, autoplay=True)
+    frames = []
+    video.when_video_frame_changes(lambda: frames.append(True))
+
+    video.close()
+    video._tick()
+
+    import asyncio
+    import play.loop
+
+    for _ in range(3):
+        play.loop.get_loop().run_until_complete(asyncio.sleep(0))
+    assert video.playing is False, "close() must cancel a pending autoplay"
+    assert frames == [], "a closed video must not report new frames"
+
+
+@pytest.mark.parametrize(
+    "poke",
+    [
+        lambda v: v.play(),
+        lambda v: (v.play(), v.pause()),
+        lambda v: v.stop(),
+        lambda v: setattr(v, "volume", 0.3),
+        lambda v: setattr(v, "muted", True),
+        lambda v: setattr(v, "controls", False),
+        lambda v: setattr(v, "width", 100),
+        lambda v: setattr(v, "height", 90),
+    ],
+    ids=["play", "pause", "stop", "volume", "muted", "controls", "width", "height"],
+)
+def test_state_changes_mark_the_video_for_redrawing(video_file, fake_clock, poke):
+    video = make_video(video_file, fake_clock)
+    video.update()
+    video._should_recompute = False
+
+    poke(video)
+
+    assert video._should_recompute is True
+
+
+def test_width_and_height_setters_floor_at_one(video_file, fake_clock):
+    video = make_video(video_file, fake_clock)
+
+    video.width = 0
+    video.height = -5
+
+    assert video.width == 1
+    assert video.height == 1
+
+
+def test_out_of_range_video_volume_warns(video_file, fake_clock, caplog):
+    video = make_video(video_file, fake_clock)
+
+    with caplog.at_level("WARNING", logger="play"):
+        video.volume = 0.5
+    assert not caplog.records, "a valid volume must not warn"
+
+    with caplog.at_level("WARNING", logger="play"):
+        video.volume = 5
+
+    assert any("Volume must be between" in r.message for r in caplog.records)
+    assert video.volume == 1.0
+
+
+def test_reaching_the_end_marks_the_video_for_redrawing(video_file, fake_clock):
+    video = make_video(video_file, fake_clock)
+    video.play()
+    fake_clock.advance(video.length + 0.1)
+    video._should_recompute = False
+
+    video._tick()
+
+    assert video.finished is True
+    assert video._should_recompute is True, "the end state must trigger a redraw"
+
+
+def test_seek_after_finishing_un_ends_the_video(video_file, fake_clock):
+    video = make_video(video_file, fake_clock)
+    video.play()
+    fake_clock.advance(video.length + 0.1)
+    video._tick()
+    assert video.finished is True
+
+    video.seek(1.0)
+
+    assert video.finished is False
+    assert video.paused is True
+    assert video.time == pytest.approx(1.0, abs=0.01)
