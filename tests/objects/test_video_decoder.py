@@ -98,3 +98,54 @@ def test_stop_ends_the_thread(video_file):
     decoder.stop()
 
     assert decoder.is_alive() is False
+
+
+##### probing edge cases #####
+
+
+def test_probe_rejects_a_file_without_video(tmp_path):
+    import av
+    import numpy as np
+
+    path = str(tmp_path / "audio_only.m4a")
+    container = av.open(path, mode="w")
+    stream = container.add_stream("aac", rate=44100)
+    stream.layout = "stereo"
+    tone = (np.zeros((2, 1024))).astype("int16")
+    frame = av.AudioFrame.from_ndarray(
+        np.ascontiguousarray(tone), format="s16p", layout="stereo"
+    )
+    frame.sample_rate = 44100
+    for packet in stream.encode(frame):
+        container.mux(packet)
+    for packet in stream.encode():
+        container.mux(packet)
+    container.close()
+
+    with pytest.raises(ValueError, match="does not contain any video"):
+        video_decoder.probe(path)
+
+
+def test_stream_duration_falls_back_to_the_container():
+    class FakeStream:
+        duration = None
+        time_base = None
+
+    class FakeContainer:
+        duration = 3_000_000  # microseconds
+
+    assert video_decoder._stream_duration(FakeStream(), FakeContainer()) == 3.0
+
+    class EmptyContainer:
+        duration = None
+
+    assert video_decoder._stream_duration(FakeStream(), EmptyContainer()) == 0.0
+
+
+def test_mixer_formats_cover_the_sample_sizes():
+    # (rate, size, channels) as pygame.mixer.get_init() reports them; a
+    # negative size means signed samples.
+    assert video_decoder._mixer_formats((44100, -16, 2)) == ("s16", "stereo", 44100, 2)
+    assert video_decoder._mixer_formats((44100, 8, 2))[0] == "u8"
+    assert video_decoder._mixer_formats((44100, -32, 2))[0] == "s32"
+    assert video_decoder._mixer_formats((22050, -16, 1))[1] == "mono"

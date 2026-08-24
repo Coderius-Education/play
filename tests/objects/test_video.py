@@ -512,3 +512,66 @@ def test_unknown_duration_does_not_end_instantly(video_file, fake_clock, monkeyp
     assert video.playing is True
     assert video.finished is False
     assert video.time == pytest.approx(0.5, abs=0.01)
+
+
+##### resizing and the other setters #####
+
+
+def test_resizing_rebuilds_the_hit_shape(video_file, fake_clock):
+    video = make_video(video_file, fake_clock, width=200, height=100)
+
+    video.width = 400
+    video.height = 300
+
+    assert (video.width, video.height) == (400, 300)
+    # The pymunk hit-shape must follow the new size, not keep the old one.
+    assert video.physics._pymunk_shape.point_query((195, 145)).distance <= 0
+    assert video.physics._pymunk_shape.point_query((400, 0)).distance > 0
+    # The cached control bar was drawn for the old size and must be redrawn.
+    assert video._player.controls_key is None
+
+
+def test_controls_can_be_toggled_at_runtime(video_file, fake_clock):
+    video = make_video(video_file, fake_clock)
+
+    video.controls = False
+    assert video.controls is False
+
+    video.controls = 1  # coerced, the way a beginner might write it
+    assert video.controls is True
+
+
+def test_loop_setter_coerces_to_bool(video_file, fake_clock):
+    video = make_video(video_file, fake_clock)
+
+    video.loop = 1
+    assert video.loop is True
+    video.loop = 0
+    assert video.loop is False
+
+
+def test_speed_change_while_playing_keeps_the_position(video_file, fake_clock):
+    video = make_video(video_file, fake_clock)
+    video.play()
+    fake_clock.advance(0.5)
+
+    video.speed = 2.0
+
+    # Changing speed re-bases the clock: the position must not jump.
+    assert video.time == pytest.approx(0.5, abs=0.01)
+    fake_clock.advance(0.25)
+    assert video.time == pytest.approx(1.0, abs=0.01)
+
+
+def test_play_twice_and_pause_twice_are_no_ops(video_file, fake_clock):
+    video = make_video(video_file, fake_clock)
+
+    video.play()
+    fake_clock.advance(0.5)
+    video.play()  # already playing: must not re-base the clock
+    assert video.time == pytest.approx(0.5, abs=0.01)
+
+    video.pause()
+    video.pause()  # already paused: nothing to do
+    assert video.paused is True
+    assert video.time == pytest.approx(0.5, abs=0.01)

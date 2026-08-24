@@ -396,3 +396,95 @@ def test_a_hidden_video_is_still_ticked(video_file, fake_clock):
 
     assert video.playing is True
     assert video.time == pytest.approx(0.5, abs=0.01)
+
+
+##### dragging the sliders #####
+
+
+def test_dragging_the_volume_slider_sets_the_volume(video_file, fake_clock):
+    video = make_video(video_file, fake_clock, width=320, height=240)
+    video._player.controls_alpha = 255
+    area = video._volume_area()
+
+    # Click at three quarters along the volume track.
+    point_on(video, area.left + area.width * 3 // 4, area.centery)
+    mouse._is_clicked = True
+    mouse_state.click_happened = True
+    assert video._handle_frame_events() is True
+    assert video._player.dragging_volume is True
+    assert video.volume == pytest.approx(0.75, abs=0.05)
+
+    # Next frame: the button is still held, the drag follows the mouse.
+    mouse_state.click_happened = False
+    point_on(video, area.left, area.centery)
+    assert video._handle_frame_events() is True
+    assert video.volume == 0.0
+
+    # Dragging past the end of the track clamps.
+    point_on(video, area.left + area.width + 30, area.centery)
+    video._handle_frame_events()
+    assert video.volume == 1.0
+
+    # Releasing the button ends the drag.
+    mouse._is_clicked = False
+    video._handle_frame_events()
+    assert video._player.dragging_volume is False
+
+
+def test_a_scrub_drag_follows_the_mouse_across_frames(video_file, fake_clock):
+    video = make_video(video_file, fake_clock, width=320, height=240)
+    video._player.controls_alpha = 255
+    area = video._scrub_area()
+
+    point_on(video, area.left + area.width // 4, area.centery)
+    mouse._is_clicked = True
+    mouse_state.click_happened = True
+    assert video._handle_frame_events() is True
+    assert video._player.scrubbing is True
+    assert video.time == pytest.approx(video.length / 4, abs=0.15)
+
+    mouse_state.click_happened = False
+    point_on(video, area.left + area.width * 3 // 4, area.centery)
+    assert video._handle_frame_events() is True
+    assert video.time == pytest.approx(video.length * 3 / 4, abs=0.15)
+
+    mouse._is_clicked = False
+    video._handle_frame_events()
+    assert video._player.scrubbing is False
+
+
+##### the other keyboard shortcuts #####
+
+
+def test_left_arrow_seeks_back(video_file, fake_clock):
+    import pygame
+
+    video = make_video(video_file, fake_clock, width=320, height=240)
+    video.seek(video.length)
+    point_on(video, 160, 60)
+    keyboard_state.pressed_this_frame.add(pygame.K_LEFT)
+
+    video._handle_frame_events()
+
+    # One seek step is longer than the whole clip, so it lands at the start.
+    assert video.time == 0.0
+
+
+def test_m_toggles_mute(video_file, fake_clock):
+    import pygame
+
+    video = make_video(video_file, fake_clock, width=320, height=240)
+    point_on(video, 160, 60)
+
+    keyboard_state.pressed_this_frame.add(pygame.K_m)
+    video._handle_frame_events()
+    assert video.muted is True
+
+    # A frame with no fresh keypress changes nothing.
+    keyboard_state.pressed_this_frame.clear()
+    video._handle_frame_events()
+    assert video.muted is True
+
+    keyboard_state.pressed_this_frame.add(pygame.K_m)
+    video._handle_frame_events()
+    assert video.muted is False
