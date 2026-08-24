@@ -149,3 +149,25 @@ def test_mixer_formats_cover_the_sample_sizes():
     assert video_decoder._mixer_formats((44100, 8, 2))[0] == "u8"
     assert video_decoder._mixer_formats((44100, -32, 2))[0] == "s32"
     assert video_decoder._mixer_formats((22050, -16, 1))[1] == "mono"
+
+
+def test_seek_after_the_end_resumes_decoding(video_file):
+    # After the clip fully decodes the thread idles on eof; a seek must wake
+    # it up again. Looping a video depends on exactly this.
+    decoder = video_decoder.FrameDecoder(video_file)
+    decoder.start()
+    try:
+        deadline = time.monotonic() + 10.0
+        while not decoder.eof.is_set() and time.monotonic() < deadline:
+            decoder._drain()  # let the producer reach the end of the file
+            time.sleep(0.01)
+        assert decoder.eof.is_set(), "the clip should have decoded to its end"
+
+        decoder.request_seek(0.5)
+        frames = _collect(decoder, 1)
+
+        assert frames, "a seek after eof should produce frames again"
+        _generation, timestamp, _payload = frames[0]
+        assert timestamp >= 0.4
+    finally:
+        decoder.stop()

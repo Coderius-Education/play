@@ -153,3 +153,31 @@ def test_pause_and_stop_before_playing_are_safe(sound_file):
 
     assert sound.playing is False
     assert sound.is_paused is False
+
+
+def test_play_after_pause_and_stop_starts_from_scratch(sound_file):
+    # stop() must clear the paused flag: without that, play() tried to
+    # unpause the stopped channel and nothing sounded.
+    sound = Sound(sound_file)
+
+    sound.play()
+    if sound.channel is None:
+        pytest.skip("no free mixer channel in this environment")
+    sound.pause()
+    sound.stop()
+
+    sound.play()
+
+    assert sound.is_paused is False
+    assert sound.playing is True
+    sound.stop()
+
+
+def test_out_of_range_volume_warns(sound_file, caplog):
+    sound = Sound(sound_file)
+
+    with caplog.at_level("WARNING", logger="play"):
+        sound.volume = 5
+
+    assert any("Volume must be between" in r.message for r in caplog.records)
+    assert sound.volume == 1.0

@@ -75,6 +75,7 @@ class Sound:
 
     def stop(self):
         """Stop current channel"""
+        self.is_paused = False
         if self.channel is None:
             return
         self.channel.stop()
