@@ -7,12 +7,12 @@ from ..utils import experimental
 
 @experimental
 class Sound:
-    def __init__(self, file_name, volume=1.0, loops=1):
+    def __init__(self, file_name, volume=1.0, loops=0):
         """
         Initialize the Sound object.
         :param file_name: The sound file to load.
         :param volume: The initial volume (0.0 to 1.0).
-        :param loops: Number of times to loop the sound (-1 for infinite).
+        :param loops: Number of times to loop the sound (-1 for infinite, 0 for no loop).
         """
         pygame.mixer.init()
         self.sound = None
@@ -27,9 +27,12 @@ class Sound:
         """Load a sound file."""
         try:
             self.sound = pygame.mixer.Sound(file_name)
-            self.sound.set_volume(self._volume)
-        except FileNotFoundError:
-            logger.error("File not found", exc_info=True)
+        except (FileNotFoundError, pygame.error):
+            # pygame raises pygame.error for a corrupt or unreadable file, not
+            # just FileNotFoundError for a missing one.
+            logger.error("Could not load sound file '%s'", file_name, exc_info=True)
+            return
+        self.sound.set_volume(self._volume)
         logger.info("Loaded sound file")
 
     def play(self):
@@ -65,13 +68,10 @@ class Sound:
 
     @property
     def length(self):
-        """Returns the length of the song as a float"""
-        if self.channel is None:
+        """Returns the length of the sound in seconds as a float"""
+        if self.sound is None:
             return 0.0
-        sound = self.channel.get_sound()
-        if sound is None:
-            return 0.0
-        return round(sound.get_length(), 2)
+        return round(self.sound.get_length(), 2)
 
     def stop(self):
         """Stop current channel"""
@@ -92,9 +92,9 @@ class Sound:
         """Set the volume of the sound (0.0 to 1.0)."""
         if not 0.0 <= volume <= 1.0:
             logger.warning("Volume must be between 0.0 and 1.0")
-        self._volume = volume
+        self._volume = min(max(volume, 0.0), 1.0)
         if self.sound:
-            self.sound.set_volume(volume)
+            self.sound.set_volume(self._volume)
 
     @property
     def playing(self):
