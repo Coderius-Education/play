@@ -292,10 +292,45 @@ def when_click_released(func):
     return mouse.when_click_released(func)
 
 
+def _check_videos(method_name, videos):
+    """Reject a video decorator that was given no video to watch.
+
+    Left unchecked this fails silently: with the brackets left off, the
+    decorated function is taken as the video, nothing is registered, and the
+    name the function was defined under ends up bound to an internal closure.
+    """
+    if not videos:
+        raise ValueError(
+            f"""You wrote @play.{method_name}() without saying which video to watch.
+Put the video in the brackets: @play.{method_name}(my_video)\n"""
+        )
+    for video in videos:
+        if hasattr(video, method_name):
+            continue
+        if callable(video):
+            raise ValueError(
+                f"""It looks like you wrote @play.{method_name} without brackets.
+Put the video in brackets so play knows which video you mean:
+
+    @play.{method_name}(my_video)
+    def {getattr(video, "__name__", "my_function")}():
+        ...\n"""
+            )
+        raise ValueError(
+            f"""@play.{method_name}() needs a video, but it got a {type(video).__name__}.
+Make one with play.new_video('clip.mp4') and pass that: @play.{method_name}(my_video)\n"""
+        )
+
+
 def _video_event(method_name):
     """Build a module-level decorator that registers a video event."""
 
     def decorator_factory(*videos):
+        # Checked here rather than inside decorator(): this runs the moment the
+        # decorator line is evaluated, so a missing video is reported at the
+        # line that made the mistake.
+        _check_videos(method_name, videos)
+
         def decorator(func):
             for video in videos:
                 getattr(video, method_name)(func)

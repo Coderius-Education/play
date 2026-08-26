@@ -181,6 +181,77 @@ def test_module_level_video_event_decorator(video_file, fake_clock):
     assert fired == [True]
 
 
+def test_module_level_decorator_applies_to_several_videos(video_file, fake_clock):
+    first = make_video(video_file, fake_clock)
+    second = make_video(video_file, fake_clock)
+    fired = []
+
+    @play.when_video_pauses(first, second)
+    def paused():
+        fired.append(True)
+
+    first.play()
+    first.pause()
+    second.play()
+    second.pause()
+    pump()
+
+    assert len(fired) == 2
+
+
+##### the mistakes a beginner makes with these decorators #####
+
+
+def test_forgetting_the_brackets_is_reported(video_file, fake_clock):
+    # Without the check this is silent: the decorated function is taken as the
+    # video, nothing is registered, and the name is left bound to an internal
+    # closure, so calling it later fails somewhere unrelated.
+    make_video(video_file, fake_clock)
+
+    with pytest.raises(ValueError) as error:
+
+        @play.when_video_ends
+        def ended():
+            pass
+
+    message = str(error.value)
+    assert "without brackets" in message
+    assert "@play.when_video_ends(my_video)" in message
+    assert "def ended()" in message, "the message should show the user's own function"
+
+
+def test_empty_brackets_are_reported(video_file, fake_clock):
+    make_video(video_file, fake_clock)
+
+    with pytest.raises(ValueError, match="without saying which video"):
+
+        @play.when_video_ends()
+        def ended():
+            pass
+
+
+def test_passing_something_that_is_not_a_video_is_reported():
+    with pytest.raises(ValueError, match="needs a video, but it got a str"):
+
+        @play.when_video_plays("clip.mp4")
+        def played():
+            pass
+
+
+def test_every_video_decorator_checks_its_arguments():
+    # All five share one implementation; pin that none of them slips through.
+    decorators = [
+        play.when_video_ends,
+        play.when_video_starts,
+        play.when_video_plays,
+        play.when_video_pauses,
+        play.when_video_frame_changes,
+    ]
+    for decorator in decorators:
+        with pytest.raises(ValueError):
+            decorator(object())
+
+
 ##### controls #####
 
 
