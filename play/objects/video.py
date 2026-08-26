@@ -232,10 +232,22 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
             return player.base + elapsed
         return min(player.base + elapsed, self.length)
 
+    def _is_closed(self):
+        """Whether close() (or remove()) has already let go of the video file."""
+        return self._player.decoder is None
+
     def play(self):
         """Start playing, or carry on after a pause."""
         player = self._player
         player.autoplay_pending = False
+        if self._is_closed():
+            # Without this the audio starts and `playing` reports True while
+            # the picture can never change again, on an object the user has
+            # already thrown away.
+            logger.warning(
+                "This video was removed or closed, so it cannot play any more."
+            )
+            return
         if player.state == "playing":
             return
         if player.state == "ended":
@@ -276,6 +288,8 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         self._stop_audio()
         player = self._player
         player.autoplay_pending = False
+        if self._is_closed():
+            return
         was_playing = player.state == "playing"
         player.state = "idle"
         player.base = 0.0
@@ -308,6 +322,8 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
             would stall the whole game loop.
         """
         player = self._player
+        if self._is_closed():
+            return
         target = max(float(seconds), 0.0)
         if self.length > 0:
             target = min(target, self.length)

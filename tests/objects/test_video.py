@@ -708,6 +708,46 @@ def test_a_closed_video_stays_inert(video_file, fake_clock):
     "poke",
     [
         lambda v: v.play(),
+        lambda v: v.toggle_play(),
+        lambda v: v.seek(0.5),
+        lambda v: v.stop(),
+        lambda v: v.restart(),
+        lambda v: v.pause(),
+    ],
+    ids=["play", "toggle_play", "seek", "stop", "restart", "pause"],
+)
+def test_playback_calls_on_a_closed_video_do_nothing(video_file, fake_clock, poke):
+    # close() lets go of the decoder, so the picture can never change again.
+    # play() used to start the audio anyway and report playing=True, and
+    # seek/stop/restart raised AttributeError on the decoder that was gone.
+    video = make_video(video_file, fake_clock)
+    video.close()
+
+    poke(video)
+
+    assert video.playing is False
+    assert video._player.sound is None, "a closed video must not make a sound"
+
+
+def test_a_removed_video_falls_silent(video_file, fake_clock):
+    # remove() is how a sprite leaves the game; the sound has to go with it,
+    # and must not come back if the video is played again afterwards.
+    video = make_video(video_file, fake_clock)
+    video.play()
+    assert video.playing is True
+
+    video.remove()
+    assert video._player.sound is None
+
+    video.play()
+    assert video.playing is False
+    assert video._player.sound is None
+
+
+@pytest.mark.parametrize(
+    "poke",
+    [
+        lambda v: v.play(),
         lambda v: (v.play(), v.pause()),
         lambda v: v.stop(),
         lambda v: setattr(v, "volume", 0.3),
