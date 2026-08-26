@@ -25,6 +25,16 @@ def _font(video):
     return player.font or None
 
 
+def _played_fraction(video):
+    """How far through the video playback is, from 0.0 to 1.0.
+
+    Clamped because a video whose file carries no duration reports a length of
+    zero and runs its clock on regardless, which would otherwise divide by the
+    1e-6 floor and produce a number in the tens of thousands.
+    """
+    return min(max(video.time / max(video.length, 1e-6), 0.0), 1.0)
+
+
 def _controls_state(video):
     """A small key describing how the control bar should look right now.
 
@@ -35,7 +45,7 @@ def _controls_state(video):
         int(player.controls_alpha),
         player.state == "playing",
         int(video.time),
-        round(video.time / max(video.length, 1e-6), 3),
+        round(_played_fraction(video), 3),
         player.muted,
         round(player.volume, 2),
         video._width,
@@ -95,7 +105,7 @@ def _draw_scrubber(video, surface, bar_h):
     pygame.draw.rect(
         surface, (120, 120, 120), (left, mid - track_h // 2, width, track_h)
     )
-    fraction = min(max(video.time / max(video.length, 1e-6), 0.0), 1.0)
+    fraction = _played_fraction(video)
     pygame.draw.rect(
         surface,
         (230, 60, 60),

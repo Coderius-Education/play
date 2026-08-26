@@ -336,7 +336,8 @@ def test_size_and_angle_are_applied(video_file, fake_clock):
 
     video.angle = 90
     video.update()
-    assert video.image is not None
+    # A quarter turn swaps the picture's width and height.
+    assert video.image.get_size() == (24, 32)
 
 
 def test_hit_area_follows_the_video_size(video_file, fake_clock):
@@ -418,6 +419,38 @@ def test_control_bar_is_reused_until_something_changes(video_file, fake_clock):
 
     video.muted = True
     assert video._render_controls() is not first
+
+
+def test_control_bar_is_reused_when_the_duration_is_unknown(
+    video_file, fake_clock, monkeypatch
+):
+    # A video with no duration metadata reports length 0 and runs its clock on
+    # regardless. The cache key divides time by the length, so without a clamp
+    # every frame produced a fresh key and the whole bar was redrawn each time.
+    from play.objects import video as video_module
+
+    real_probe = video_module.probe
+
+    def probe_without_duration(path):
+        info = real_probe(path)
+        info.duration = 0.0
+        return info
+
+    monkeypatch.setattr(video_module, "probe", probe_without_duration)
+    video = make_video(video_file, fake_clock, width=320, height=240)
+    video._player.controls_alpha = 255
+    video.play()
+
+    # Take the baseline after the first frame: the played fraction genuinely
+    # moves from 0 to its clamped ceiling once, and that redraw is correct.
+    fake_clock.advance(1 / 60)
+    video._tick()
+    first = video._render_controls()
+
+    for _ in range(4):
+        fake_clock.advance(1 / 60)
+        video._tick()
+        assert video._render_controls() is first
 
 
 def test_control_bar_fades_in_while_hovered(video_file, fake_clock):
