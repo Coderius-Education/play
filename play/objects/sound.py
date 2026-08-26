@@ -2,11 +2,11 @@
 
 import pygame
 from ..io.logging import play_logger as logger
-from ..utils import experimental
 
 
-@experimental
 class Sound:
+    """A sound or music file that can be played, paused and stopped."""
+
     def __init__(self, file_name, volume=1.0, loops=0):
         """
         Initialize the Sound object.

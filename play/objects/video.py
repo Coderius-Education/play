@@ -16,7 +16,6 @@ from ..callback.callback_helpers import run_async_callback
 from ..io.logging import play_logger as logger
 from ..io.mouse import mouse
 from ..io.screen import convert_pos
-from ..utils import experimental
 from ..utils.async_helpers import make_async
 
 # Videos hold a decoding thread and an open file, so they need closing even when
@@ -97,7 +96,6 @@ class _VideoPlayer:  # pylint: disable=too-few-public-methods
         self.consumed_click = False
 
 
-@experimental
 class Video(Sprite):  # pylint: disable=too-many-public-methods
     """A video that plays on screen, with optional built-in controls."""
 
