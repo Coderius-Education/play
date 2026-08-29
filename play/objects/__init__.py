@@ -19,3 +19,4 @@ from .image import Image
 from .sound import Sound
 from .text_input import TextInput
 from .tooltip import Tooltip
+from .video import Video
