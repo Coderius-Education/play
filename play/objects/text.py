@@ -5,7 +5,11 @@ import os
 import pygame
 from .sprite import Sprite
 from ..io.screen import convert_pos
-from ..utils import color_name_to_rgb as _color_name_to_rgb, render_text as _render_text
+from ..utils import (
+    color_name_to_rgb as _color_name_to_rgb,
+    render_text as _render_text,
+    scale_to_percent as _scale_to_percent,
+)
 from ..io.logging import play_logger
 
 
@@ -54,7 +58,7 @@ class Text(Sprite):
             self._pygame_font, self._words, True, _color_name_to_rgb(self._color)
         )
         if self._size != 100:
-            draw_image = pygame.transform.scale_by(draw_image, max(self._size, 0) / 100)
+            draw_image = _scale_to_percent(draw_image, self._size)
         if hasattr(self, "physics") and self.physics is not None:
             angle_deg = _math.degrees(self.physics._pymunk_body.angle)
         else:

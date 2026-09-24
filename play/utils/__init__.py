@@ -89,6 +89,20 @@ def load_font(font_path_or_none, size):
     return pygame.font.SysFont(None, size)
 
 
+def scale_to_percent(surface, size):
+    """Scale *surface* to *size* percent of itself, rounding each side.
+
+    Not transform.scale_by: that truncates, and moved almost half of all
+    scaled sprites by a pixel when it was tried. Zero or less gives an
+    empty surface.
+    """
+    factor = max(size, 0) / 100
+    return pygame.transform.scale(
+        surface,
+        (round(surface.get_width() * factor), round(surface.get_height() * factor)),
+    )
+
+
 def render_text(font, text, antialias, color):
     """Render *text*, tolerating strings that come out with no width.
 

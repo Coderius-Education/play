@@ -71,7 +71,12 @@ class Circle(Sprite):
         )
 
         if self._size != 100:
-            draw_image = pygame.transform.scale_by(draw_image, max(self._size, 0) / 100)
+            # Round the radius, not the diameter, so the picture stays even-sized
+            # and its centre on a whole pixel.
+            scaled_r = round(self._radius * max(self._size, 0) / 100)
+            draw_image = pygame.transform.scale(
+                draw_image, (scaled_r * 2, scaled_r * 2)
+            )
 
         draw_image.set_alpha(round(self._transparency * 255 / 100))
 

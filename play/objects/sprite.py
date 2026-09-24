@@ -12,7 +12,7 @@ from ..callback.collision_callbacks import collision_registry
 from ..globals import globals_list
 from ..io.screen import screen, convert_pos
 from ..physics import physics_space, Physics as _Physics
-from ..utils import is_called_from_pygame
+from ..utils import is_called_from_pygame, scale_to_percent as _scale_to_percent
 from .components import EventComponent
 
 
@@ -557,7 +557,7 @@ You might want to look in your code where you're setting transparency and make s
         # has to scale with it or clicks land off the visible widget.
         size = getattr(self, "_size", 100)
         if size != 100:
-            draw_image = pygame.transform.scale_by(draw_image, max(size, 0) / 100)
+            draw_image = _scale_to_percent(draw_image, size)
         draw_image.set_alpha(round(self._transparency * 255 / 100))
         self.rect = draw_image.get_rect()
         pos = convert_pos(self.x, self.y)

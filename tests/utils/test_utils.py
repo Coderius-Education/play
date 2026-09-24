@@ -157,3 +157,24 @@ def test_color_name_to_rgb_hex_whitespace():
     assert red[0] == 255
     assert red[1] == 0
     assert red[2] == 0
+
+
+def test_scale_to_percent_rounds_each_side():
+    """Scaling rounds, as play always has; scale_by truncates and would give
+    (21, 15) and (42, 31) here."""
+    import pygame
+    from play.utils import scale_to_percent
+
+    surface = pygame.Surface((64, 48))
+    assert scale_to_percent(surface, 33).get_size() == (21, 16)
+    assert scale_to_percent(surface, 66).get_size() == (42, 32)
+    assert scale_to_percent(surface, 100).get_size() == (64, 48)
+
+
+def test_scale_to_percent_of_zero_or_less_is_empty():
+    import pygame
+    from play.utils import scale_to_percent
+
+    surface = pygame.Surface((64, 48))
+    assert scale_to_percent(surface, 0).get_size() == (0, 0)
+    assert scale_to_percent(surface, -10).get_size() == (0, 0)

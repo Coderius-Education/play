@@ -4,7 +4,10 @@ import math as _math
 import pygame
 from .sprite import Sprite
 from ..io.screen import convert_pos
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from ..utils import (
+    color_name_to_rgb as _color_name_to_rgb,
+    scale_to_percent as _scale_to_percent,
+)
 
 
 class Box(Sprite):
@@ -71,7 +74,7 @@ class Box(Sprite):
         )
 
         if self._size != 100:
-            draw_image = pygame.transform.scale_by(draw_image, max(self._size, 0) / 100)
+            draw_image = _scale_to_percent(draw_image, self._size)
 
         draw_image.set_alpha(round(self._transparency * 255 / 100))
 

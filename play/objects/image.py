@@ -5,6 +5,7 @@ import os
 import pygame
 
 from .sprite import Sprite
+from ..utils import scale_to_percent as _scale_to_percent
 from ..io.screen import convert_pos
 
 
@@ -32,9 +33,7 @@ class Image(Sprite):
 
     def _render(self):
         """Scale, rotate, and alpha-blend the source image."""
-        draw_image = pygame.transform.scale_by(
-            self._source_image, max(self._size, 0) / 100
-        )
+        draw_image = _scale_to_percent(self._source_image, self._size)
         angle_deg = _math.degrees(self.physics._pymunk_body.angle)
         draw_image = pygame.transform.rotate(draw_image, angle_deg)
         draw_image.set_alpha(round(self._transparency * 255 / 100))

@@ -16,6 +16,7 @@ from ..callback.callback_helpers import run_async_callback
 from ..io.logging import play_logger as logger
 from ..io.mouse import mouse
 from ..io.screen import convert_pos
+from ..utils import scale_to_percent as _scale_to_percent
 from ..utils.async_helpers import make_async
 
 # Videos hold a decoding thread and an open file, so they need closing even when
@@ -787,7 +788,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
             )
 
         if self._size != 100:
-            draw_image = pygame.transform.scale_by(draw_image, max(self._size, 0) / 100)
+            draw_image = _scale_to_percent(draw_image, self._size)
 
         draw_image.set_alpha(round(self._transparency * 255 / 100))
 
