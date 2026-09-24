@@ -15,7 +15,9 @@ exist to prevent. Each one pins a mistake to outcome 1 or 2.
 """
 
 import pytest
+import pygame
 import play
+from play.objects.image import Image
 
 
 @pytest.fixture(autouse=True)
@@ -115,6 +117,32 @@ def test_value_outside_the_range_is_clamped_not_rejected():
     assert play.new_slider(min_value=0, max_value=10, value=999).value == 10
     assert play.new_slider(min_value=0, max_value=10, value=-999).value == 0
     assert play.new_progress_bar(min_value=0, max_value=10, value=999).value == 10
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda: play.new_box(width=40, height=20),
+        lambda: play.new_circle(radius=20),
+        lambda: play.new_text(words="hi"),
+        lambda: play.new_button("Go"),
+        lambda: Image(pygame.Surface((10, 10))),
+    ],
+    ids=["box", "circle", "text", "button", "image"],
+)
+def test_a_negative_size_shows_nothing_instead_of_crashing(make):
+    # Shrinking a sprite every frame without a floor is a classic. The old
+    # scaling code silently left a one-pixel dot; pygame's scale_by refuses a
+    # negative factor outright, so the factor is clamped before it gets there.
+    sprite = make()
+    sprite.size = -10
+    sprite.update()
+    assert sprite.image.get_size() == (0, 0)
+
+
+def test_a_negative_size_at_construction_is_forgiven_too():
+    assert play.new_circle(radius=20, size=-5).image.get_size() == (0, 0)
+    assert play.new_box(width=40, height=20, size=-5).image.get_size() == (0, 0)
 
 
 def test_dropdown_index_past_the_end_is_clamped():

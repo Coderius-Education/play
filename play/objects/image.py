@@ -32,7 +32,9 @@ class Image(Sprite):
 
     def _render(self):
         """Scale, rotate, and alpha-blend the source image."""
-        draw_image = pygame.transform.scale_by(self._source_image, self._size / 100)
+        draw_image = pygame.transform.scale_by(
+            self._source_image, max(self._size, 0) / 100
+        )
         angle_deg = _math.degrees(self.physics._pymunk_body.angle)
         draw_image = pygame.transform.rotate(draw_image, angle_deg)
         draw_image.set_alpha(round(self._transparency * 255 / 100))
