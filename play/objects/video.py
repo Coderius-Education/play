@@ -611,12 +611,9 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
 
         :return: An ``(x, y)`` pixel position, which may be outside the video.
         """
-        dx = mouse.x - self.x
-        dy = mouse.y - self.y
-        radians = _math.radians(-self.angle)
-        cos_a, sin_a = _math.cos(radians), _math.sin(radians)
-        rx = dx * cos_a - dy * sin_a
-        ry = dx * sin_a + dy * cos_a
+        rx, ry = pygame.math.Vector2(mouse.x - self.x, mouse.y - self.y).rotate(
+            -self.angle
+        )
         factor = (self._size or 100) / 100
         if factor == 0:
             return -1, -1

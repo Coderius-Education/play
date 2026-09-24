@@ -27,43 +27,6 @@ def run_once(f):
     return wrapper
 
 
-def clamp(num, min_, max_):
-    """Clamp a number between a minimum and maximum value."""
-    if num < min_:
-        return min_
-    if num > max_:
-        return max_
-    return num
-
-
-class _Position:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def __getitem__(self, indices):
-        if indices == 0:
-            return self.x
-        if indices == 1:
-            return self.y
-        raise IndexError()
-
-    def __iter__(self):
-        yield self.x
-        yield self.y
-
-    def __len__(self):
-        return 2
-
-    def __setitem__(self, i, value):
-        if i == 0:
-            self.x = value
-        elif i == 1:
-            self.y = value
-        else:
-            raise IndexError()
-
-
 def color_name_to_rgb(
     name: str, transparency: int = 255
 ) -> tuple[int, int, int, int] | tuple | str:
@@ -86,12 +49,8 @@ def color_name_to_rgb(
     if stripped.startswith("#") and len(stripped) == 4:
         stripped = "#" + stripped[1] * 2 + stripped[2] * 2 + stripped[3] * 2
 
-    # Normalize color names: "light blue", "light-blue", "lightBlue" -> "lightblue"
-    color_str = (
-        stripped
-        if stripped.startswith("#")
-        else stripped.lower().replace("-", "").replace(" ", "")
-    )
+    # pygame.Color already ignores case and spaces; only "light-blue" needs help.
+    color_str = stripped if stripped.startswith("#") else stripped.replace("-", "")
 
     try:
         c = pygame.Color(color_str)

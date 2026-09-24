@@ -12,7 +12,7 @@ from ..callback.collision_callbacks import collision_registry
 from ..globals import globals_list
 from ..io.screen import screen, convert_pos
 from ..physics import physics_space, Physics as _Physics
-from ..utils import clamp as _clamp, is_called_from_pygame
+from ..utils import is_called_from_pygame
 from .components import EventComponent
 
 
@@ -300,7 +300,7 @@ You might want to look in your code where you're setting transparency and make s
                 UserWarning,
             )
 
-        self._transparency = _clamp(alpha, 0, 100)
+        self._transparency = pygame.math.clamp(alpha, 0, 100)
 
     @property
     def image(self):
@@ -433,10 +433,7 @@ You might want to look in your code where you're setting transparency and make s
             x1 = x
             y1 = y
 
-        dx = self.x - x1
-        dy = self.y - y1
-
-        return _math.sqrt(dx**2 + dy**2)
+        return _math.dist((self.x, self.y), (x1, y1))
 
     def info(self):
         """Print a short summary of this sprite."""

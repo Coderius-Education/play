@@ -6,33 +6,7 @@ import re
 
 from hypothesis import assume, given, strategies as st
 
-from play.utils import clamp, color_name_to_rgb
-
-
-@given(
-    num=st.floats(allow_nan=False, allow_infinity=False),
-    min_=st.floats(allow_nan=False, allow_infinity=False),
-    max_=st.floats(allow_nan=False, allow_infinity=False),
-)
-def test_clamp_properties(num, min_, max_):
-    """
-    Test properties of the clamp function.
-    """
-    # Ensure min_ is less than or equal to max_ for proper clamping logic
-    if min_ > max_:
-        min_, max_ = max_, min_
-
-    result = clamp(num, min_, max_)
-
-    # 1. Result should be within bounds
-    assert min_ <= result <= max_
-
-    # 2. Idempotence: clamping twice should yield the same result
-    assert clamp(result, min_, max_) == result
-
-    # 3. If num is within bounds, it should remain unchanged
-    if min_ <= num <= max_:
-        assert result == num
+from play.utils import color_name_to_rgb
 
 
 @given(

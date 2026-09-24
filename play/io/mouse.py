@@ -93,10 +93,7 @@ class Mouse:
         :return: The distance from the mouse to the point."""
         assert x is not None and y is not None, "x and y must not be None"
 
-        dx = self.x - x
-        dy = self.y - y
-
-        return _math.sqrt(dx**2 + dy**2)
+        return _math.dist((self.x, self.y), (x, y))
 
 
 mouse = Mouse()

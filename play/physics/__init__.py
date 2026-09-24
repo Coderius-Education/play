@@ -3,10 +3,10 @@
 import math as _math
 from dataclasses import dataclass
 
+import pygame
 import pymunk as _pymunk
 
 from ..globals import globals_list
-from ..utils import clamp as _clamp
 
 
 class Physics:
@@ -110,7 +110,7 @@ class Physics:
                 self._pymunk_body, (effective_w, effective_h)
             )
 
-        self._pymunk_shape.elasticity = _clamp(self.bounciness, 0, 0.9999)
+        self._pymunk_shape.elasticity = pygame.math.clamp(self.bounciness, 0, 0.9999)
         self._pymunk_shape.friction = self._friction
         self._pymunk_shape.sensor = self._sensor
 
@@ -205,7 +205,7 @@ class Physics:
     @bounciness.setter
     def bounciness(self, _bounciness):
         self._bounciness = _bounciness
-        self._pymunk_shape.elasticity = _clamp(self._bounciness, 0, 0.9999)
+        self._pymunk_shape.elasticity = pygame.math.clamp(self._bounciness, 0, 0.9999)
 
     @property
     def stable(self):
