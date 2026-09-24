@@ -132,8 +132,9 @@ def test_value_outside_the_range_is_clamped_not_rejected():
 )
 def test_a_negative_size_shows_nothing_instead_of_crashing(make):
     # Shrinking a sprite every frame without a floor is a classic. The old
-    # scaling code silently left a one-pixel dot; pygame's scale_by refuses a
-    # negative factor outright, so the factor is clamped before it gets there.
+    # scaling code silently left a one-pixel dot for any size, negative
+    # included; now only a positive size keeps that floor and zero or less
+    # shows nothing, without ever asking pygame for a negative surface.
     sprite = make()
     sprite.size = -10
     sprite.update()

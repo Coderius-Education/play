@@ -65,3 +65,11 @@ def test_a_scaled_circle_keeps_an_even_diameter():
     odd = play.new_circle(radius=21, size=50)
     odd.update()
     assert odd.image.get_size() == (20, 20)
+
+
+def test_a_tiny_but_positive_circle_is_still_a_dot():
+    # Only size <= 0 means "nothing": a radius that rounds to zero is floored
+    # at one, so the circle stays a 2x2 dot rather than vanishing.
+    tiny = play.new_circle(radius=20, size=1)
+    tiny.update()
+    assert tiny.image.get_size() == (2, 2)

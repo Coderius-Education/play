@@ -178,3 +178,16 @@ def test_scale_to_percent_of_zero_or_less_is_empty():
     surface = pygame.Surface((64, 48))
     assert scale_to_percent(surface, 0).get_size() == (0, 0)
     assert scale_to_percent(surface, -10).get_size() == (0, 0)
+
+
+def test_scale_to_percent_keeps_a_positive_size_at_least_one_pixel():
+    """Only size <= 0 means "nothing". A tiny positive size still shows a dot,
+    as it always has, and never a lopsided 1x0 surface (1% of 64x48 rounds to
+    (1, 0) without the floor)."""
+    import pygame
+    from play.utils import scale_to_percent
+
+    surface = pygame.Surface((64, 48))
+    assert scale_to_percent(surface, 1).get_size() == (1, 1)
+    assert scale_to_percent(surface, 0.4).get_size() == (1, 1)
+    assert scale_to_percent(surface, 2).get_size() == (1, 1)

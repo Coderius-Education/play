@@ -93,13 +93,19 @@ def scale_to_percent(surface, size):
     """Scale *surface* to *size* percent of itself, rounding each side.
 
     Not transform.scale_by: that truncates, and moved almost half of all
-    scaled sprites by a pixel when it was tried. Zero or less gives an
-    empty surface.
+    scaled sprites by a pixel when it was tried. A positive size never
+    drops below one pixel a side, as play always had it; zero or less
+    gives an empty surface.
     """
-    factor = max(size, 0) / 100
+    if size <= 0:
+        return pygame.Surface((0, 0), pygame.SRCALPHA)
+    factor = size / 100
     return pygame.transform.scale(
         surface,
-        (round(surface.get_width() * factor), round(surface.get_height() * factor)),
+        (
+            max(round(surface.get_width() * factor), 1),
+            max(round(surface.get_height() * factor), 1),
+        ),
     )
 
 
