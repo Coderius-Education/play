@@ -68,14 +68,20 @@ class Tooltip(Sprite):
         self.hide()
         self.update()
 
+    def _render_label(self):
+        """Render the text in one go; pygame lays out any newlines itself."""
+        return _render_text(
+            self._tooltip_font,
+            self._tooltip_text,
+            True,
+            _color_name_to_rgb(self._text_color),
+        )
+
     def _bubble_size(self):
         """Return the (width, height) of the tooltip bubble for the current text."""
-        font = self._tooltip_font
-        lines = self._tooltip_text.split("\n")
-        text_w = max((font.size(ln)[0] for ln in lines), default=0)
-        text_h = font.get_height() * len(lines) + max(0, len(lines) - 1) * 2
+        label = self._render_label()
         p = self._padding
-        return max(1, text_w + 2 * p), max(1, text_h + 2 * p)
+        return max(1, label.get_width() + 2 * p), max(1, label.get_height() + 2 * p)
 
     def update(self):
         """Show/hide based on whether the mouse is over the target."""
@@ -109,18 +115,10 @@ class Tooltip(Sprite):
 
     def _render(self):
         """Render the tooltip bubble."""
-        font = self._tooltip_font
-        lines = self._tooltip_text.split("\n")
-        rendered = [
-            _render_text(font, ln, True, _color_name_to_rgb(self._text_color))
-            for ln in lines
-        ]
-
-        text_w = max(s.get_width() for s in rendered) if rendered else 0
-        text_h = sum(s.get_height() for s in rendered) + max(0, len(rendered) - 1) * 2
+        label = self._render_label()
         p = self._padding
-        w = text_w + 2 * p
-        h = text_h + 2 * p
+        w = label.get_width() + 2 * p
+        h = label.get_height() + 2 * p
 
         draw_image = pygame.Surface((w, h), pygame.SRCALPHA)
         pygame.draw.rect(
@@ -137,10 +135,7 @@ class Tooltip(Sprite):
             border_radius=self._border_radius,
         )
 
-        y = p
-        for surf in rendered:
-            draw_image.blit(surf, (p, y))
-            y += surf.get_height() + 2
+        draw_image.blit(label, (p, p))
 
         draw_image.set_alpha(round(self._transparency * 255 / 100))
 

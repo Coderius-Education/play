@@ -123,6 +123,9 @@ def test_tooltip_multiline_taller_than_single_line():
     single.update()
     multi.update()
     assert multi.image.get_height() > single.image.get_height()
+    # The hit-rect and the drawn bubble come from the same rendered label, so
+    # the physics shape can never be a different size from what is on screen.
+    assert multi._bubble_size() == multi.image.get_size()
 
 
 def test_tooltip_alive():
