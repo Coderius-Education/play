@@ -54,9 +54,7 @@ class Text(Sprite):
             self._pygame_font, self._words, True, _color_name_to_rgb(self._color)
         )
         if self._size != 100:
-            new_w = max(round(draw_image.get_width() * self._size / 100), 1)
-            new_h = max(round(draw_image.get_height() * self._size / 100), 1)
-            draw_image = pygame.transform.scale(draw_image, (new_w, new_h))
+            draw_image = pygame.transform.scale_by(draw_image, self._size / 100)
         if hasattr(self, "physics") and self.physics is not None:
             angle_deg = _math.degrees(self.physics._pymunk_body.angle)
         else:

@@ -71,9 +71,7 @@ class Box(Sprite):
         )
 
         if self._size != 100:
-            new_w = max(round(self._width * self._size / 100), 1)
-            new_h = max(round(self._height * self._size / 100), 1)
-            draw_image = pygame.transform.scale(draw_image, (new_w, new_h))
+            draw_image = pygame.transform.scale_by(draw_image, self._size / 100)
 
         draw_image.set_alpha(round(self._transparency * 255 / 100))
 

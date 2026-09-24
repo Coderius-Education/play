@@ -22,8 +22,6 @@ class Image(Sprite):
             self._image_filename = None
             self._source_image = image
 
-        self._original_width = self._source_image.get_width()
-        self._original_height = self._source_image.get_height()
         self._angle = angle
         self._size = size
         self._transparency = transparency
@@ -34,13 +32,7 @@ class Image(Sprite):
 
     def _render(self):
         """Scale, rotate, and alpha-blend the source image."""
-        draw_image = pygame.transform.scale(
-            self._source_image,
-            (
-                max(round(self._original_width * self._size / 100), 1),
-                max(round(self._original_height * self._size / 100), 1),
-            ),
-        )
+        draw_image = pygame.transform.scale_by(self._source_image, self._size / 100)
         angle_deg = _math.degrees(self.physics._pymunk_body.angle)
         draw_image = pygame.transform.rotate(draw_image, angle_deg)
         draw_image.set_alpha(round(self._transparency * 255 / 100))
@@ -66,7 +58,5 @@ class Image(Sprite):
             raise FileNotFoundError(f"Image file '{image}' not found.")
         self._image_filename = image
         self._source_image = pygame.image.load(image)
-        self._original_width = self._source_image.get_width()
-        self._original_height = self._source_image.get_height()
         self._should_recompute = True
         self.update()

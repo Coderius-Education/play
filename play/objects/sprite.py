@@ -560,13 +560,7 @@ You might want to look in your code where you're setting transparency and make s
         # has to scale with it or clicks land off the visible widget.
         size = getattr(self, "_size", 100)
         if size != 100:
-            draw_image = pygame.transform.scale(
-                draw_image,
-                (
-                    max(round(draw_image.get_width() * size / 100), 1),
-                    max(round(draw_image.get_height() * size / 100), 1),
-                ),
-            )
+            draw_image = pygame.transform.scale_by(draw_image, size / 100)
         draw_image.set_alpha(round(self._transparency * 255 / 100))
         self.rect = draw_image.get_rect()
         pos = convert_pos(self.x, self.y)
