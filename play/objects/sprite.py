@@ -341,8 +341,7 @@ You might want to look in your code where you're setting transparency and make s
         # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._should_recompute = True
         self._size = percent
-        self.physics._remove()
-        self.physics._make_pymunk()
+        self.physics._resize_shape()
 
     def hide(self):
         """Hide the sprite."""
