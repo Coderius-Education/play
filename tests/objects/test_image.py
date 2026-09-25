@@ -27,8 +27,8 @@ def test_image_initialization_valid_file(mock_image_file):
     assert img.angle == 45
     assert img.size == 50
     assert img.transparency == 80
-    assert img._original_width == 50
-    assert img._original_height == 50
+    assert img._source_image.get_width() == 50
+    assert img._source_image.get_height() == 50
     assert img.image is not None
 
 
@@ -40,7 +40,7 @@ def test_image_initialization_invalid_file():
 def test_image_initialization_surface():
     surface = pygame.Surface((10, 10))
     img = Image(surface)
-    assert img._original_width == 10
+    assert img._source_image.get_width() == 10
     assert img.image is not None
 
 
@@ -53,7 +53,7 @@ def test_image_filename_setter(mock_image_file, tmp_path):
     pygame.image.save(new_surface, str(new_path))
 
     img.image_filename = str(new_path)
-    assert img._original_width == 30
+    assert img._source_image.get_width() == 30
     assert img.image_filename == str(new_path)
 
     # Test setting invalid file
@@ -75,4 +75,4 @@ def test_image_update_transformations(mock_image_file):
     assert img.rect.width == 100
     assert img.rect.height == 100
     # Original image width should remain unmodified
-    assert img._original_width == 50
+    assert img._source_image.get_width() == 50

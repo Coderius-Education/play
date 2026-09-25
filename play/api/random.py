@@ -2,8 +2,9 @@
 
 import random as _random
 
+import pygame
+
 from ..io.screen import screen
-from ..utils import _Position
 
 
 def random_number(lowest=0, highest=100):
@@ -33,7 +34,7 @@ def random_position(x_min=None, x_max=None, y_min=None, y_max=None):
         sprite.y = position.y
 
     Or equivalently:
-        sprite.go_to(play.random_position())
+        sprite.x, sprite.y = play.random_position()
     """
     if x_min is None:
         x_min = screen.left
@@ -43,7 +44,7 @@ def random_position(x_min=None, x_max=None, y_min=None, y_max=None):
         y_min = screen.bottom
     if y_max is None:
         y_max = screen.top
-    return _Position(
+    return pygame.math.Vector2(
         random_number(x_min, x_max),
         random_number(y_min, y_max),
     )

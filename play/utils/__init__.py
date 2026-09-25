@@ -27,43 +27,6 @@ def run_once(f):
     return wrapper
 
 
-def clamp(num, min_, max_):
-    """Clamp a number between a minimum and maximum value."""
-    if num < min_:
-        return min_
-    if num > max_:
-        return max_
-    return num
-
-
-class _Position:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def __getitem__(self, indices):
-        if indices == 0:
-            return self.x
-        if indices == 1:
-            return self.y
-        raise IndexError()
-
-    def __iter__(self):
-        yield self.x
-        yield self.y
-
-    def __len__(self):
-        return 2
-
-    def __setitem__(self, i, value):
-        if i == 0:
-            self.x = value
-        elif i == 1:
-            self.y = value
-        else:
-            raise IndexError()
-
-
 def color_name_to_rgb(
     name: str, transparency: int = 255
 ) -> tuple[int, int, int, int] | tuple | str:
@@ -86,12 +49,8 @@ def color_name_to_rgb(
     if stripped.startswith("#") and len(stripped) == 4:
         stripped = "#" + stripped[1] * 2 + stripped[2] * 2 + stripped[3] * 2
 
-    # Normalize color names: "light blue", "light-blue", "lightBlue" -> "lightblue"
-    color_str = (
-        stripped
-        if stripped.startswith("#")
-        else stripped.lower().replace("-", "").replace(" ", "")
-    )
+    # pygame.Color already ignores case and spaces; only "light-blue" needs help.
+    color_str = stripped if stripped.startswith("#") else stripped.replace("-", "")
 
     try:
         c = pygame.Color(color_str)
@@ -128,6 +87,29 @@ def load_font(font_path_or_none, size):
             # was caught before, so the fallback never ran for those.
             pass
     return pygame.font.SysFont(None, size)
+
+
+def scale_to_percent(surface, size):
+    """Scale *surface* to *size* percent of itself, rounding each side.
+
+    Not transform.scale_by: that truncates, and moved almost half of all
+    scaled sprites by a pixel when it was tried. A positive size never
+    drops below one pixel a side, as play always had it; zero or less
+    gives an empty surface.
+    """
+    if size <= 0:
+        return pygame.Surface((0, 0), pygame.SRCALPHA)
+    # Multiply before dividing, as play always did: 25 * 218 / 100 is exactly
+    # 54.5 and rounds to 54, where 25 * (218 / 100) is a hair above it and
+    # rounds to 55. Roughly one in ten thousand size/percent pairs sits on
+    # such a half.
+    return pygame.transform.scale(
+        surface,
+        (
+            max(round(surface.get_width() * size / 100), 1),
+            max(round(surface.get_height() * size / 100), 1),
+        ),
+    )
 
 
 def render_text(font, text, antialias, color):

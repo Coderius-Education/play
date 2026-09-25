@@ -16,6 +16,7 @@ from ..callback.callback_helpers import run_async_callback
 from ..io.logging import play_logger as logger
 from ..io.mouse import mouse
 from ..io.screen import convert_pos
+from ..utils import scale_to_percent as _scale_to_percent
 from ..utils.async_helpers import make_async
 
 # Videos hold a decoding thread and an open file, so they need closing even when
@@ -611,12 +612,9 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
 
         :return: An ``(x, y)`` pixel position, which may be outside the video.
         """
-        dx = mouse.x - self.x
-        dy = mouse.y - self.y
-        radians = _math.radians(-self.angle)
-        cos_a, sin_a = _math.cos(radians), _math.sin(radians)
-        rx = dx * cos_a - dy * sin_a
-        ry = dx * sin_a + dy * cos_a
+        rx, ry = pygame.math.Vector2(mouse.x - self.x, mouse.y - self.y).rotate(
+            -self.angle
+        )
         factor = (self._size or 100) / 100
         if factor == 0:
             return -1, -1
@@ -790,9 +788,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
             )
 
         if self._size != 100:
-            new_w = max(round(self._width * self._size / 100), 1)
-            new_h = max(round(self._height * self._size / 100), 1)
-            draw_image = pygame.transform.scale(draw_image, (new_w, new_h))
+            draw_image = _scale_to_percent(draw_image, self._size)
 
         draw_image.set_alpha(round(self._transparency * 255 / 100))
 

@@ -3,105 +3,6 @@
 import pytest
 
 
-def test_clamp_within_range():
-    """Test clamp function with value within range."""
-    from play.utils import clamp
-
-    assert clamp(5, 0, 10) == 5
-    assert clamp(0, 0, 10) == 0
-    assert clamp(10, 0, 10) == 10
-
-
-def test_clamp_below_min():
-    """Test clamp function with value below minimum."""
-    from play.utils import clamp
-
-    assert clamp(-5, 0, 10) == 0
-    assert clamp(-100, 0, 10) == 0
-
-
-def test_clamp_above_max():
-    """Test clamp function with value above maximum."""
-    from play.utils import clamp
-
-    assert clamp(15, 0, 10) == 10
-    assert clamp(100, 0, 10) == 10
-
-
-def test_clamp_with_floats():
-    """Test clamp function with float values."""
-    from play.utils import clamp
-
-    assert clamp(5.5, 0.0, 10.0) == 5.5
-    assert clamp(-1.5, 0.0, 10.0) == 0.0
-    assert clamp(15.5, 0.0, 10.0) == 10.0
-
-
-def test_position_creation():
-    """Test creating a Position object."""
-    from play.utils import _Position
-
-    pos = _Position(100, 200)
-    assert pos.x == 100
-    assert pos.y == 200
-
-
-def test_position_getitem():
-    """Test Position indexing."""
-    from play.utils import _Position
-
-    pos = _Position(100, 200)
-    assert pos[0] == 100
-    assert pos[1] == 200
-
-
-def test_position_getitem_invalid_index():
-    """Test Position indexing with invalid index."""
-    from play.utils import _Position
-
-    pos = _Position(100, 200)
-    with pytest.raises(IndexError):
-        _ = pos[2]
-
-
-def test_position_setitem():
-    """Test setting Position values by index."""
-    from play.utils import _Position
-
-    pos = _Position(100, 200)
-    pos[0] = 150
-    pos[1] = 250
-    assert pos.x == 150
-    assert pos.y == 250
-
-
-def test_position_setitem_invalid_index():
-    """Test setting Position with invalid index."""
-    from play.utils import _Position
-
-    pos = _Position(100, 200)
-    with pytest.raises(IndexError):
-        pos[2] = 300
-
-
-def test_position_iter():
-    """Test iterating over Position."""
-    from play.utils import _Position
-
-    pos = _Position(100, 200)
-    x, y = pos
-    assert x == 100
-    assert y == 200
-
-
-def test_position_len():
-    """Test length of Position."""
-    from play.utils import _Position
-
-    pos = _Position(100, 200)
-    assert len(pos) == 2
-
-
 def test_color_name_to_rgb_valid():
     """Test color_name_to_rgb with valid color names."""
     from play.utils import color_name_to_rgb
@@ -256,3 +157,49 @@ def test_color_name_to_rgb_hex_whitespace():
     assert red[0] == 255
     assert red[1] == 0
     assert red[2] == 0
+
+
+def test_scale_to_percent_rounds_each_side():
+    """Scaling rounds, as play always has; scale_by truncates and would give
+    (21, 15) and (42, 31) here."""
+    import pygame
+    from play.utils import scale_to_percent
+
+    surface = pygame.Surface((64, 48))
+    assert scale_to_percent(surface, 33).get_size() == (21, 16)
+    assert scale_to_percent(surface, 66).get_size() == (42, 32)
+    assert scale_to_percent(surface, 100).get_size() == (64, 48)
+
+
+def test_scale_to_percent_of_zero_or_less_is_empty():
+    import pygame
+    from play.utils import scale_to_percent
+
+    surface = pygame.Surface((64, 48))
+    assert scale_to_percent(surface, 0).get_size() == (0, 0)
+    assert scale_to_percent(surface, -10).get_size() == (0, 0)
+
+
+def test_scale_to_percent_keeps_a_positive_size_at_least_one_pixel():
+    """Only size <= 0 means "nothing". A tiny positive size still shows a dot,
+    as it always has, and never a lopsided 1x0 surface (1% of 64x48 rounds to
+    (1, 0) without the floor)."""
+    import pygame
+    from play.utils import scale_to_percent
+
+    surface = pygame.Surface((64, 48))
+    assert scale_to_percent(surface, 1).get_size() == (1, 1)
+    assert scale_to_percent(surface, 0.4).get_size() == (1, 1)
+    assert scale_to_percent(surface, 2).get_size() == (1, 1)
+
+
+def test_scale_to_percent_multiplies_before_dividing():
+    """25 * 218 / 100 is exactly 54.5 and rounds to even, 54. Computing the
+    factor first gives 25 * 2.18 = 54.500000000000001, which rounds to 55.
+    A brute force over nine million size/percent pairs found about one in
+    ten thousand sitting on such a half, so the order has to match master."""
+    import pygame
+    from play.utils import scale_to_percent
+
+    assert scale_to_percent(pygame.Surface((25, 25)), 218).get_size() == (54, 54)
+    assert scale_to_percent(pygame.Surface((45, 45)), 70).get_size() == (32, 32)

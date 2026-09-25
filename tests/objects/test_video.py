@@ -328,6 +328,12 @@ def test_update_can_run_many_times_per_frame(video_file, fake_clock):
     assert video._should_recompute is False
 
 
+def test_a_negative_size_shows_nothing_instead_of_crashing(video_file, fake_clock):
+    video = make_video(video_file, fake_clock, size=-10)
+    video.update()
+    assert video.image.get_size() == (0, 0)
+
+
 def test_size_and_angle_are_applied(video_file, fake_clock):
     video = make_video(video_file, fake_clock, size=50)
     video.update()
