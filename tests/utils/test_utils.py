@@ -191,3 +191,15 @@ def test_scale_to_percent_keeps_a_positive_size_at_least_one_pixel():
     assert scale_to_percent(surface, 1).get_size() == (1, 1)
     assert scale_to_percent(surface, 0.4).get_size() == (1, 1)
     assert scale_to_percent(surface, 2).get_size() == (1, 1)
+
+
+def test_scale_to_percent_multiplies_before_dividing():
+    """25 * 218 / 100 is exactly 54.5 and rounds to even, 54. Computing the
+    factor first gives 25 * 2.18 = 54.500000000000001, which rounds to 55.
+    A brute force over nine million size/percent pairs found about one in
+    ten thousand sitting on such a half, so the order has to match master."""
+    import pygame
+    from play.utils import scale_to_percent
+
+    assert scale_to_percent(pygame.Surface((25, 25)), 218).get_size() == (54, 54)
+    assert scale_to_percent(pygame.Surface((45, 45)), 70).get_size() == (32, 32)

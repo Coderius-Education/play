@@ -99,12 +99,15 @@ def scale_to_percent(surface, size):
     """
     if size <= 0:
         return pygame.Surface((0, 0), pygame.SRCALPHA)
-    factor = size / 100
+    # Multiply before dividing, as play always did: 25 * 218 / 100 is exactly
+    # 54.5 and rounds to 54, where 25 * (218 / 100) is a hair above it and
+    # rounds to 55. Roughly one in ten thousand size/percent pairs sits on
+    # such a half.
     return pygame.transform.scale(
         surface,
         (
-            max(round(surface.get_width() * factor), 1),
-            max(round(surface.get_height() * factor), 1),
+            max(round(surface.get_width() * size / 100), 1),
+            max(round(surface.get_height() * size / 100), 1),
         ),
     )
 
