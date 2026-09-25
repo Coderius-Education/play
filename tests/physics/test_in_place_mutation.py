@@ -67,6 +67,10 @@ def test_a_box_width_change_reshapes_the_hit_box():
 
     assert box.physics._pymunk_shape is shape
     assert shape.bb == pymunk.BB(-40, -10, 40, 10)
+    # Same corners in the same order as a freshly built box, so nothing that
+    # walks the vertices can tell the difference.
+    fresh = pymunk.Poly.create_box(box.physics._pymunk_body, (80, 20))
+    assert shape.get_vertices() == fresh.get_vertices()
 
 
 def test_the_space_sees_the_new_size():
@@ -91,6 +95,9 @@ def test_resizing_a_hidden_sprite_stays_out_of_the_space():
     box.size = 50
 
     assert body not in physics_space.bodies
+    # Out of the space nothing recomputes the bounding box, so the shape has
+    # to cache it itself or .bb keeps reporting the old size until show().
+    assert box.physics._pymunk_shape.bb == pymunk.BB(-10, -5, 10, 5)
     box.show()
     assert body in physics_space.bodies
     assert box.physics._pymunk_shape.bb == pymunk.BB(-10, -5, 10, 5)
