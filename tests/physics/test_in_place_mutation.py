@@ -153,10 +153,14 @@ def test_stable_without_gravity_becomes_kinematic_in_place():
     box.physics.stable = True
     assert box.physics._pymunk_body is body
     assert body.body_type == pymunk.Body.KINEMATIC
+    assert body.mass == float("inf")
+    assert body.moment == float("inf")
 
+    # pymunk zeroes both on the way back to dynamic; both have to be set again.
     box.physics.stable = False
     assert body.body_type == pymunk.Body.DYNAMIC
     assert body.mass == 10
+    assert body.moment == pytest.approx(pymunk.moment_for_box(10, (100, 200)))
 
 
 def test_collision_bookkeeping_needs_no_copying():
