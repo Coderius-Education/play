@@ -207,6 +207,29 @@ def test_nothing_leaks_across_many_changes():
     assert (len(physics_space.bodies), len(physics_space.shapes)) == (bodies, shapes)
 
 
+def test_a_sprite_that_shrinks_every_frame_keeps_falling():
+    # The loop writes the body's velocity back into the stored speeds after
+    # every step, so reshaping in place and the old rebuild, which reset the
+    # velocity to those speeds, follow the same path: measured identical to
+    # master over 120 frames. What must never come back is a reset to the
+    # speeds the student set at the start, which would freeze a falling sprite.
+    from play.core.sprites_loop import update_sprite_physics
+
+    box = play.new_box(x=0, y=250, width=40, height=40)
+    box.start_physics(can_move=True, stable=False, obeys_gravity=True, x_speed=20)
+
+    for frame in range(120):
+        physics_space.step(1 / 60)
+        update_sprite_physics(box)
+        box.size = 100 - frame * 0.5
+        if frame % 2 == 0:
+            box.physics.stable = frame % 4 == 0
+
+    assert box.physics._pymunk_body.velocity.y == pytest.approx(-200)
+    assert box.y == pytest.approx(250 - 198.33, abs=0.1)
+    assert box.x == pytest.approx(40)
+
+
 # ── walls ─────────────────────────────────────────────────────────────────────
 
 
