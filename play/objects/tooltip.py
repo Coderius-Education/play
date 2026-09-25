@@ -162,8 +162,7 @@ class Tooltip(Sprite):
         self._tooltip_text = v
         bw, bh = self._bubble_size()
         self.rect = pygame.Rect(self.rect.x, self.rect.y, bw, bh)
-        self.physics._remove()
-        self.physics._make_pymunk()
+        self.physics._resize_shape()
         self._should_recompute = True
 
     @property

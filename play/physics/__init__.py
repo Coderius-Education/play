@@ -67,31 +67,36 @@ class Physics:
             return _pymunk.Body.KINEMATIC
         return _pymunk.Body.DYNAMIC
 
-    def _make_pymunk(self):
-        # Save collision attributes so the collision registry stays valid
-        prev_shape = getattr(self, "_pymunk_shape", None)
-        collision_type = prev_shape.collision_type if prev_shape else None
-        collision_id = getattr(prev_shape, "collision_id", None) if prev_shape else None
+    def _hit_dims(self):
+        """Ask the sprite for its hit-shape as ``(radius, width, height)``.
 
+        Box, Circle and Video scale their logical size by ``size``; other
+        sprites fall back to the current rect. A positive radius means a
+        circular shape.
+        """
+        return self.sprite._hit_dims((self.sprite._size or 100) / 100)
+
+    def _moment(self, is_circle, radius, width, height):
         mass = self.mass if self.can_move else 0
-        size_factor = (self.sprite._size or 100) / 100
-
-        # The sprite tells us its hit-shape dimensions (Box/Circle scale by size;
-        # other sprites fall back to the current rect). A positive radius means a
-        # circular shape.
-        effective_radius, effective_w, effective_h = self.sprite._hit_dims(size_factor)
-        is_circle = effective_radius > 0
-
         if self.stable:
-            moment = float("inf")
-        elif is_circle:
-            moment = _pymunk.moment_for_circle(mass, 0, effective_radius, (0, 0))
-        else:
-            moment = _pymunk.moment_for_box(mass, (effective_w, effective_h))
+            return float("inf")
+        if is_circle:
+            return _pymunk.moment_for_circle(mass, 0, radius, (0, 0))
+        return _pymunk.moment_for_box(mass, (width, height))
 
-        body_type = self._compute_body_type()
+    def _make_pymunk(self):
+        """Build the body and shape once, at construction. Later changes to the
+        sprite's size or physics settings are applied in place by
+        :meth:`_resize_shape` and :meth:`_retype_body`."""
+        radius, width, height = self._hit_dims()
+        is_circle = radius > 0
+        mass = self.mass if self.can_move else 0
 
-        self._pymunk_body = _pymunk.Body(mass, moment, body_type=body_type)
+        self._pymunk_body = _pymunk.Body(
+            mass,
+            self._moment(is_circle, radius, width, height),
+            body_type=self._compute_body_type(),
+        )
         self._pymunk_body.position = self.sprite.x, self.sprite.y
         self._pymunk_body.angle = _math.radians(self.sprite.angle)
 
@@ -102,25 +107,59 @@ class Physics:
             self._pymunk_body.velocity_func = lambda body, gravity, damping, dt: None
 
         if is_circle:
-            self._pymunk_shape = _pymunk.Circle(
-                self._pymunk_body, effective_radius, (0, 0)
-            )
+            self._pymunk_shape = _pymunk.Circle(self._pymunk_body, radius, (0, 0))
         else:
             self._pymunk_shape = _pymunk.Poly.create_box(
-                self._pymunk_body, (effective_w, effective_h)
+                self._pymunk_body, (width, height)
             )
 
         self._pymunk_shape.elasticity = pygame.math.clamp(self.bounciness, 0, 0.9999)
         self._pymunk_shape.friction = self._friction
         self._pymunk_shape.sensor = self._sensor
 
-        # Restore collision attributes so collision callbacks keep working
-        if collision_type is not None:
-            self._pymunk_shape.collision_type = collision_type
-            self._pymunk_shape.collision_id = collision_id
-
         if not self._is_paused:
             physics_space.add(self._pymunk_body, self._pymunk_shape)
+
+    def _resize_shape(self):
+        """Fit the shape to the sprite's current hit dimensions, in place.
+
+        The body and shape objects survive, so their collision_type, sensor
+        flag and place in the collision registry need no bookkeeping. pymunk
+        calls these setters unsafe because a shape that grows into another
+        does not push it away as a moving one would; that is exactly what a
+        rebuilt shape did too.
+        """
+        radius, width, height = self._hit_dims()
+        shape = self._pymunk_shape
+        is_circle = isinstance(shape, _pymunk.Circle)
+        if is_circle:
+            radius = max(radius, 0)  # a negative size means "nothing", not a hole
+            shape.unsafe_set_radius(radius)
+        else:
+            shape.unsafe_set_vertices(_box_vertices(width, height))
+        shape.cache_bb()
+        if not self._is_paused:
+            physics_space.reindex_shape(shape)
+        moment = self._moment(is_circle, radius, width, height)
+        # pymunk refuses a zero moment on a dynamic body in a space, so a
+        # sprite shrunk to nothing keeps the moment it had.
+        if self._pymunk_body.body_type == _pymunk.Body.DYNAMIC and moment > 0:
+            self._pymunk_body.moment = moment
+
+    def _retype_body(self):
+        """Give the body the type its settings call for, in place.
+
+        pymunk zeroes the mass and moment of a body that becomes dynamic, so
+        both are set again afterwards; static and kinematic bodies take
+        neither (Chipmunk aborts the process rather than raise on it).
+        """
+        body = self._pymunk_body
+        body.body_type = self._compute_body_type()
+        if body.body_type == _pymunk.Body.DYNAMIC and self._mass > 0:
+            body.mass = self._mass
+        self._resize_shape()
+        if self.can_move:
+            body.velocity = (self._x_speed, self._y_speed)
 
     def clone(self, sprite):
         """
@@ -171,8 +210,7 @@ class Physics:
         prev_can_move = self._can_move
         self._can_move = _can_move
         if prev_can_move != _can_move:
-            self._remove()
-            self._make_pymunk()
+            self._retype_body()
 
     @property
     def x_speed(self):
@@ -218,8 +256,7 @@ class Physics:
         prev_stable = self._stable
         self._stable = _stable
         if self._stable != prev_stable:
-            self._remove()
-            self._make_pymunk()
+            self._retype_body()
 
     @property
     def mass(self):
@@ -258,6 +295,12 @@ class Physics:
             self._pymunk_body.velocity_func = _pymunk.Body.update_velocity
         else:
             self._pymunk_body.velocity_func = lambda body, gravity, damping, dt: None
+
+
+def _box_vertices(width, height):
+    """The corners of a centred box, in the order Poly.create_box uses."""
+    half_w, half_h = width / 2, height / 2
+    return [(half_w, -half_h), (half_w, half_h), (-half_w, half_h), (-half_w, -half_h)]
 
 
 @dataclass
