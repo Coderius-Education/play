@@ -77,7 +77,7 @@ class Physics:
         return self.sprite._hit_dims((self.sprite._size or 100) / 100)
 
     def _moment(self, is_circle, radius, width, height):
-        mass = self.mass if self.can_move else 0
+        mass = self._mass if self.can_move else 0
         if self.stable:
             return float("inf")
         if is_circle:
@@ -90,7 +90,7 @@ class Physics:
         :meth:`_resize_shape` and :meth:`_retype_body`."""
         radius, width, height = self._hit_dims()
         is_circle = radius > 0
-        mass = self.mass if self.can_move else 0
+        mass = self._mass if self.can_move else 0
 
         self._pymunk_body = _pymunk.Body(
             mass,
@@ -131,6 +131,8 @@ class Physics:
         """
         radius, width, height = self._hit_dims()
         shape = self._pymunk_shape
+        # The kind of shape is fixed at construction: a circle built with a
+        # radius of zero or less is a 0x0 box for good.
         is_circle = isinstance(shape, _pymunk.Circle)
         if is_circle:
             radius = max(radius, 0)  # a negative size means "nothing", not a hole

@@ -201,13 +201,18 @@ def rebuild_walls():
     callbacks are keyed on stays with them. A side that was taken away with
     remove_wall() comes back, as it always has.
     """
-    existing = {wall.wall_side: wall for wall in globals_list.walls}
+    existing = {getattr(wall, "wall_side", None): wall for wall in globals_list.walls}
     globals_list.walls.clear()
+    stray = existing.pop(None, None)
+    if stray is not None:  # not one of ours: drop it, as remove_walls() did
+        physics_space.remove(stray)
     for a, b, wall_side in _wall_edges():
         wall = existing.get(wall_side)
         if wall is None:
             wall = create_wall(a, b, wall_side)
         else:
+            # unsafe_ only because pymunk does not push away shapes the
+            # segment now overlaps; walls are static, so nothing to push.
             wall.unsafe_set_endpoints(a, b)
             physics_space.reindex_shape(wall)
         globals_list.walls.append(wall)
