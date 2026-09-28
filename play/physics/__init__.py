@@ -71,8 +71,7 @@ class Physics:
         """Ask the sprite for its hit-shape as ``(radius, width, height)``.
 
         Box, Circle and Video scale their logical size by ``size``; other
-        sprites fall back to the current rect. A positive radius means a
-        circular shape.
+        sprites fall back to the current rect.
         """
         return self.sprite._hit_dims((self.sprite._size or 100) / 100)
 
@@ -89,7 +88,9 @@ class Physics:
         sprite's size or physics settings are applied in place by
         :meth:`_resize_shape` and :meth:`_retype_body`."""
         radius, width, height = self._hit_dims()
-        is_circle = radius > 0
+        is_circle = self.sprite._circular_hit_shape
+        if is_circle:
+            radius = max(radius, 0)  # a negative size means "nothing", not a hole
         mass = self._mass if self.can_move else 0
 
         self._pymunk_body = _pymunk.Body(
@@ -131,8 +132,6 @@ class Physics:
         """
         radius, width, height = self._hit_dims()
         shape = self._pymunk_shape
-        # The kind of shape is fixed at construction: a circle built with a
-        # radius of zero or less is a 0x0 box for good.
         is_circle = isinstance(shape, _pymunk.Circle)
         if is_circle:
             radius = max(radius, 0)  # a negative size means "nothing", not a hole

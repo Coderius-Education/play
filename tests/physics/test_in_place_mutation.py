@@ -116,6 +116,21 @@ def test_a_negative_size_does_not_trip_pymunk():
     physics_space.step(1 / 60)
 
 
+def test_a_circle_built_below_nothing_is_a_circle_when_it_grows_back():
+    # The kind of hit-shape comes from the sprite, not from the sign of the
+    # radius. Deciding it from the radius left this circle a 0x0 box for good,
+    # with a zero moment that made the next physics step fail.
+    circle = play.new_circle(radius=20, size=-5)
+    circle.start_physics(can_move=True, stable=False)
+
+    circle.size = 100
+
+    shape = circle.physics._pymunk_shape
+    assert isinstance(shape, pymunk.Circle)
+    assert shape.radius == 20
+    physics_space.step(1 / 60)
+
+
 # ── physics settings ──────────────────────────────────────────────────────────
 
 
@@ -256,6 +271,26 @@ def test_the_space_sees_the_moved_walls():
 
     assert _hit((0, screen.bottom), 1) is globals_list.walls[1]
     assert _hit((0, old_bottom), 1) is None
+
+
+def test_segments_that_are_not_one_of_the_four_walls_are_dropped():
+    # The old rebuild removed every segment in the list before recreating
+    # four. Anything that is not one of the four still has to leave the space,
+    # however many there are.
+    for _ in range(2):
+        stray = pymunk.Segment(physics_space.static_body, (0, 0), (1, 1), 0)
+        physics_space.add(stray)
+        globals_list.walls.append(stray)
+    duplicate = pymunk.Segment(physics_space.static_body, (0, 0), (1, 1), 0)
+    duplicate.wall_side = WallSide.TOP
+    physics_space.add(duplicate)
+    globals_list.walls.append(duplicate)
+
+    rebuild_walls()
+
+    segments = [s for s in physics_space.shapes if isinstance(s, pymunk.Segment)]
+    assert len(segments) == 4
+    assert sorted(segments, key=id) == sorted(globals_list.walls, key=id)
 
 
 def test_a_removed_wall_comes_back_on_rebuild():

@@ -566,13 +566,18 @@ You might want to look in your code where you're setting transparency and make s
         self.image = pygame.transform.rotate(draw_image, angle_deg)
         self.rect = self.image.get_rect(center=self.rect.center)
 
+    # Whether the pymunk hit-shape is a circle. It is a property of the kind
+    # of sprite, not of the sign of the radius: a circle built at a negative
+    # size has to be a circle again when it grows back.
+    _circular_hit_shape = False
+
     def _hit_dims(self, size_factor):  # pylint: disable=unused-argument
         """Return ``(radius, width, height)`` for the pymunk hit-shape.
 
-        The physics layer calls this when (re)building the collision shape.
-        The default uses the current rendered rect; subclasses whose logical
-        size differs from the rect (Box, Circle) override this. A positive
-        radius selects a circular shape."""
+        The physics layer calls this when building or resizing the collision
+        shape. The default uses the current rendered rect; subclasses whose
+        logical size differs from the rect (Box, Circle) override this. A
+        sprite with ``_circular_hit_shape`` gets a circle of that radius."""
         return 0.0, float(self.width), float(self.height)
 
     @property
