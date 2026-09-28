@@ -65,14 +65,31 @@ def test_a_widget_can_opt_out_and_be_solid():
     assert _drop_ball_through() == pytest.approx(30, abs=2)
 
 
-def test_restarting_physics_keeps_a_widget_a_sensor():
+def test_giving_a_widget_physics_makes_it_solid_again():
+    # Only the automatic body is a sensor. A student who calls start_physics()
+    # on a widget wants it to behave like physics, walls included, so it
+    # lands on the floor instead of falling out of the screen.
+    from play.io.screen import screen
+
+    button = play.new_button("Go", x=0, y=0, width=120, height=40)
+    button.start_physics(can_move=True, stable=False, obeys_gravity=True)
+    assert button.physics.sensor is False
+
+    for _ in range(600):
+        physics_space.step(1 / 60)
+        update_sprite_physics(button)
+
+    assert button.y > screen.bottom
+
+
+def test_stop_physics_makes_a_widget_a_sensor_again():
     button = UI["button"]()
     button.start_physics()
-    assert button.physics.sensor is True
+    assert button.physics.sensor is False
     button.stop_physics()
     assert button.physics.sensor is True
-    button.start_physics(sensor=False)
-    assert button.physics.sensor is False
+    button.start_physics(sensor=True)
+    assert button.physics.sensor is True
 
 
 @pytest.mark.parametrize("name", NAMES)

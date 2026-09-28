@@ -41,8 +41,10 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     # only, while plain sprites under the cursor all receive it.
     _is_widget = False
 
-    # UI sets this True: its physics body is a sensor, used for hit-testing
-    # (hover, clicks) without being something a ball can bounce off.
+    # UI sets this True: the body every sprite gets automatically is then a
+    # sensor, used for hit-testing (hover, clicks) without being something a
+    # ball can bounce off. start_physics() called by the student still gives
+    # a solid body, as it does for every sprite.
     _sensor_by_default = False
 
     @staticmethod
@@ -102,7 +104,9 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         if _backup_image is not None:
             self._image = _backup_image
 
-        self.start_physics(stable=True, obeys_gravity=False)
+        self.start_physics(
+            stable=True, obeys_gravity=False, sensor=self._sensor_by_default
+        )
 
         _schedule_auto_start()
 
@@ -803,7 +807,7 @@ You might want to look in your code where you're setting transparency and make s
         bounciness=1.0,
         mass=10,
         friction=0,
-        sensor=None,
+        sensor=False,
     ):
         """Start the physics simulation for this sprite.
         :param can_move: Whether the object can move.
@@ -815,11 +819,7 @@ You might want to look in your code where you're setting transparency and make s
         :param mass: The mass of the object.
         :param friction: The friction of the object.
         :param sensor: Whether the object is a sensor (detects collisions without blocking).
-            Left out, it is ``False`` for ordinary sprites and ``True`` for UI
-            widgets, which physics sprites pass through.
         """
-        if sensor is None:
-            sensor = self._sensor_by_default
         saved_callbacks = self._save_and_clear_callbacks()
 
         if self.physics is not None:
@@ -844,4 +844,6 @@ You might want to look in your code where you're setting transparency and make s
 
     def stop_physics(self):
         """Resets the physics to the starting situation"""
-        self.start_physics(stable=True, obeys_gravity=False)
+        self.start_physics(
+            stable=True, obeys_gravity=False, sensor=self._sensor_by_default
+        )

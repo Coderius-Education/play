@@ -28,8 +28,9 @@ class WidgetMixin:
     # See MouseState.resolve_click_owner.
     _is_widget = True
 
-    # A widget's physics body is its hit-test, not an obstacle: physics
-    # sprites pass through it. ``widget.physics.sensor = False`` opts out.
+    # A widget's automatic physics body is its hit-test, not an obstacle:
+    # physics sprites pass through it. Giving the widget physics with
+    # start_physics(), or ``widget.physics.sensor = False``, makes it solid.
     _sensor_by_default = True
 
     def _init_widget(self):
