@@ -41,6 +41,10 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     # only, while plain sprites under the cursor all receive it.
     _is_widget = False
 
+    # UI sets this True: its physics body is a sensor, used for hit-testing
+    # (hover, clicks) without being something a ball can bounce off.
+    _sensor_by_default = False
+
     @staticmethod
     def _init_anchor_attrs(instance, x, y, anchor, layer):
         """Write anchor/layer attrs via object.__setattr__ to avoid triggering
@@ -799,7 +803,7 @@ You might want to look in your code where you're setting transparency and make s
         bounciness=1.0,
         mass=10,
         friction=0,
-        sensor=False,
+        sensor=None,
     ):
         """Start the physics simulation for this sprite.
         :param can_move: Whether the object can move.
@@ -811,7 +815,11 @@ You might want to look in your code where you're setting transparency and make s
         :param mass: The mass of the object.
         :param friction: The friction of the object.
         :param sensor: Whether the object is a sensor (detects collisions without blocking).
+            Left out, it is ``False`` for ordinary sprites and ``True`` for UI
+            widgets, which physics sprites pass through.
         """
+        if sensor is None:
+            sensor = self._sensor_by_default
         saved_callbacks = self._save_and_clear_callbacks()
 
         if self.physics is not None:

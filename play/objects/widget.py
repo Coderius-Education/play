@@ -28,6 +28,10 @@ class WidgetMixin:
     # See MouseState.resolve_click_owner.
     _is_widget = True
 
+    # A widget's physics body is its hit-test, not an obstacle: physics
+    # sprites pass through it. ``widget.physics.sensor = False`` opts out.
+    _sensor_by_default = True
+
     def _init_widget(self):
         """Initialise hover and click state. Call before ``super().__init__()``."""
         self._hover_callbacks = []
