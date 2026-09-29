@@ -12,6 +12,9 @@ from ..utils import (
 
 
 class ProgressBar(Box):
+    # UI, like the interactive widgets: nothing should bounce off a bar.
+    _sensor_by_default = True
+
     def __init__(
         self,
         min_value=0,

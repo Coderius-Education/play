@@ -820,8 +820,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         self._width = max(round(value), 1)
         self._player.controls_key = None
         self._should_recompute = True
-        self.physics._remove()
-        self.physics._make_pymunk()
+        self.physics._resize_shape()
 
     @property
     def height(self):
@@ -833,8 +832,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         self._height = max(round(value), 1)
         self._player.controls_key = None
         self._should_recompute = True
-        self.physics._remove()
-        self.physics._make_pymunk()
+        self.physics._resize_shape()
 
     @property
     def file_name(self):

@@ -41,6 +41,12 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     # only, while plain sprites under the cursor all receive it.
     _is_widget = False
 
+    # UI sets this True: the body every sprite gets automatically is then a
+    # sensor, used for hit-testing (hover, clicks) without being something a
+    # ball can bounce off. start_physics() called by the student still gives
+    # a solid body, as it does for every sprite.
+    _sensor_by_default = False
+
     @staticmethod
     def _init_anchor_attrs(instance, x, y, anchor, layer):
         """Write anchor/layer attrs via object.__setattr__ to avoid triggering
@@ -98,7 +104,9 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         if _backup_image is not None:
             self._image = _backup_image
 
-        self.start_physics(stable=True, obeys_gravity=False)
+        self.start_physics(
+            stable=True, obeys_gravity=False, sensor=self._sensor_by_default
+        )
 
         _schedule_auto_start()
 
@@ -341,8 +349,7 @@ You might want to look in your code where you're setting transparency and make s
         # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._should_recompute = True
         self._size = percent
-        self.physics._remove()
-        self.physics._make_pymunk()
+        self.physics._resize_shape()
 
     def hide(self):
         """Hide the sprite."""
@@ -567,13 +574,18 @@ You might want to look in your code where you're setting transparency and make s
         self.image = pygame.transform.rotate(draw_image, angle_deg)
         self.rect = self.image.get_rect(center=self.rect.center)
 
+    # Whether the pymunk hit-shape is a circle. It is a property of the kind
+    # of sprite, not of the sign of the radius: a circle built at a negative
+    # size has to be a circle again when it grows back.
+    _circular_hit_shape = False
+
     def _hit_dims(self, size_factor):  # pylint: disable=unused-argument
         """Return ``(radius, width, height)`` for the pymunk hit-shape.
 
-        The physics layer calls this when (re)building the collision shape.
-        The default uses the current rendered rect; subclasses whose logical
-        size differs from the rect (Box, Circle) override this. A positive
-        radius selects a circular shape."""
+        The physics layer calls this when building or resizing the collision
+        shape. The default uses the current rendered rect; subclasses whose
+        logical size differs from the rect (Box, Circle) override this. A
+        sprite with ``_circular_hit_shape`` gets a circle of that radius."""
         return 0.0, float(self.width), float(self.height)
 
     @property
@@ -807,6 +819,10 @@ You might want to look in your code where you're setting transparency and make s
         :param mass: The mass of the object.
         :param friction: The friction of the object.
         :param sensor: Whether the object is a sensor (detects collisions without blocking).
+            UI widgets start out as sensors that physics sprites pass through.
+            Calling start_physics() on one makes it solid, like any sprite,
+            unless you pass ``sensor=True``; that holds even if you only meant
+            to change, say, its bounciness.
         """
         saved_callbacks = self._save_and_clear_callbacks()
 
@@ -832,4 +848,6 @@ You might want to look in your code where you're setting transparency and make s
 
     def stop_physics(self):
         """Resets the physics to the starting situation"""
-        self.start_physics(stable=True, obeys_gravity=False)
+        self.start_physics(
+            stable=True, obeys_gravity=False, sensor=self._sensor_by_default
+        )

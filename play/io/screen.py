@@ -170,26 +170,21 @@ def create_wall(a, b, wall_side):
     return segment
 
 
+def _wall_edges():
+    """The four screen edges as ``(a, b, wall_side)``, in wall-index order."""
+    left, right, top, bottom = screen.left, screen.right, screen.top, screen.bottom
+    return [
+        ((left, top), (right, top), WallSide.TOP),
+        ((left, bottom), (right, bottom), WallSide.BOTTOM),
+        ((left, bottom), (left, top), WallSide.LEFT),
+        ((right, bottom), (right, top), WallSide.RIGHT),
+    ]
+
+
 def create_walls():
     """Create walls around the screen."""
-    globals_list.walls.append(
-        create_wall([screen.left, screen.top], [screen.right, screen.top], WallSide.TOP)
-    )
-    globals_list.walls.append(
-        create_wall(
-            [screen.left, screen.bottom], [screen.right, screen.bottom], WallSide.BOTTOM
-        )
-    )
-    globals_list.walls.append(
-        create_wall(
-            [screen.left, screen.bottom], [screen.left, screen.top], WallSide.LEFT
-        )
-    )
-    globals_list.walls.append(
-        create_wall(
-            [screen.right, screen.bottom], [screen.right, screen.top], WallSide.RIGHT
-        )
-    )
+    for a, b, wall_side in _wall_edges():
+        globals_list.walls.append(create_wall(a, b, wall_side))
 
 
 def remove_walls():
@@ -200,22 +195,33 @@ def remove_walls():
 
 
 def rebuild_walls():
-    """Recreate the walls at the current screen size.
+    """Move the walls to the current screen edges.
 
-    Each replacement inherits its predecessor's collision_type: wall callbacks
-    are keyed on it, so fresh segments would orphan every when_touching_wall
-    the game registered.
+    The segments are moved in place, so the collision_type that wall
+    callbacks are keyed on stays with them. A side that was taken away with
+    remove_wall() comes back, as it always has.
     """
-    previous = {getattr(wall, "wall_side", None): wall for wall in globals_list.walls}
-    remove_walls()
-    create_walls()
+    existing = {}
     for wall in globals_list.walls:
-        old = previous.get(wall.wall_side)
-        if old is None:
-            continue
-        wall.collision_type = old.collision_type
-        if getattr(old, "_play_collision_type_set", False):
-            wall._play_collision_type_set = True
+        side = getattr(wall, "wall_side", None)
+        if side is None or side in existing:
+            # Not one of the four: drop it from the space, as the old
+            # remove-everything-and-recreate did.
+            physics_space.remove(wall)
+        else:
+            existing[side] = wall
+    globals_list.walls.clear()
+    for a, b, wall_side in _wall_edges():
+        wall = existing.get(wall_side)
+        if wall is None:
+            wall = create_wall(a, b, wall_side)
+        else:
+            # pymunk calls this unsafe because a moved shape does not push
+            # away what it now overlaps. Walls are static and only move on a
+            # resize, which is the same teleport the old rebuild was.
+            wall.unsafe_set_endpoints(a, b)
+            physics_space.reindex_shape(wall)
+        globals_list.walls.append(wall)
 
 
 def remove_wall(index):

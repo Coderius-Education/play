@@ -128,6 +128,14 @@ def test_tooltip_multiline_taller_than_single_line():
     assert multi._bubble_size() == multi.image.get_size()
 
 
+def test_tooltip_stays_a_sensor_after_stop_physics():
+    # The tooltip used to set its sensor flag by hand after construction, so
+    # stop_physics() rebuilt a solid body under it.
+    target, tip = _make()
+    tip.stop_physics()
+    assert tip.physics.sensor is True
+
+
 def test_tooltip_alive():
     _target, tip = _make()
     assert tip.alive()

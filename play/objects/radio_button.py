@@ -238,8 +238,7 @@ class RadioButton(WidgetMixin, Sprite):
         label_w = self._radio_font.size(v)[0] if v else 0
         w = self._size_px + (10 + label_w if v else 0)
         self.rect = pygame.Rect(self.rect.x, self.rect.y, w, self._size_px)
-        self.physics._remove()
-        self.physics._make_pymunk()
+        self.physics._resize_shape()
         self._should_recompute = True
 
     @property
