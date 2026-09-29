@@ -183,6 +183,12 @@ def test_remove_drops_every_callback_registered_under_the_sprite():
     # A new sprite that CPython hands the same id() must not inherit them.
     box = _with_when_clicked()[0]
     box_id = id(box)
+    # Without this the test would pass if the callbacks were filed elsewhere.
+    for callback_type in (
+        CallbackType.WHEN_CLICKED_SPRITE,
+        CallbackType.WHEN_CLICK_RELEASED_SPRITE,
+    ):
+        assert callback_manager.get_callback(callback_type, box_id)
     box.remove()
     for callback_type in CallbackType:
         assert not callback_manager.get_callback(callback_type, box_id)

@@ -162,14 +162,34 @@ def test_forget_removes_the_stopped_touching_side_too():
 
 
 def test_forgetting_a_shape_that_was_never_registered_is_a_noop():
-    """forget() on a shape with no collision callbacks should do nothing."""
+    """forget() on a shape with no collision callbacks should do nothing.
+
+    Every unregistered shape has pymunk's default collision_type 0, so this
+    also checks forget() cannot reach anybody else's registrations that way.
+    """
     import play
     from play.callback.collision_callbacks import collision_registry
 
     ball = play.new_circle(x=0, y=0, radius=20)
+    ball.start_physics(obeys_gravity=False)
+    wall = play.new_box(x=200, y=0, width=10, height=100)
+    wall.start_physics(obeys_gravity=False, can_move=False)
 
-    # Should not raise
-    collision_registry.forget(ball.physics._pymunk_shape)
+    @ball.when_touching(wall)
+    async def on_touch():
+        pass
+
+    bystander = play.new_circle(x=-200, y=0, radius=20)
+    before = {
+        begin: {ct: dict(others) for ct, others in by_ct.items()}
+        for begin, by_ct in collision_registry.callbacks.items()
+    }
+    assert before[True], "the pair above should be registered"
+
+    collision_registry.forget(bystander.physics._pymunk_shape)
+
+    assert collision_registry.callbacks == before
+    assert ball.physics._pymunk_shape._play_sprite is ball
 
     play.stop_program()
 

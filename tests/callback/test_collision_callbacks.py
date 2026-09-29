@@ -184,13 +184,11 @@ def test_collision_registry_register():
     def check():
         # Registry should have callbacks dict
         result.append(hasattr(collision_registry, "callbacks"))
-        result.append(hasattr(collision_registry, "forget"))
         play.stop_program()
 
     play.start_program()
 
     assert result[0] is True
-    assert result[1] is True
 
 
 def test_duplicate_when_touching_raises_error():
