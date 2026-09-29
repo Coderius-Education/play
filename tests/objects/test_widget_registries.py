@@ -188,6 +188,68 @@ def test_remove_drops_every_callback_registered_under_the_sprite():
         assert not callback_manager.get_callback(callback_type, box_id)
 
 
+def test_a_sprite_can_remove_itself_inside_its_own_click():
+    # remove() clears the sprite's click callbacks from inside one of them.
+    # run_callbacks schedules every callback of a click as a task before any
+    # of them runs, so the rest of this click still runs; a later click does
+    # nothing, because a removed sprite is no longer in the loop.
+    from play.io.screen import screen
+    from tests.conftest import post_mouse_down, post_mouse_motion, post_mouse_up
+
+    box = play.new_box(x=0, y=0, width=100, height=100)
+    log = []
+
+    @box.when_clicked
+    def first():
+        log.append("first")
+        box.remove()
+
+    @box.when_clicked
+    def second():
+        log.append("second")
+
+    sx, sy = int(screen.width / 2), int(screen.height / 2)
+
+    @play.when_program_starts
+    async def drive():
+        post_mouse_motion(sx, sy)
+        await play.animate()
+        for _ in range(2):
+            post_mouse_down(sx, sy)
+            await play.animate()
+            post_mouse_up(sx, sy)
+            await play.animate()
+        play.stop_program()
+
+    play.start_program()
+    assert log == ["first", "second"]
+
+
+def test_a_bullet_can_remove_itself_and_its_target_on_a_hit():
+    enemy = play.new_box(x=0, y=0, width=40, height=40)
+    bullet = play.new_circle(x=-100, y=0, radius=5)
+    bullet.start_physics(obeys_gravity=False, x_speed=200)
+    hits = []
+
+    @bullet.when_touching(enemy)
+    def hit():
+        hits.append(True)
+        enemy.remove()
+        bullet.remove()
+
+    frames = [0]
+
+    @play.repeat_forever
+    def tick():
+        frames[0] += 1
+        if frames[0] == 90:
+            play.stop_program()
+
+    play.start_program()
+    assert hits == [True]
+    assert not bullet.alive() and not enemy.alive()
+
+
 # ---------------------------------------------------------------------------
 # Tab order
 # ---------------------------------------------------------------------------
