@@ -90,6 +90,9 @@ def test_collision_callbacks_do_not_pile_up():
     after = _counts()
     assert after["bodies"] == before["bodies"]
     assert after["shapes"] == before["shapes"]
+    # remove() drops the sprite's collision callbacks; on master every round
+    # left two behind, 200 after these hundred.
+    assert after["collision_callbacks"] == before["collision_callbacks"]
 
 
 # ---------------------------------------------------------------------------

@@ -511,6 +511,9 @@ You might want to look in your code where you're setting transparency and make s
                     _, target = item
                     if hasattr(target, "events"):
                         target.events._dependent_sprites.discard(self)
+        # Its shape leaves the space, so no collision callback for or against
+        # it can fire again; drop them rather than let the registry grow.
+        collision_registry.forget(self.physics._pymunk_shape)
         self.physics._remove()
         globals_list.sprites_group.remove(self)
 
