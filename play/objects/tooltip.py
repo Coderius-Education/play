@@ -23,6 +23,10 @@ class Tooltip(Sprite):
         tip = play.new_tooltip("Click to continue", target=btn)
     """
 
+    # A pure visual overlay: its automatic body is a sensor, so it never
+    # blocks or shoves other sprites, also after stop_physics().
+    _sensor_by_default = True
+
     def __init__(
         self,
         text="",
@@ -61,10 +65,8 @@ class Tooltip(Sprite):
         bw, bh = self._bubble_size()
         self.rect = pygame.Rect(0, 0, bw, bh)
         super().__init__(x=0, y=0, layer=layer)
-        # A tooltip is a pure visual overlay: make it a sensor so it never blocks
-        # or shoves other sprites, and start hidden (hide() pauses physics so the
-        # body leaves the space instead of lingering as an invisible collider).
-        self.physics.sensor = True
+        # Start hidden: hide() pauses physics so the body leaves the space
+        # instead of lingering as an invisible collider.
         self.hide()
         self.update()
 

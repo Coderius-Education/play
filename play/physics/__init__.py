@@ -153,6 +153,10 @@ class Physics:
         pymunk zeroes the mass and moment of a body that becomes dynamic, so
         both are set again afterwards; static and kinematic bodies take
         neither (Chipmunk aborts the process rather than raise on it).
+
+        Never call this while the space is stepping, i.e. from inside a pymunk
+        collision handler: Chipmunk aborts the process on a type change then.
+        play's handlers only queue callbacks, which run after the step.
         """
         body = self._pymunk_body
         body.body_type = self._compute_body_type()

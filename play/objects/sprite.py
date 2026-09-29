@@ -819,6 +819,10 @@ You might want to look in your code where you're setting transparency and make s
         :param mass: The mass of the object.
         :param friction: The friction of the object.
         :param sensor: Whether the object is a sensor (detects collisions without blocking).
+            UI widgets start out as sensors that physics sprites pass through.
+            Calling start_physics() on one makes it solid, like any sprite,
+            unless you pass ``sensor=True``; that holds even if you only meant
+            to change, say, its bounciness.
         """
         saved_callbacks = self._save_and_clear_callbacks()
 
