@@ -95,6 +95,37 @@ def test_collision_callbacks_do_not_pile_up():
     assert after["collision_callbacks"] == before["collision_callbacks"]
 
 
+def test_removed_sprites_with_collision_callbacks_are_freed():
+    """A shooter that removes its bullets must not keep them in memory.
+
+    The registry used to map every registered shape's collision_type to its
+    sprite and never let go, so each sprite that ever had a collision
+    callback stayed alive for the rest of the program: all 200 here.
+    """
+    import gc
+    import weakref
+
+    refs = []
+    for _ in range(100):
+        ball = play.new_circle(color="black", x=0, y=0, radius=5)
+        block = play.new_box(color="blue", x=50, y=0, width=20, height=20)
+        ball.start_physics(obeys_gravity=False)
+        block.start_physics(obeys_gravity=False, can_move=False)
+
+        @ball.when_touching(block)
+        def touched():
+            pass
+
+        ball.remove()
+        block.remove()
+        refs += [weakref.ref(ball), weakref.ref(block)]
+    del ball, block, touched
+    gc.collect()
+
+    alive = sum(ref() is not None for ref in refs)
+    assert alive == 0, f"{alive} of {len(refs)} removed sprites are still in memory"
+
+
 # ---------------------------------------------------------------------------
 # Tab order
 # ---------------------------------------------------------------------------
