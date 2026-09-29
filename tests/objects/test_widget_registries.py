@@ -24,7 +24,11 @@ def _counts():
         "bodies": len(physics_space.bodies),
         "shapes": len(physics_space.shapes),
         "tab_order": len(registry._tab_order),
-        "shape_registry": len(collision_registry.shape_registry),
+        "collision_callbacks": sum(
+            len(others)
+            for begin in (True, False)
+            for others in collision_registry.callbacks[begin].values()
+        ),
     }
 
 

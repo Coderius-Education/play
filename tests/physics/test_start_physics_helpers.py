@@ -84,14 +84,15 @@ def test_cleanup_collision_registry_removes_entries():
     async def on_touch():
         pass
 
-    ct = ball.physics._pymunk_shape.collision_type
+    shape = ball.physics._pymunk_shape
+    ct = shape.collision_type
 
-    # Verify the collision type is registered before cleanup
-    assert ct in collision_registry.shape_registry
+    # The registered shape carries its sprite before cleanup
+    assert shape._play_sprite is ball
 
-    ball._cleanup_collision_registry(ct)
+    collision_registry.forget(shape)
 
-    assert ct not in collision_registry.shape_registry
+    assert not hasattr(shape, "_play_sprite")
     for begin in [True, False]:
         assert ct not in collision_registry.callbacks[begin]
 
@@ -119,7 +120,7 @@ def test_cleanup_collision_registry_removes_nested_entries():
     # Verify ball_ct is nested inside wall_ct's dict before cleanup
     assert ball_ct in collision_registry.callbacks[True].get(wall_ct, {})
 
-    ball._cleanup_collision_registry(ball_ct)
+    collision_registry.forget(ball.physics._pymunk_shape)
 
     # After cleanup, ball_ct should be removed from wall_ct's nested dict too
     for begin in [True, False]:
@@ -128,14 +129,15 @@ def test_cleanup_collision_registry_removes_nested_entries():
     play.stop_program()
 
 
-def test_cleanup_collision_registry_none_is_noop():
-    """_cleanup_collision_registry with None should do nothing."""
+def test_forgetting_a_shape_that_was_never_registered_is_a_noop():
+    """forget() on a shape with no collision callbacks should do nothing."""
     import play
+    from play.callback.collision_callbacks import collision_registry
 
     ball = play.new_circle(x=0, y=0, radius=20)
 
     # Should not raise
-    ball._cleanup_collision_registry(None)
+    collision_registry.forget(ball.physics._pymunk_shape)
 
     play.stop_program()
 
@@ -155,8 +157,10 @@ def test_reregister_own_callbacks_restores_touching():
     async def on_touch():
         pass
 
+    from play.callback.collision_callbacks import collision_registry
+
     saved = ball._save_and_clear_callbacks()
-    ball._cleanup_collision_registry(ball.physics._pymunk_shape.collision_type)
+    collision_registry.forget(ball.physics._pymunk_shape)
 
     # Callbacks should be cleared now
     assert (

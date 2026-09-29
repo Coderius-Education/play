@@ -184,7 +184,7 @@ def test_collision_registry_register():
     def check():
         # Registry should have callbacks dict
         result.append(hasattr(collision_registry, "callbacks"))
-        result.append(hasattr(collision_registry, "shape_registry"))
+        result.append(hasattr(collision_registry, "forget"))
         play.stop_program()
 
     play.start_program()
@@ -336,10 +336,10 @@ def test_collision_registry_valid_after_can_move_change():
     # Changing can_move recreates the shape
     box1.physics.can_move = False
 
-    # The registry should still map the collision_type to the sprite
-    ct = box1.physics._pymunk_shape.collision_type
-    assert ct in collision_registry.shape_registry
-    assert ct in collision_registry.callbacks[True]
+    # The shape should still carry its sprite, and its callbacks be registered
+    shape = box1.physics._pymunk_shape
+    assert shape._play_sprite is box1
+    assert shape.collision_type in collision_registry.callbacks[True]
 
 
 if __name__ == "__main__":

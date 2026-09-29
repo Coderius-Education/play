@@ -738,20 +738,6 @@ You might want to look in your code where you're setting transparency and make s
             callback_manager.remove_callbacks(callback_type, sprite_id)
         return saved_callbacks
 
-    @staticmethod
-    def _cleanup_collision_registry(collision_type):
-        """Remove all collision_registry entries for a given collision type.
-
-        Cleans up both begin/separate callback dicts and the shape_registry.
-        """
-        if collision_type is None:
-            return
-        for begin in [True, False]:
-            collision_registry.callbacks[begin].pop(collision_type, None)
-            for shape_ct in list(collision_registry.callbacks[begin]):
-                collision_registry.callbacks[begin][shape_ct].pop(collision_type, None)
-        collision_registry.shape_registry.pop(collision_type, None)
-
     def _reregister_own_callbacks(self, saved_callbacks):
         """Re-register this sprite's own callbacks after physics recreation."""
         for callback, sprite in saved_callbacks[CallbackType.WHEN_TOUCHING]:
@@ -789,9 +775,7 @@ You might want to look in your code where you're setting transparency and make s
             for callback_type in sprite_callback_types:
                 callback_manager.remove_callbacks(callback_type, dep_id)
             dependent.events.clear_all_touching()
-            self._cleanup_collision_registry(
-                dependent.physics._pymunk_shape.collision_type
-            )
+            collision_registry.forget(dependent.physics._pymunk_shape)
             for cb, sprite in dep_saved[CallbackType.WHEN_TOUCHING]:
                 dependent.when_touching(sprite)(cb)
             for cb, sprite in dep_saved[CallbackType.WHEN_STOPPED_TOUCHING]:
@@ -827,7 +811,7 @@ You might want to look in your code where you're setting transparency and make s
         saved_callbacks = self._save_and_clear_callbacks()
 
         if self.physics is not None:
-            self._cleanup_collision_registry(self.physics._pymunk_shape.collision_type)
+            collision_registry.forget(self.physics._pymunk_shape)
             self.physics._remove()
 
         self.physics = _Physics(
