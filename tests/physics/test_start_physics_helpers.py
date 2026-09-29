@@ -69,8 +69,8 @@ def test_save_and_clear_callbacks_empty_when_no_callbacks():
     play.stop_program()
 
 
-def test_cleanup_collision_registry_removes_entries():
-    """_cleanup_collision_registry should remove all entries for a collision type."""
+def test_forget_removes_entries():
+    """forget() should remove all entries for a shape's collision type."""
     import play
     from play.callback.collision_callbacks import collision_registry
 
@@ -99,8 +99,8 @@ def test_cleanup_collision_registry_removes_entries():
     play.stop_program()
 
 
-def test_cleanup_collision_registry_removes_nested_entries():
-    """_cleanup_collision_registry should also remove the sprite from nested dicts of other sprites."""
+def test_forget_removes_nested_entries():
+    """forget() should also remove the sprite from nested dicts of other sprites."""
     import play
     from play.callback.collision_callbacks import collision_registry
 
@@ -125,6 +125,38 @@ def test_cleanup_collision_registry_removes_nested_entries():
     # After cleanup, ball_ct should be removed from wall_ct's nested dict too
     for begin in [True, False]:
         assert ball_ct not in collision_registry.callbacks[begin].get(wall_ct, {})
+
+    play.stop_program()
+
+
+def test_forget_removes_the_stopped_touching_side_too():
+    """forget() must drop when_stopped_touching entries as well as when_touching.
+
+    The tests above only register when_touching, so their check of the
+    separate side passed whatever forget() did there.
+    """
+    import play
+    from play.callback.collision_callbacks import collision_registry
+
+    ball = play.new_circle(x=0, y=0, radius=20)
+    ball.start_physics(obeys_gravity=False)
+
+    wall = play.new_box(x=200, y=0, width=10, height=100)
+    wall.start_physics(obeys_gravity=False, can_move=False)
+
+    @ball.when_stopped_touching(wall)
+    async def on_stop():
+        pass
+
+    ball_ct = ball.physics._pymunk_shape.collision_type
+    wall_ct = wall.physics._pymunk_shape.collision_type
+    separate = collision_registry.callbacks[False]
+    assert ball_ct in separate and ball_ct in separate.get(wall_ct, {})
+
+    collision_registry.forget(ball.physics._pymunk_shape)
+
+    assert ball_ct not in separate
+    assert ball_ct not in separate.get(wall_ct, {})
 
     play.stop_program()
 
