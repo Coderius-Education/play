@@ -31,14 +31,9 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         self.shape_registry = {}
         self.reset()
 
-        try:
-            physics_space.on_collision(
-                begin=self._handle_collision, separate=self._handle_end_collision
-            )
-        except AttributeError:
-            handler = physics_space.add_default_collision_handler()
-            handler.begin = self._handle_collision
-            handler.separate = self._handle_end_collision
+        physics_space.on_collision(
+            begin=self._handle_collision, separate=self._handle_end_collision
+        )
 
     def reset(self):
         """Clear every registered callback and shape.

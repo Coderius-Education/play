@@ -278,12 +278,7 @@ def _install_collision_error_recorder():
 
     begin = _wrap(collision_registry._handle_collision)
     separate = _wrap(collision_registry._handle_end_collision)
-    try:
-        physics_space.on_collision(begin=begin, separate=separate)
-    except AttributeError:
-        handler = physics_space.add_default_collision_handler()
-        handler.begin = begin
-        handler.separate = separate
+    physics_space.on_collision(begin=begin, separate=separate)
     _RECORDER_INSTALLED.append(True)
 
 
