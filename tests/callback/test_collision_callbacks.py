@@ -331,13 +331,18 @@ def test_collision_registry_valid_after_can_move_change():
     def on_touch():
         pass
 
-    # Changing can_move recreates the shape
+    shape = box1.physics._pymunk_shape
+    other = box2.physics._pymunk_shape
+    callback = collision_registry._callback(True, shape, other)
+    assert callback is not None
+
+    # can_move retypes the body in place; the shape, its sprite and the
+    # callback registered for the pair all have to survive it.
     box1.physics.can_move = False
 
-    # The shape should still carry its sprite, and its callbacks be registered
-    shape = box1.physics._pymunk_shape
+    assert box1.physics._pymunk_shape is shape
     assert shape._play_sprite is box1
-    assert shape.collision_type in collision_registry.callbacks[True]
+    assert collision_registry._callback(True, shape, other) is callback
 
 
 if __name__ == "__main__":

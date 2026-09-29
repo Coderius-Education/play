@@ -87,8 +87,9 @@ def test_forget_removes_entries():
     shape = ball.physics._pymunk_shape
     ct = shape.collision_type
 
-    # The registered shape carries its sprite before cleanup
+    # The registered shape carries its sprite, and has callbacks, before cleanup
     assert shape._play_sprite is ball
+    assert ct in collision_registry.callbacks[True]
 
     collision_registry.forget(shape)
 
