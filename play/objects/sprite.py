@@ -514,6 +514,11 @@ You might want to look in your code where you're setting transparency and make s
         # Its shape leaves the space, so no collision callback for or against
         # it can fire again; drop them rather than let the registry grow.
         collision_registry.forget(self.physics._pymunk_shape)
+        # Clicks, video events and anything else registered under this
+        # sprite's id would otherwise keep it alive for good, and could be
+        # inherited by a new sprite that CPython hands the same id().
+        for callback_type in CallbackType:
+            callback_manager.remove_callbacks(callback_type, id(self))
         self.physics._remove()
         globals_list.sprites_group.remove(self)
 

@@ -11,7 +11,13 @@ silently stops reaching the game. Leaks in these structures are behavioural
 bugs, not just growth.
 """
 
+import gc
+import weakref
+
+import pytest
+
 import play
+from play.callback import CallbackType, callback_manager
 from play.globals import globals_list
 from play.physics import physics_space
 from play.callback.collision_callbacks import collision_registry
@@ -95,35 +101,91 @@ def test_collision_callbacks_do_not_pile_up():
     assert after["collision_callbacks"] == before["collision_callbacks"]
 
 
-def test_removed_sprites_with_collision_callbacks_are_freed():
+def _with_when_touching():
+    ball = play.new_circle(color="black", x=0, y=0, radius=5)
+    block = play.new_box(color="blue", x=50, y=0, width=20, height=20)
+    ball.start_physics(obeys_gravity=False)
+    block.start_physics(obeys_gravity=False, can_move=False)
+
+    @ball.when_touching(block)
+    def touched():
+        pass
+
+    return [ball, block]
+
+
+def _with_when_touching_wall():
+    ball = play.new_circle(color="black", x=0, y=0, radius=5)
+    ball.start_physics(obeys_gravity=False)
+
+    @ball.when_touching_wall
+    def touched(wall):
+        pass
+
+    return [ball]
+
+
+def _with_when_clicked():
+    box = play.new_box()
+
+    @box.when_clicked
+    def clicked():
+        pass
+
+    @box.when_click_released
+    def released():
+        pass
+
+    return [box]
+
+
+def _button_with_when_clicked():
+    button = play.new_button("Go")
+
+    @button.when_clicked
+    def clicked():
+        pass
+
+    return [button]
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        _with_when_touching,
+        _with_when_touching_wall,
+        _with_when_clicked,
+        _button_with_when_clicked,
+    ],
+    ids=["when_touching", "when_touching_wall", "when_clicked", "button"],
+)
+def test_removed_sprites_with_callbacks_are_freed(make):
     """A shooter that removes its bullets must not keep them in memory.
 
-    The registry used to map every registered shape's collision_type to its
-    sprite and never let go, so each sprite that ever had a collision
-    callback stayed alive for the rest of the program: all 200 here.
+    On master every one of these stayed alive for the rest of the program:
+    the collision registry mapped each registered shape to its sprite, and
+    click callbacks stayed registered under the removed sprite's id.
     """
-    import gc
-    import weakref
-
     refs = []
-    for _ in range(100):
-        ball = play.new_circle(color="black", x=0, y=0, radius=5)
-        block = play.new_box(color="blue", x=50, y=0, width=20, height=20)
-        ball.start_physics(obeys_gravity=False)
-        block.start_physics(obeys_gravity=False, can_move=False)
-
-        @ball.when_touching(block)
-        def touched():
-            pass
-
-        ball.remove()
-        block.remove()
-        refs += [weakref.ref(ball), weakref.ref(block)]
-    del ball, block, touched
+    for _ in range(50):
+        sprites = make()
+        for sprite in sprites:
+            sprite.remove()
+        refs += [weakref.ref(sprite) for sprite in sprites]
+    del sprites, sprite
     gc.collect()
 
     alive = sum(ref() is not None for ref in refs)
     assert alive == 0, f"{alive} of {len(refs)} removed sprites are still in memory"
+
+
+def test_remove_drops_every_callback_registered_under_the_sprite():
+    # A new sprite that CPython hands the same id() must not inherit them.
+    box = _with_when_clicked()[0]
+    box_id = id(box)
+    box.remove()
+    for callback_type in CallbackType:
+        assert not callback_manager.get_callback(callback_type, box_id)
 
 
 # ---------------------------------------------------------------------------
