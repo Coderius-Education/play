@@ -64,9 +64,7 @@ class MouseState:
         widgets = [
             s
             for s in globals_list.sprites_group.sprites()
-            if s._is_widget
-            and not getattr(s, "_is_disabled", False)
-            and mouse.is_touching(s)
+            if s._is_widget and not s._is_disabled and mouse.is_touching(s)
         ]
         self.click_owner = widgets[-1] if widgets else None
 

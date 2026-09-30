@@ -47,6 +47,14 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     # a solid body, as it does for every sprite.
     _sensor_by_default = False
 
+    # Read directly; subclasses may set these before super().__init__().
+    _image = None
+    rect = None
+    physics = None
+    _size = 100
+    _color = None
+    _is_disabled = False
+
     @staticmethod
     def _init_anchor_attrs(instance, x, y, anchor, layer):
         """Write anchor/layer attrs via object.__setattr__ to avoid triggering
@@ -61,8 +69,6 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         # Subclasses set their own field values BEFORE calling super().__init__() so
         # that start_physics() can use the correct dimensions.  The hasattr guards
         # provide fallback defaults when Sprite is instantiated directly.
-        if not hasattr(self, "_size"):
-            self._size = 100
         if not hasattr(self, "_angle"):
             self._angle = 0
         if not hasattr(self, "_transparency"):
@@ -84,18 +90,18 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
             self.events = EventComponent(self)
         self.physics = None
 
-        if getattr(self, "_image", None) is None:
+        if self._image is None:
             self._image = image
         if not hasattr(self, "_is_hidden"):
             self._is_hidden = False
         self._should_recompute = True
 
-        if getattr(self, "rect", None) is None:
+        if self.rect is None:
             self.rect = pygame.Rect(0, 0, 0, 0)
 
         # Pygame sprite initializes internal variables but clobbers rect and image, so we back it up
         _backup_rect = self.rect
-        _backup_image = getattr(self, "_image", None)
+        _backup_image = self._image
 
         super().__init__()
         globals_list.sprites_group.add(self, layer=self._layer)
@@ -187,7 +193,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
             )
             return
 
-        if hasattr(self, "physics") and self.physics is not None:
+        if self.physics is not None:
             if nx != self._x or ny != self._y:
                 self.x, self.y = nx, ny
                 # Dynamic bodies accumulate velocity against the anchor each frame;
@@ -221,7 +227,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         # A dynamic body that obeys gravity is owned by the physics simulation;
         # re-applying the anchor would snap it back and zero its velocity every
         # frame, so the sprite could never fall or be pushed.
-        physics = getattr(self, "physics", None)  # Text updates before physics exists
+        physics = self.physics
         anchored = self._anchor and not (
             physics is not None
             and physics.obeys_gravity
@@ -445,16 +451,8 @@ You might want to look in your code where you're setting transparency and make s
     def info(self):
         """Print a short summary of this sprite."""
         sprite_type = self.__class__.__name__
-        color = getattr(self, "_color", "unknown")
-
-        # Get size info based on sprite type
-        if sprite_type == "Circle":
-            size_info = f"radius={getattr(self, 'radius', 0)}"
-        elif hasattr(self, "width") and hasattr(self, "height"):
-            size_info = f"width={self.width}, height={self.height}"
-        else:
-            size_info = ""
-
+        color = self._color if self._color is not None else "unknown"
+        size_info = self._info_size()
         hidden = " (hidden)" if self._is_hidden else ""
 
         print(f"Hi, I'm a {sprite_type}!")
@@ -463,6 +461,17 @@ You might want to look in your code where you're setting transparency and make s
         if size_info:
             print(f"  Size: {size_info}")
         print(f"  Angle: {self.angle}°{hidden}")
+
+    def _info_size(self):
+        """The size part of info(); Circle reports its radius instead."""
+        return f"width={self.width}, height={self.height}"
+
+    def _tick(self):
+        """Per-frame hook, called before the hidden check; Video advances here."""
+
+    def _handle_frame_events(self):
+        """Per-frame input hook. Return True to claim this frame's click."""
+        return False
 
     def physics_info(self):
         """Print a summary of this sprite's physics properties."""
@@ -565,7 +574,7 @@ You might want to look in your code where you're setting transparency and make s
         on ``(self.x, self.y)``."""
         # _hit_dims() scales the pymunk hit-shape by _size, so the drawn image
         # has to scale with it or clicks land off the visible widget.
-        size = getattr(self, "_size", 100)
+        size = self._size
         if size != 100:
             draw_image = _scale_to_percent(draw_image, size)
         draw_image.set_alpha(round(self._transparency * 255 / 100))
