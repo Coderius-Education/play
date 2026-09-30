@@ -88,7 +88,6 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
         if not hasattr(self, "events"):
             self.events = EventComponent(self)
-        self.physics = None
 
         if self._image is None:
             self._image = image

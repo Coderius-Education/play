@@ -106,10 +106,10 @@ class Circle(Sprite):
         :param _color: The color of the circle."""
         self._color = _color
 
-    ##### radius #####
     def _info_size(self):
         return f"radius={self.radius}"
 
+    ##### radius #####
     @property
     def radius(self):
         """The radius of the circle.
