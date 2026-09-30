@@ -65,8 +65,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             self.callbacks[begin].pop(collision_type, None)
             for others in self.callbacks[begin].values():
                 others.pop(collision_type, None)
-        if hasattr(shape, "_play_sprite"):
-            del shape._play_sprite
+        shape._play_sprite = None
 
     def _handle_collision(self, arbiter, _, __):
         shape_a, shape_b = arbiter.shapes
@@ -77,7 +76,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
                 wall_shape, sprite_shape = shape_a, shape_b
             else:
                 wall_shape, sprite_shape = shape_b, shape_a
-            sprite = getattr(sprite_shape, "_play_sprite", None)
+            sprite = sprite_shape._play_sprite
             callback = self._callback(True, sprite_shape, wall_shape)
             if sprite is not None and callback is not None:
                 sprite.events.set_touching(wall_shape.collision_type, callback)
@@ -87,7 +86,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         if not hasattr(shape_a, "collision_id") or not hasattr(shape_b, "collision_id"):
             return True
 
-        sprite_a = getattr(shape_a, "_play_sprite", None)
+        sprite_a = shape_a._play_sprite
         if sprite_a is None:
             return True
 
@@ -109,15 +108,13 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         - a sprite-sprite callback was found and queued.
         Returns False if no relevant callback was found.
         """
-        # Wall separation needs only shape_a to be registered; sprite-sprite
-        # separation needs both to have been.
         is_wall = hasattr(shape_b, "wall_side")
         if not is_wall and (
             not hasattr(shape_a, "collision_id") or not hasattr(shape_b, "collision_id")
         ):
             return False
 
-        sprite_a = getattr(shape_a, "_play_sprite", None)
+        sprite_a = shape_a._play_sprite
         if sprite_a is None:
             return False  # let caller try the reverse direction
 
@@ -156,7 +153,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         # pymunk always initialises collision_type=0 on every Shape, so
         # hasattr() would always return True.  Use our own sentinel flag to
         # distinguish "we assigned a unique id" from "pymunk defaulted it to 0".
-        if not getattr(other_shape, "_play_collision_type_set", False):
+        if not other_shape._play_collision_type_set:
             other_shape.collision_type = id(other_shape)
             other_shape._play_collision_type_set = True
 

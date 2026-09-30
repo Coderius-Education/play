@@ -93,7 +93,7 @@ def test_forget_removes_entries():
 
     collision_registry.forget(shape)
 
-    assert not hasattr(shape, "_play_sprite")
+    assert shape._play_sprite is None
     for begin in [True, False]:
         assert ct not in collision_registry.callbacks[begin]
 
