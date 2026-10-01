@@ -1,6 +1,5 @@
 """This module contains the Video class, which plays a video file on screen."""
 
-import math as _math
 import queue as _queue
 import time as _time
 import weakref
@@ -15,7 +14,6 @@ from ..callback import callback_manager, CallbackType
 from ..callback.callback_helpers import run_async_callback
 from ..io.logging import play_logger as logger
 from ..io.mouse import mouse
-from ..utils import scale_to_percent as _scale_to_percent
 from ..utils.async_helpers import make_async
 
 # Videos hold a decoding thread and an open file, so they need closing even when

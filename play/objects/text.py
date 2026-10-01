@@ -1,13 +1,11 @@
 """This module contains the Text class, which is a text string in the game."""
 
-import math as _math
 import os
 import pygame
 from .sprite import Sprite
 from ..utils import (
     color_name_to_rgb as _color_name_to_rgb,
     render_text as _render_text,
-    scale_to_percent as _scale_to_percent,
 )
 from ..io.logging import play_logger
 

@@ -1,6 +1,5 @@
 """This module contains the Image class, which is a subclass of the Sprite class."""
 
-import math as _math
 import os
 import pygame
 
