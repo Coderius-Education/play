@@ -92,11 +92,8 @@ async def update_sprites(do_events: bool = True):
 
         # Videos keep playing (and keep their sound in step) even while hidden,
         # so they are ticked before the is_hidden check below.
-        # Looked up on the type, not the instance, so that only classes which
-        # really define the hook are ticked.
-        tick = getattr(type(sprite), "_tick", None)
-        if tick is not None and do_events:
-            tick(sprite)
+        if do_events:
+            sprite._tick()
 
         if sprite.is_hidden:
             if do_events:
@@ -110,8 +107,7 @@ async def update_sprites(do_events: bool = True):
             # Objects with their own controls (like videos) get first refusal on
             # a click. When they use it, the click is not also reported as a
             # click on the object itself.
-            hook = getattr(type(sprite), "_handle_frame_events", None)
-            if hook is not None and hook(sprite):
+            if sprite._handle_frame_events():
                 continue
             handle_sprite_click(sprite)
             handle_sprite_click_released(sprite)

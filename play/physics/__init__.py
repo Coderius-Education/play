@@ -117,6 +117,8 @@ class Physics:
         self._pymunk_shape.elasticity = pygame.math.clamp(self.bounciness, 0, 0.9999)
         self._pymunk_shape.friction = self._friction
         self._pymunk_shape.sensor = self._sensor
+        self._pymunk_shape._play_sprite = None
+        self._pymunk_shape._play_collision_type_set = False
 
         if not self._is_paused:
             physics_space.add(self._pymunk_body, self._pymunk_shape)

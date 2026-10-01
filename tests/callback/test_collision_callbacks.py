@@ -167,32 +167,6 @@ def test_when_touching_wall_specific_side():
     assert touched_right[0] is True
 
 
-def test_collision_registry_register():
-    """Test that collision registry can register collisions."""
-    import play
-    from play.callback.collision_callbacks import collision_registry
-
-    box1 = play.new_box(x=-100)
-    box1.start_physics()
-
-    box2 = play.new_box(x=100)
-    box2.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        # Registry should have callbacks dict
-        result.append(hasattr(collision_registry, "callbacks"))
-        result.append(hasattr(collision_registry, "shape_registry"))
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] is True
-    assert result[1] is True
-
-
 def test_duplicate_when_touching_raises_error():
     """Test that registering two when_touching callbacks for same sprite pair raises ValueError."""
     import play
@@ -333,13 +307,18 @@ def test_collision_registry_valid_after_can_move_change():
     def on_touch():
         pass
 
-    # Changing can_move recreates the shape
+    shape = box1.physics._pymunk_shape
+    other = box2.physics._pymunk_shape
+    callback = collision_registry._callback(True, shape, other)
+    assert callback is not None
+
+    # can_move retypes the body in place; the shape, its sprite and the
+    # callback registered for the pair all have to survive it.
     box1.physics.can_move = False
 
-    # The registry should still map the collision_type to the sprite
-    ct = box1.physics._pymunk_shape.collision_type
-    assert ct in collision_registry.shape_registry
-    assert ct in collision_registry.callbacks[True]
+    assert box1.physics._pymunk_shape is shape
+    assert shape._play_sprite is box1
+    assert collision_registry._callback(True, shape, other) is callback
 
 
 if __name__ == "__main__":

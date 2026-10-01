@@ -262,6 +262,7 @@ class TestUpdateSprites:
         sprite.physics = MagicMock()
         sprite.physics.can_move = False
         sprite.is_hidden = False
+        sprite._handle_frame_events.return_value = False  # like a plain Sprite
         mock_globals.sprites_group.sprites.return_value = [sprite]
         mock_state.click_release_happened = False
 

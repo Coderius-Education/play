@@ -7,6 +7,12 @@ are suspended on an await (e.g. play.timer). Covers @repeat_forever,
 
 from unittest.mock import patch
 
+import pytest
+
+# play.timer waits in real time, and these tests count the frames drawn
+# meanwhile, so the loop has to run at real speed.
+pytestmark = pytest.mark.real_clock
+
 
 def test_frames_render_during_repeat_forever_timer():
     """pygame.display.flip() must be called between awaits in @repeat_forever.

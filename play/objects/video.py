@@ -100,6 +100,8 @@ class _VideoPlayer:  # pylint: disable=too-few-public-methods
 class Video(Sprite):  # pylint: disable=too-many-public-methods
     """A video that plays on screen, with optional built-in controls."""
 
+    _player = None  # close() can run before __init__ got this far
+
     def __init__(
         self,
         file_name,
@@ -912,7 +914,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
 
     def close(self):
         """Stop playing and let go of the video file."""
-        player = getattr(self, "_player", None)
+        player = self._player
         if player is None:
             return
         self._stop_audio()

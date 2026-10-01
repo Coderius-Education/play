@@ -15,6 +15,7 @@ same contract. Subclasses must:
 * call :meth:`_track_hover` once per frame from ``update()``.
 """
 
+import functools as _functools
 import inspect as _inspect
 
 from ..core.mouse_loop import mouse_state
@@ -109,7 +110,7 @@ class WidgetMixin:
                 if not self._is_disabled:
                     callback(*args, **kwargs)
 
-        guarded.__name__ = getattr(callback, "__name__", "guarded")
+        _functools.update_wrapper(guarded, callback, updated=())
         # Expose the wrapped callback's signature so the dispatcher's arg-count
         # check (callback_helpers._resolve_callback_args) still works — otherwise
         # the *args wrapper reads as zero args and call_with_sprite=True raises.

@@ -24,6 +24,21 @@ def _collect(decoder, count, timeout=5.0):
     return frames
 
 
+def _collect_current(decoder, timeout=5.0):
+    """The first frame of the decoder's current generation, as the player takes it.
+
+    A frame the decoder had already checked, but not yet queued, when a seek
+    arrived can still land in the queue after the seek drained it. Its older
+    generation marks it as stale, and the player skips it.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        for frame in _collect(decoder, 1, timeout=deadline - time.monotonic()):
+            if frame[0] == decoder.generation:
+                return frame
+    return None
+
+
 def test_probe_reads_video_details(video_file):
     info = video_decoder.probe(video_file)
 
@@ -80,15 +95,35 @@ def test_seek_skips_to_requested_point(video_file):
     try:
         _collect(decoder, 2)
         decoder.request_seek(1.5)
-        frames = _collect(decoder, 1)
+        frame = _collect_current(decoder)
 
-        assert frames, "expected a frame after seeking"
-        generation, timestamp, _payload = frames[0]
+        assert frame is not None, "expected a frame after seeking"
+        generation, timestamp, _payload = frame
         assert timestamp >= 1.5 - 0.01
-        # The generation counter marks frames decoded before the seek as stale.
         assert generation == decoder.generation
     finally:
         decoder.stop()
+
+
+def test_the_player_skips_frames_from_before_a_seek():
+    """A stale frame at the head of the queue is passed over for a fresh one.
+
+    The decoder can queue one frame from before a seek (see _collect_current);
+    this pins that the player never shows it, without relying on the race.
+    """
+    import queue
+
+    from play.objects.video import Video
+
+    class _Decoder:
+        generation = 2
+
+        def __init__(self):
+            self.queue = queue.Queue()
+            self.queue.put((1, 0.1, b"stale"))
+            self.queue.put((2, 1.5, b"fresh"))
+
+    assert Video._next_decoded(None, _Decoder(), None) == (1.5, b"fresh")
 
 
 def test_stop_ends_the_thread(video_file):

@@ -166,6 +166,7 @@ def create_wall(a, b, wall_side):
     segment.elasticity = 1.0
     segment.friction = 0.0
     segment.wall_side = wall_side
+    segment._play_collision_type_set = False
     physics_space.add(segment)
     return segment
 

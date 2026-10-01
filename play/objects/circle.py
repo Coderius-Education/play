@@ -48,7 +48,7 @@ class Circle(Sprite):
             radius=self.radius,
             border_color=self.border_color,
             border_width=self.border_width,
-            **self._common_properties()
+            **self._common_properties(),
         )
 
     def _render(self):
@@ -105,6 +105,9 @@ class Circle(Sprite):
         """Set the color of the circle.
         :param _color: The color of the circle."""
         self._color = _color
+
+    def _info_size(self):
+        return f"radius={self.radius}"
 
     ##### radius #####
     @property

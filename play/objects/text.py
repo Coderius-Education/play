@@ -59,7 +59,7 @@ class Text(Sprite):
         )
         if self._size != 100:
             draw_image = _scale_to_percent(draw_image, self._size)
-        if hasattr(self, "physics") and self.physics is not None:
+        if self.physics is not None:
             angle_deg = _math.degrees(self.physics._pymunk_body.angle)
         else:
             angle_deg = self._angle

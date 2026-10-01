@@ -278,12 +278,7 @@ def _install_collision_error_recorder():
 
     begin = _wrap(collision_registry._handle_collision)
     separate = _wrap(collision_registry._handle_end_collision)
-    try:
-        physics_space.on_collision(begin=begin, separate=separate)
-    except AttributeError:
-        handler = physics_space.add_default_collision_handler()
-        handler.begin = begin
-        handler.separate = separate
+    physics_space.on_collision(begin=begin, separate=separate)
     _RECORDER_INSTALLED.append(True)
 
 
@@ -334,6 +329,29 @@ def pytest_sessionfinish(session, exitstatus):
     if auto_start is None:
         return
     auto_start._cleanup_auto_start()
+
+
+class _NoSleepClock:
+    """pygame's Clock, minus the waiting.
+
+    The game loop calls ``tick(frame_rate)``, which sleeps to hold 60 fps.
+    Physics steps by a fixed ``1 / frame_rate`` however long a frame really
+    takes, so the sleeping never changes a test's outcome; it only made the
+    suite wait, about four of its five minutes. Tests that compare frames
+    with real time, such as ``play.timer``, opt back in with
+    ``@pytest.mark.real_clock``.
+    """
+
+    def __init__(self):
+        import pygame
+
+        self._clock = pygame.time.Clock()
+
+    def tick(self, framerate=0):  # pylint: disable=unused-argument
+        return self._clock.tick()
+
+    def __getattr__(self, name):
+        return getattr(self._clock, name)
 
 
 @pytest.fixture(autouse=True)
@@ -417,7 +435,10 @@ def clean_play_state(request):
 
     import play.core
 
-    play.core._clock = pygame.time.Clock()
+    if request.node.get_closest_marker("real_clock"):
+        play.core._clock = pygame.time.Clock()
+    else:
+        play.core._clock = _NoSleepClock()
 
     # Clean callback queues
     callback_manager.callbacks.clear()
