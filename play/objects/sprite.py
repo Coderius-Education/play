@@ -567,22 +567,28 @@ You might want to look in your code where you're setting transparency and make s
         surface.blit(overlay, (0, 0))
 
     def _finalize_image(self, draw_image):
-        """Apply transparency + rotation and centre the sprite at its play position.
+        """Scale *draw_image* by the sprite's size, then place it.
 
-        Shared render tail for widgets drawn into *draw_image* that sit centred
-        on ``(self.x, self.y)``."""
-        # _hit_dims() scales the pymunk hit-shape by _size, so the drawn image
-        # has to scale with it or clicks land off the visible widget.
-        size = self._size
-        if size != 100:
-            draw_image = _scale_to_percent(draw_image, size)
+        The shared render tail: _hit_dims() scales the pymunk hit-shape by
+        size, so the drawn image has to scale with it."""
+        if self._size != 100:
+            draw_image = _scale_to_percent(draw_image, self._size)
+        self._place_image(draw_image)
+
+    def _place_image(self, draw_image):
+        """Apply transparency, rotate and centre *draw_image* on ``(x, y)``."""
         draw_image.set_alpha(round(self._transparency * 255 / 100))
         self.rect = draw_image.get_rect()
         pos = convert_pos(self.x, self.y)
         self.rect.x = pos[0] - self.rect.width // 2
         self.rect.y = pos[1] - self.rect.height // 2
-        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
-        self.image = pygame.transform.rotate(draw_image, angle_deg)
+        if self.physics is not None:
+            angle_deg = _math.degrees(self.physics._pymunk_body.angle)
+        else:  # Text renders once before Sprite.__init__ builds the body
+            angle_deg = self._angle
+        self.image = (
+            pygame.transform.rotate(draw_image, angle_deg) if angle_deg else draw_image
+        )
         self.rect = self.image.get_rect(center=self.rect.center)
 
     # Whether the pymunk hit-shape is a circle. It is a property of the kind

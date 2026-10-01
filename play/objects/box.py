@@ -3,7 +3,6 @@
 import math as _math
 import pygame
 from .sprite import Sprite
-from ..io.screen import convert_pos
 from ..utils import (
     color_name_to_rgb as _color_name_to_rgb,
     scale_to_percent as _scale_to_percent,
@@ -73,19 +72,7 @@ class Box(Sprite):
             border_radius=max(self._border_radius - self._border_width, 0),
         )
 
-        if self._size != 100:
-            draw_image = _scale_to_percent(draw_image, self._size)
-
-        draw_image.set_alpha(round(self._transparency * 255 / 100))
-
-        self.rect = draw_image.get_rect()
-        pos = convert_pos(self.x, self.y)
-        self.rect.x = pos[0] - self.rect.width // 2
-        self.rect.y = pos[1] - self.rect.height // 2
-
-        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
-        self.image = pygame.transform.rotate(draw_image, angle_deg)
-        self.rect = self.image.get_rect(center=self.rect.center)
+        self._finalize_image(draw_image)
 
     ##### width #####
     @property

@@ -15,7 +15,6 @@ from ..callback import callback_manager, CallbackType
 from ..callback.callback_helpers import run_async_callback
 from ..io.logging import play_logger as logger
 from ..io.mouse import mouse
-from ..io.screen import convert_pos
 from ..utils import scale_to_percent as _scale_to_percent
 from ..utils.async_helpers import make_async
 
@@ -789,21 +788,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
                 self._render_controls(), (0, self._height - self._bar_height())
             )
 
-        if self._size != 100:
-            draw_image = _scale_to_percent(draw_image, self._size)
-
-        draw_image.set_alpha(round(self._transparency * 255 / 100))
-
-        self.rect = draw_image.get_rect()
-        pos = convert_pos(self.x, self.y)
-        self.rect.x = pos[0] - self.rect.width // 2
-        self.rect.y = pos[1] - self.rect.height // 2
-
-        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
-        self.image = (
-            pygame.transform.rotate(draw_image, angle_deg) if angle_deg else draw_image
-        )
-        self.rect = self.image.get_rect(center=self.rect.center)
+        self._finalize_image(draw_image)
         super().update()
 
     ##### size #####
