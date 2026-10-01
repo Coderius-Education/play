@@ -29,10 +29,14 @@ SPRITES = {
 
 @pytest.mark.parametrize("make", SPRITES.values(), ids=SPRITES.keys())
 @pytest.mark.parametrize("x, y", [(0, 0), (13, -7)])
-def test_a_sprite_is_drawn_centred_on_its_position(make, x, y):
+@pytest.mark.parametrize("angle", [0, 30], ids=["upright", "turned"])
+def test_a_sprite_is_drawn_centred_on_its_position(make, x, y, angle):
+    # Upright and turned sprites take different paths through _place_image.
     sprite = make(x=x, y=y)
+    sprite.angle = angle
     sprite.update()
     assert sprite.rect.center == convert_pos(x, y)
+    assert sprite.rect.size == sprite.image.get_size()
 
 
 def test_a_text_made_at_an_angle_is_drawn_at_that_angle():

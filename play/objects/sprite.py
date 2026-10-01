@@ -578,18 +578,20 @@ You might want to look in your code where you're setting transparency and make s
     def _place_image(self, draw_image):
         """Apply transparency, rotate and centre *draw_image* on ``(x, y)``."""
         draw_image.set_alpha(round(self._transparency * 255 / 100))
-        self.rect = draw_image.get_rect()
+        rect = draw_image.get_rect()
         pos = convert_pos(self.x, self.y)
-        self.rect.x = pos[0] - self.rect.width // 2
-        self.rect.y = pos[1] - self.rect.height // 2
+        rect.x = pos[0] - rect.width // 2
+        rect.y = pos[1] - rect.height // 2
         if self.physics is not None:
             angle_deg = _math.degrees(self.physics._pymunk_body.angle)
         else:  # Text renders once before Sprite.__init__ builds the body
             angle_deg = self._angle
-        self.image = (
-            pygame.transform.rotate(draw_image, angle_deg) if angle_deg else draw_image
-        )
-        self.rect = self.image.get_rect(center=self.rect.center)
+        if angle_deg:
+            self.image = pygame.transform.rotate(draw_image, angle_deg)
+            self.rect = self.image.get_rect(center=rect.center)
+        else:
+            self.image = draw_image
+            self.rect = rect
 
     # Whether the pymunk hit-shape is a circle. It is a property of the kind
     # of sprite, not of the sign of the radius: a circle built at a negative
