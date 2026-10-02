@@ -1,9 +1,7 @@
 """This module defines the Circle class, which represents a circle in the game."""
 
-import math as _math
 import pygame
 from .sprite import Sprite
-from ..io.screen import convert_pos
 from ..utils import color_name_to_rgb as _color_name_to_rgb
 
 
@@ -82,16 +80,7 @@ class Circle(Sprite):
                 draw_image, (scaled_r * 2, scaled_r * 2)
             )
 
-        draw_image.set_alpha(round(self._transparency * 255 / 100))
-
-        self.rect = draw_image.get_rect()
-        pos = convert_pos(self.x, self.y)
-        self.rect.x = pos[0] - self.rect.width // 2
-        self.rect.y = pos[1] - self.rect.height // 2
-
-        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
-        self._image = pygame.transform.rotate(draw_image, angle_deg)
-        self.rect = self._image.get_rect(center=self.rect.center)
+        self._place_image(draw_image)
 
     ##### color #####
     @property

@@ -1,12 +1,10 @@
 """This module contains the Image class, which is a subclass of the Sprite class."""
 
-import math as _math
 import os
 import pygame
 
 from .sprite import Sprite
 from ..utils import scale_to_percent as _scale_to_percent
-from ..io.screen import convert_pos
 
 
 class Image(Sprite):
@@ -33,15 +31,8 @@ class Image(Sprite):
 
     def _render(self):
         """Scale, rotate, and alpha-blend the source image."""
-        draw_image = _scale_to_percent(self._source_image, self._size)
-        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
-        draw_image = pygame.transform.rotate(draw_image, angle_deg)
-        draw_image.set_alpha(round(self._transparency * 255 / 100))
-
-        self.image = draw_image
-        self.rect = draw_image.get_rect()
-        pos = convert_pos(self.x, self.y)
-        self.rect.center = pos
+        # Always a scaled copy, so set_alpha never touches the source surface.
+        self._place_image(_scale_to_percent(self._source_image, self._size))
 
     # The custom image property is removed to use the parent Sprite's property.
     # This ensures that the image managed by the Pygame sprite group is the
