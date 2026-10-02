@@ -514,10 +514,8 @@ You might want to look in your code where you're setting transparency and make s
         # Wall callback types don't register in _dependent_sprites, so only
         # WHEN_TOUCHING / WHEN_STOPPED_TOUCHING need cleanup here.
         for cb_type in [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING]:
-            for item in saved.get(cb_type, []):
-                if isinstance(item, tuple) and len(item) == 2:
-                    _, target = item
-                    target.events._dependent_sprites.discard(self)
+            for _, target in saved[cb_type]:
+                target.events._dependent_sprites.discard(self)
         collision_registry.forget(self.physics._pymunk_shape)
         for callback_type in CallbackType:
             callback_manager.remove_callbacks(callback_type, id(self))
