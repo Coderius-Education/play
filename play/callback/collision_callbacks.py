@@ -71,8 +71,8 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         shape_a, shape_b = arbiter.shapes
 
         # Wall collision: one shape has wall_side set by create_wall
-        if hasattr(shape_a, "wall_side") or hasattr(shape_b, "wall_side"):
-            if hasattr(shape_a, "wall_side"):
+        if shape_a.wall_side is not None or shape_b.wall_side is not None:
+            if shape_a.wall_side is not None:
                 wall_shape, sprite_shape = shape_a, shape_b
             else:
                 wall_shape, sprite_shape = shape_b, shape_a
@@ -83,7 +83,7 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
             return True
 
         # Sprite-sprite collision
-        if not hasattr(shape_a, "collision_id") or not hasattr(shape_b, "collision_id"):
+        if shape_a.collision_id is None or shape_b.collision_id is None:
             return True
 
         sprite_a = shape_a._play_sprite
@@ -108,9 +108,9 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         - a sprite-sprite callback was found and queued.
         Returns False if no relevant callback was found.
         """
-        is_wall = hasattr(shape_b, "wall_side")
+        is_wall = shape_b.wall_side is not None
         if not is_wall and (
-            not hasattr(shape_a, "collision_id") or not hasattr(shape_b, "collision_id")
+            shape_a.collision_id is None or shape_b.collision_id is None
         ):
             return False
 
@@ -150,8 +150,8 @@ class CollisionCallbackRegistry:  # pylint: disable=too-few-public-methods
         shape.collision_type = id(shape)
         shape._play_sprite = sprite
 
-        # pymunk always initialises collision_type=0 on every Shape, so
-        # hasattr() would always return True.  Use our own sentinel flag to
+        # pymunk always initialises collision_type=0 on every Shape, so it
+        # cannot tell us whether play set it.  Use our own sentinel flag to
         # distinguish "we assigned a unique id" from "pymunk defaulted it to 0".
         if not other_shape._play_collision_type_set:
             other_shape.collision_type = id(other_shape)

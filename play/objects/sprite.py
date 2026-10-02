@@ -54,6 +54,12 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     _size = 100
     _color = None
     _is_disabled = False
+    _angle = 0
+    _transparency = 100
+    _is_hidden = False
+    events = None
+    _x = None
+    _y = None
 
     @staticmethod
     def _init_anchor_attrs(instance, x, y, anchor, layer):
@@ -67,12 +73,8 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
     def __init__(self, image=None, x=0, y=0, anchor=None, layer=0):
         # Subclasses set their own field values BEFORE calling super().__init__() so
-        # that start_physics() can use the correct dimensions.  The hasattr guards
-        # provide fallback defaults when Sprite is instantiated directly.
-        if not hasattr(self, "_angle"):
-            self._angle = 0
-        if not hasattr(self, "_transparency"):
-            self._transparency = 100
+        # that start_physics() can use the correct dimensions; the class
+        # defaults above cover Sprite instantiated directly.
 
         # Anchor/layer attrs bypass __setattr__ to avoid triggering _should_recompute.
         # Text calls this same helper before its early update() so the values are
@@ -81,18 +83,16 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
         # _x/_y: use anchor-aware defaults unless the subclass already set them
         # (Text sets these before calling super() because it calls update() first).
-        if not hasattr(self, "_x"):
+        if self._x is None:
             self._x = 0 if anchor else x
-        if not hasattr(self, "_y"):
+        if self._y is None:
             self._y = 0 if anchor else y
 
-        if not hasattr(self, "events"):
+        if self.events is None:
             self.events = EventComponent(self)
 
         if self._image is None:
             self._image = image
-        if not hasattr(self, "_is_hidden"):
-            self._is_hidden = False
         self._should_recompute = True
 
         if self.rect is None:
@@ -119,7 +119,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         # ignore if it's in the ignored list or if the variable doesn't change
         if name not in _should_ignore_update and getattr(self, name, value) != value:
             self._should_recompute = True
-            if hasattr(self, "events"):
+            if self.events is not None:
                 for sprite in self.events._dependent_sprites:
                     sprite._should_recompute = True
         super().__setattr__(name, value)
@@ -517,8 +517,7 @@ You might want to look in your code where you're setting transparency and make s
             for item in saved.get(cb_type, []):
                 if isinstance(item, tuple) and len(item) == 2:
                     _, target = item
-                    if hasattr(target, "events"):
-                        target.events._dependent_sprites.discard(self)
+                    target.events._dependent_sprites.discard(self)
         collision_registry.forget(self.physics._pymunk_shape)
         for callback_type in CallbackType:
             callback_manager.remove_callbacks(callback_type, id(self))

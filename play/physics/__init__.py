@@ -119,6 +119,8 @@ class Physics:
         self._pymunk_shape.sensor = self._sensor
         self._pymunk_shape._play_sprite = None
         self._pymunk_shape._play_collision_type_set = False
+        self._pymunk_shape.wall_side = None
+        self._pymunk_shape.collision_id = None
 
         if not self._is_paused:
             physics_space.add(self._pymunk_body, self._pymunk_shape)
