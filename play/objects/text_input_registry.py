@@ -5,7 +5,6 @@ import pygame
 from ..globals import globals_list
 from ..io.keypress import keyboard_state
 
-
 _tab_order = []  # All registered TextInput widgets in insertion order
 
 

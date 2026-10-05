@@ -15,7 +15,6 @@ from play.globals import globals_list
 from play.io.screen import screen
 from tests.conftest import click_at
 
-
 # ---------------------------------------------------------------------------
 # keyboard focus x sprite lifecycle
 # ---------------------------------------------------------------------------
