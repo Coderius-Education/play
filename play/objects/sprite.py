@@ -88,8 +88,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         if self._y is None:
             self._y = 0 if anchor else y
 
-        if self.events is None:
-            self.events = EventComponent(self)
+        self.events = EventComponent(self)
 
         if self._image is None:
             self._image = image
