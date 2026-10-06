@@ -118,7 +118,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         anchor=None,
         layer=0,
         _time_fn=_time.monotonic,
-    ):  # pylint: disable=too-many-locals
+    ):
         """Play a video file.
 
         :param file_name: The video file to play (for example 'clip.mp4').
@@ -651,7 +651,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
             return pygame.Rect(-1, -1, 0, 0)
         return pygame.Rect(self._width - width, self._height - bar_h, 22, bar_h)
 
-    def _handle_frame_events(self):  # pylint: disable=too-many-return-statements
+    def _handle_frame_events(self):
         """Handle mouse and keyboard input. Called once per frame.
 
         :return: True when the control bar used the click, so that the user's

@@ -765,7 +765,7 @@ def new_database(
     return Database(db_filename=db_filename)
 
 
-def new_video(  # pylint: disable=too-many-locals
+def new_video(
     file_name: str = "video.mp4",
     x: int = 0,
     y: int = 0,
