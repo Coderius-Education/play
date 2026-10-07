@@ -218,8 +218,7 @@ class Physics:
     @can_move.setter
     def can_move(self, _can_move):
         prev_can_move = self._can_move
-        if _can_move:
-            _check_mass(self._mass, _can_move)
+        _check_mass(self._mass, _can_move)
         self._can_move = _can_move
         if prev_can_move != _can_move:
             self._retype_body()

@@ -210,9 +210,9 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def get_touching_walls(self) -> list:
         """Get a list of WallSide values for walls the sprite is currently touching.
         :return: A list of WallSide enum values."""
-        touching = []
         if not self._can_touch():
-            return touching
+            return []
+        touching = []
         for wall in globals_list.walls:
             try:
                 contact_set = self.physics._pymunk_shape.shapes_collide(wall)
@@ -834,7 +834,7 @@ You might want to look in your code where you're setting transparency and make s
             unless you pass ``sensor=True``; that holds even if you only meant
             to change, say, its bounciness.
         """
-        if self.physics is not None and not self.alive():
+        if not self.alive():
             return  # removed: nothing to simulate any more
 
         saved_callbacks = self._save_and_clear_callbacks()

@@ -64,6 +64,15 @@ You can find the RGB form of a color on websites like this: https://www.rapidtab
         ) from exc
 
 
+def check_color(name):
+    """Raise play's own error for a colour name it does not know.
+
+    Setters call this so a typo fails on the student's line, not a frame
+    later when the sprite is drawn.
+    """
+    color_name_to_rgb(name)
+
+
 def reject_async_callback(func, kind):
     """Raise TypeError if *func* is a coroutine function.
 

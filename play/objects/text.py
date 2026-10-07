@@ -4,6 +4,7 @@ import os
 import pygame
 from .sprite import Sprite
 from ..utils import (
+    check_color as _check_color,
     color_name_to_rgb as _color_name_to_rgb,
     render_text as _render_text,
 )
@@ -104,7 +105,7 @@ class Text(Sprite):
     @color.setter
     def color(self, color_):
         """Set the color of the text object."""
-        _color_name_to_rgb(color_)  # a misspelt name fails here, not next frame
+        _check_color(color_)
         self._color = color_
 
     def _load_font(self, font_name, font_size):

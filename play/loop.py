@@ -33,8 +33,7 @@ def _handle_exception(the_loop, context):
     else:
         play_logger.critical(message)
 
-    globals_list.program_state = ProgramState.STOPPED
-    the_loop.stop()
+    stop_loop(the_loop)
 
 
 def get_loop():
@@ -55,11 +54,12 @@ def get_loop():
     return _loop
 
 
-def stop_loop():
-    """Stop the event loop and mark the program as stopped.
+def stop_loop(loop=None):
+    """Stop the event loop (play's own unless *loop* is given) and mark the
+    program as stopped.
 
-    start_program() only runs the loop on while the program is not stopped,
-    so a stop that is not marked here leaves it waiting on an empty loop.
+    start_program() keeps the loop running until the program is stopped, so
+    a stop that is not marked here leaves it waiting on an empty loop.
     """
     globals_list.program_state = ProgramState.STOPPED
-    get_loop().stop()
+    (loop if loop is not None else get_loop()).stop()
