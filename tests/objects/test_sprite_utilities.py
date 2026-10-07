@@ -178,3 +178,54 @@ def test_hidden_sprite_point_touch_is_symmetric():
     s.hide()
     assert point_touching_sprite((0, 0), s) is False
     assert s.is_touching((0, 0)) is False
+
+
+def test_a_removed_sprite_touches_nothing():
+    # The "collect a coin" pattern: once removed, the coin must not score again.
+    from play.objects.sprite import point_touching_sprite
+
+    coin = play.new_circle(x=10, radius=10)
+    player = play.new_box(width=50, height=50)
+    assert coin.is_touching(player)
+
+    coin.remove()
+
+    assert not coin.is_touching(player)
+    assert not player.is_touching(coin)
+    assert not coin.is_touching((10, 0))
+    assert not point_touching_sprite((10, 0), coin)
+
+
+def test_moving_a_sprite_is_seen_by_is_touching_straight_away():
+    coin = play.new_circle(x=300, radius=10)
+    player = play.new_box(width=50, height=50)
+
+    coin.x = 0
+    assert coin.is_touching(player)
+    assert coin.is_touching((0, 0))
+
+    coin.y = 200
+    assert not coin.is_touching(player)
+
+
+def test_moving_a_static_sprite_is_seen_by_is_touching_straight_away():
+    wall = play.new_box(x=300, width=20, height=200)
+    wall.start_physics(can_move=False)
+    ball = play.new_circle(radius=10)
+
+    wall.x = 0
+
+    assert ball.is_touching(wall)
+
+
+def test_a_hidden_or_removed_sprite_touches_no_wall():
+    box = play.new_box(x=play.screen.right - 10, width=40, height=40)
+    assert box.is_touching_wall()
+
+    box.hide()
+    assert box.get_touching_walls() == []
+    box.show()
+    assert box.is_touching_wall()
+
+    box.remove()
+    assert not box.is_touching_wall()

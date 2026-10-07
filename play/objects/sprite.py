@@ -21,7 +21,7 @@ def point_touching_sprite(point, sprite):
     :param point: The point (x, y tuple) to check if it's touching the sprite.
     :param sprite: The sprite to check if it's touching the point.
     :return: Whether the point is touching the sprite."""
-    if sprite._is_hidden:
+    if not sprite._can_touch():
         return False
     point_info = sprite.physics._pymunk_shape.point_query(point)
     return point_info.distance <= 0
@@ -211,6 +211,8 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         """Get a list of WallSide values for walls the sprite is currently touching.
         :return: A list of WallSide enum values."""
         touching = []
+        if not self._can_touch():
+            return touching
         for wall in globals_list.walls:
             try:
                 contact_set = self.physics._pymunk_shape.shapes_collide(wall)
@@ -269,9 +271,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         :param _x: The x-coordinate of the sprite."""
         # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._x = _x
-        self.physics._pymunk_body.position = self._x, self._y
-        if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:
-            physics_space.reindex_static()
+        self._move_body()
 
     @property
     def y(self):
@@ -285,7 +285,16 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         :param _y: The y-coordinate of the sprite."""
         # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._y = _y
+        self._move_body()
+
+    def _move_body(self):
+        """Move the pymunk body to ``(x, y)`` and update the shape right away.
+
+        is_touching() reads the shape's cached position, which pymunk would
+        otherwise only update at the next physics step.
+        """
         self.physics._pymunk_body.position = self._x, self._y
+        self.physics._pymunk_shape.cache_bb()
         if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:
             physics_space.reindex_static()
 
@@ -404,10 +413,7 @@ You might want to look in your code where you're setting transparency and make s
         :param sprite_or_point: The sprite or point to check if it's touching.
         :return: Whether the sprite is touching the other sprite or point."""
         if isinstance(sprite_or_point, Sprite):
-            # A hidden sprite is non-interactive, but its shape keeps its last
-            # cached transform, so without this the collision test still reports
-            # contacts at the position it was hidden at.
-            if self._is_hidden or sprite_or_point._is_hidden:
+            if not (self._can_touch() and sprite_or_point._can_touch()):
                 return False
             try:
                 contact_set = self.physics._pymunk_shape.shapes_collide(
@@ -417,12 +423,15 @@ You might want to look in your code where you're setting transparency and make s
             except (AssertionError, AttributeError):
                 # Fallback: shapes might not be in a valid state for collision check
                 return False
-        # For point collision, use pymunk's point_query. Hidden sprites are
-        # non-interactive, matching point_touching_sprite / mouse.is_touching.
-        if self._is_hidden:
-            return False
-        point_info = self.physics._pymunk_shape.point_query(sprite_or_point)
-        return point_info.distance <= 0
+        return point_touching_sprite(sprite_or_point, self)
+
+    def _can_touch(self):
+        """Whether the sprite takes part in touching at all.
+
+        A hidden or removed sprite's shape keeps its last position, so the
+        collision tests would still report contacts there.
+        """
+        return not self._is_hidden and self.alive()
 
     def distance_to(self, x, y=None):
         """Calculate the distance to a point or sprite.
