@@ -99,8 +99,10 @@ class TextInput(WidgetMixin, Box):
         self._track_hover(
             not self._is_disabled and not self._is_hidden and mouse.is_touching(self)
         )
-        if not self._is_disabled and mouse_state.click_hits(self):
-            if mouse.is_touching(self):
+        # Any click counts, also one another widget owns, which click_hits()
+        # alone would hide: clicking a Start button has to blur the field.
+        if not self._is_disabled and mouse_state.click_happened:
+            if mouse_state.click_hits(self) and mouse.is_touching(self):
                 if not self._is_focused:
                     _registry.focus(self)
                     self._cursor_visible = True
