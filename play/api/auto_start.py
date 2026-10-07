@@ -50,6 +50,25 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
     return _on_main_return
 
 
+def _main_module_frame():
+    """The frame running the student's script, or None.
+
+    Functions defined in the script share its ``__main__`` globals, so the
+    code name tells the script's own frame apart from theirs.
+    """
+    # CPython-specific: _getframe() is an implementation detail but fine here
+    # since pygame targets CPython.
+    frame = _sys._getframe()
+    while frame is not None:
+        if (
+            frame.f_globals.get("__name__") == "__main__"
+            and frame.f_code.co_name == "<module>"
+        ):
+            return frame
+        frame = frame.f_back
+    return None
+
+
 @_run_once
 def _schedule_auto_start():
     """Set up auto-start when the user's script finishes.
@@ -63,18 +82,13 @@ def _schedule_auto_start():
     """
     globals_list.should_auto_start = True
 
-    # CPython-specific: _getframe() is an implementation detail but fine here
-    # since pygame targets CPython.
-    frame = _sys._getframe()
-    while frame is not None:
-        if frame.f_globals.get("__name__") == "__main__":
-            existing_trace = _sys.gettrace()
-            if existing_trace is None:
-                _sys.settrace(lambda *_args: None)
-            frame.f_trace = _make_main_return_trace(existing_trace, frame.f_trace)
-            frame.f_trace_lines = False
-            break
-        frame = frame.f_back
+    frame = _main_module_frame()
+    if frame is not None:
+        existing_trace = _sys.gettrace()
+        if existing_trace is None:
+            _sys.settrace(lambda *_args: None)
+        frame.f_trace = _make_main_return_trace(existing_trace, frame.f_trace)
+        frame.f_trace_lines = False
     # If no __main__ frame was found (e.g. interactive REPL, embedded context),
     # should_auto_start is True but no trace is installed — start_program()
     # won't fire automatically and the user must call it explicitly.
@@ -93,9 +107,6 @@ def _cleanup_auto_start():
     _schedule_auto_start.has_run = False
     callback_manager.on_first_callback = _schedule_auto_start
 
-    frame = _sys._getframe()
-    while frame is not None:
-        if frame.f_globals.get("__name__") == "__main__":
-            frame.f_trace = None
-            break
-        frame = frame.f_back
+    frame = _main_module_frame()
+    if frame is not None:
+        frame.f_trace = None

@@ -1,5 +1,6 @@
 """Tests for auto-starting when user forgets to call play.start_program()."""
 
+import os
 import subprocess
 import sys
 from unittest.mock import patch
@@ -109,3 +110,72 @@ def test_auto_start_end_to_end():
         capture_output=True,
     )
     assert result.returncode == 0, result.stderr.decode()
+
+
+def _run_script(tmp_path, body):
+    """Run *body* as the student's script and return what it printed."""
+    script = tmp_path / "game.py"
+    script.write_text(
+        "import os\n"
+        "os.environ['SDL_VIDEODRIVER'] = 'dummy'\n"
+        "os.environ['SDL_AUDIODRIVER'] = 'dummy'\n"
+        "import play\n" + body
+    )
+    import play
+
+    # The script lives in tmp_path, so point it at the play under test.
+    root = os.path.dirname(os.path.dirname(os.path.abspath(play.__file__)))
+    result = subprocess.run(
+        [sys.executable, str(script)],
+        timeout=20,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "PYTHONPATH": root, "PYGAME_HIDE_SUPPORT_PROMPT": "1"},
+    )
+    assert result.returncode == 0, result.stderr
+    return result.stdout.split()
+
+
+def test_a_helper_function_that_makes_sprites_does_not_start_the_game(tmp_path):
+    printed = _run_script(
+        tmp_path,
+        "def make_enemy(i):\n"
+        "    play.new_box(x=i * 50)\n"
+        "for i in range(3):\n"
+        "    make_enemy(i)\n"
+        "print('loop-done')\n"
+        "@play.when_program_starts\n"
+        "def start():\n"
+        "    print('sprites', len(play.globals.globals_list.sprites_group))\n"
+        "    os._exit(0)\n",
+    )
+    assert printed == ["loop-done", "sprites", "3"]
+
+
+def test_a_setup_function_does_not_start_the_game_before_start_program(tmp_path):
+    printed = _run_script(
+        tmp_path,
+        "def setup():\n"
+        "    @play.repeat_forever\n"
+        "    def tick():\n"
+        "        print('tick')\n"
+        "        os._exit(0)\n"
+        "setup()\n"
+        "print('after-setup')\n"
+        "play.start_program()\n",
+    )
+    assert printed == ["after-setup", "tick"]
+
+
+def test_sprites_made_in_a_list_comprehension_are_all_made(tmp_path):
+    # Before Python 3.12 a comprehension runs in its own frame, which also
+    # carries the script's __main__ globals.
+    printed = _run_script(
+        tmp_path,
+        "enemies = [play.new_box(x=i * 50) for i in range(4)]\n"
+        "print('made', len(enemies))\n"
+        "@play.when_program_starts\n"
+        "def start():\n"
+        "    os._exit(0)\n",
+    )
+    assert printed == ["made", "4"]
