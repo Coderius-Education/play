@@ -53,7 +53,10 @@ def test_a_misspelt_color_fails_where_it_is_set(make, attribute):
 
 
 def test_a_color_can_be_a_list():
+    from play.globals import globals_list
+
     play.set_backdrop([255, 0, 0])
+    assert globals_list.backdrop[:3] == (255, 0, 0)
     box = play.new_box(color=[0, 0, 255])
     box.update()
     assert box.image.get_at(box.image.get_rect().center)[:3] == (0, 0, 255)
@@ -70,4 +73,5 @@ def test_a_font_size_with_decimals_is_rounded():
 
 def test_no_font_means_the_default_font():
     text = play.new_text("hi", font=None)
-    assert text.image.get_width() > 0
+    default = play.new_text("hi", font="default")
+    assert text.image.get_size() == default.image.get_size()

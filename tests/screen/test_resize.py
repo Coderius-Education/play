@@ -172,13 +172,12 @@ def test_setting_resizable_takes_effect_straight_away(monkeypatch):
 
     flags = []
     real_set_mode = pygame.display.set_mode
-    monkeypatch.setattr(
-        pygame.display,
-        "set_mode",
-        lambda size, f=0, *a, **k: (flags.append(f), real_set_mode(size, f, *a, **k))[
-            1
-        ],
-    )
+
+    def set_mode(size, mode_flags=0, *args, **kwargs):
+        flags.append(mode_flags)
+        return real_set_mode(size, mode_flags, *args, **kwargs)
+
+    monkeypatch.setattr(pygame.display, "set_mode", set_mode)
 
     play.screen.resizable = True
 

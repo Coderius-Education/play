@@ -201,10 +201,6 @@ def test_physics_pause_unpause():
     assert positions[2] != positions[1]
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
-
-
 def test_setting_mass_on_a_sprite_without_physics_keeps_python_running():
     # Chipmunk aborts the whole process when a static or kinematic body gets
     # a mass; the value has to wait until the body is dynamic.
@@ -296,3 +292,7 @@ def test_showing_a_sprite_that_was_hidden_and_then_removed_keeps_it_out():
     coin.show()
 
     assert coin.physics._pymunk_body not in physics_space.bodies
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

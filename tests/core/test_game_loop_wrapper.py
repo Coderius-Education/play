@@ -113,10 +113,6 @@ def test_listen_to_failure_logs_exception(caplog):
     assert any("log me" in record.message for record in caplog.records)
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
-
-
 def test_listen_to_failure_marks_the_program_as_stopped():
     # start_program() only runs the loop on while the program is not
     # stopped; an unmarked stop left it waiting on an empty loop (#231).
@@ -134,3 +130,7 @@ def test_listen_to_failure_marks_the_program_as_stopped():
         get_loop().run_until_complete(fail())
 
     assert globals_list.program_state is ProgramState.STOPPED
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
