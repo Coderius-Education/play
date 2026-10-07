@@ -410,3 +410,36 @@ def test_button_pressed_callback_fires_once_on_press():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+def test_when_axis_moved_only_hears_its_own_controller():
+    # In a two-player game the second stick must not move player 1.
+    import asyncio
+    import pygame
+    import play
+    from play.core.controller_loop import (
+        controller_state,
+        handle_controller_events,
+        handle_controller,
+    )
+    from play.loop import get_loop
+
+    controller_state.axes_moved.clear()
+    moved = []
+
+    @play.controllers.when_axis_moved(0, 0)
+    def player_one(axis, value):
+        moved.append(value)
+
+    for instance_id, value in ((1, -1.0), (0, 1.0)):
+        handle_controller_events(
+            pygame.event.Event(
+                pygame.JOYAXISMOTION,
+                {"instance_id": instance_id, "axis": 0, "value": value},
+            )
+        )
+    loop = get_loop()
+    loop.run_until_complete(handle_controller())
+    loop.run_until_complete(asyncio.sleep(0))
+
+    assert moved == [1]
