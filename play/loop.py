@@ -1,7 +1,6 @@
 """This module is used to create a global event loop for the application."""
 
 import os
-import sys
 import asyncio
 import traceback
 from .io.logging import play_logger
@@ -45,9 +44,6 @@ def get_loop():
 
     pid = os.getpid()
     if _loop is None or _creator_pid != pid:
-        # set_event_loop_policy is deprecated in 3.14 and removed in 3.16
-        if sys.version_info < (3, 14):
-            asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
         _loop = asyncio.new_event_loop()
         asyncio.set_event_loop(_loop)
         _loop.set_debug(False)

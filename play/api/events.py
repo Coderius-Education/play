@@ -11,6 +11,7 @@ from ..io.keypress import (
     while_any_key as _while_any_key,
 )
 from ..io.mouse import mouse
+from ..objects.video import Video
 from ..utils.async_helpers import make_async
 
 
@@ -305,7 +306,7 @@ def _check_videos(method_name, videos):
 Put the video in the brackets: @play.{method_name}(my_video)\n"""
         )
     for video in videos:
-        if hasattr(video, method_name):
+        if isinstance(video, Video):
             continue
         if callable(video):
             raise ValueError(

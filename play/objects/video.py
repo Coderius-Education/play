@@ -1,6 +1,5 @@
 """This module contains the Video class, which plays a video file on screen."""
 
-import math as _math
 import queue as _queue
 import time as _time
 import weakref
@@ -15,8 +14,6 @@ from ..callback import callback_manager, CallbackType
 from ..callback.callback_helpers import run_async_callback
 from ..io.logging import play_logger as logger
 from ..io.mouse import mouse
-from ..io.screen import convert_pos
-from ..utils import scale_to_percent as _scale_to_percent
 from ..utils.async_helpers import make_async
 
 # Videos hold a decoding thread and an open file, so they need closing even when
@@ -121,7 +118,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         anchor=None,
         layer=0,
         _time_fn=_time.monotonic,
-    ):  # pylint: disable=too-many-locals
+    ):
         """Play a video file.
 
         :param file_name: The video file to play (for example 'clip.mp4').
@@ -654,7 +651,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
             return pygame.Rect(-1, -1, 0, 0)
         return pygame.Rect(self._width - width, self._height - bar_h, 22, bar_h)
 
-    def _handle_frame_events(self):  # pylint: disable=too-many-return-statements
+    def _handle_frame_events(self):
         """Handle mouse and keyboard input. Called once per frame.
 
         :return: True when the control bar used the click, so that the user's
@@ -789,21 +786,7 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
                 self._render_controls(), (0, self._height - self._bar_height())
             )
 
-        if self._size != 100:
-            draw_image = _scale_to_percent(draw_image, self._size)
-
-        draw_image.set_alpha(round(self._transparency * 255 / 100))
-
-        self.rect = draw_image.get_rect()
-        pos = convert_pos(self.x, self.y)
-        self.rect.x = pos[0] - self.rect.width // 2
-        self.rect.y = pos[1] - self.rect.height // 2
-
-        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
-        self.image = (
-            pygame.transform.rotate(draw_image, angle_deg) if angle_deg else draw_image
-        )
-        self.rect = self.image.get_rect(center=self.rect.center)
+        self._finalize_image(draw_image)
         super().update()
 
     ##### size #####

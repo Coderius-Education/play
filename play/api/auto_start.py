@@ -14,7 +14,7 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
     global trace. Wraps any existing frame trace so debuggers/coverage survive.
     """
 
-    def _on_main_return(_frame, event, _arg):  # pylint: disable=unused-argument
+    def _on_main_return(_frame, event, _arg):
         if event == "return":
             if (
                 globals_list.should_auto_start
@@ -65,7 +65,7 @@ def _schedule_auto_start():
 
     # CPython-specific: _getframe() is an implementation detail but fine here
     # since pygame targets CPython.
-    frame = _sys._getframe()  # pylint: disable=protected-access
+    frame = _sys._getframe()
     while frame is not None:
         if frame.f_globals.get("__name__") == "__main__":
             existing_trace = _sys.gettrace()
@@ -93,7 +93,7 @@ def _cleanup_auto_start():
     _schedule_auto_start.has_run = False
     callback_manager.on_first_callback = _schedule_auto_start
 
-    frame = _sys._getframe()  # pylint: disable=protected-access
+    frame = _sys._getframe()
     while frame is not None:
         if frame.f_globals.get("__name__") == "__main__":
             frame.f_trace = None

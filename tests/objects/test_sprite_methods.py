@@ -197,3 +197,28 @@ def test_sprite_transparency_invalid():
 
     with pytest.raises(ValueError):
         sprite.transparency = "not a number"
+
+
+def test_a_plain_sprite_gets_the_defaults():
+    from play.objects.sprite import Sprite
+
+    sprite = Sprite(x=12, y=-5)
+
+    assert (sprite.x, sprite.y) == (12, -5)
+    assert sprite.angle == 0
+    assert sprite.transparency == 100
+    assert sprite.is_hidden is False
+    assert sprite.events is not None
+
+
+def test_changing_a_sprite_redraws_the_sprites_that_watch_it():
+    import play
+
+    watcher = play.new_box()
+    target = play.new_box()
+    watcher.when_touching(target)(lambda: None)
+    watcher._should_recompute = False
+
+    target.x = 50
+
+    assert watcher._should_recompute is True

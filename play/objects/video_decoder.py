@@ -203,7 +203,7 @@ class FrameDecoder:
             seek_to, self._seek_to = self._seek_to, None
             return seek_to, self._generation
 
-    def _run(self):  # pylint: disable=too-many-branches
+    def _run(self):
         """Decode frames until stopped, honouring seek requests as they arrive."""
         try:
             container = self._av.open(self.file_name)

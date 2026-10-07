@@ -1,14 +1,11 @@
 """This module contains the Text class, which is a text string in the game."""
 
-import math as _math
 import os
 import pygame
 from .sprite import Sprite
-from ..io.screen import convert_pos
 from ..utils import (
     color_name_to_rgb as _color_name_to_rgb,
     render_text as _render_text,
-    scale_to_percent as _scale_to_percent,
 )
 from ..io.logging import play_logger
 
@@ -53,22 +50,10 @@ class Text(Sprite):
 
     def _render(self):
         """Render the text surface with scale, rotation, and alpha."""
-        pos = convert_pos(self.x, self.y)
         draw_image = _render_text(
             self._pygame_font, self._words, True, _color_name_to_rgb(self._color)
         )
-        if self._size != 100:
-            draw_image = _scale_to_percent(draw_image, self._size)
-        if self.physics is not None:
-            angle_deg = _math.degrees(self.physics._pymunk_body.angle)
-        else:
-            angle_deg = self._angle
-        if angle_deg:
-            draw_image = pygame.transform.rotate(draw_image, angle_deg)
-        draw_image.set_alpha(round(self._transparency * 255 / 100))
-        self._image = draw_image
-        self.rect = draw_image.get_rect()
-        self.rect.center = pos
+        self._finalize_image(draw_image)
 
     def clone(self):
         return self.__class__(

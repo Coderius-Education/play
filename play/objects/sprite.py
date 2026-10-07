@@ -54,6 +54,12 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     _size = 100
     _color = None
     _is_disabled = False
+    _angle = 0
+    _transparency = 100
+    _is_hidden = False
+    events = None
+    _x = None
+    _y = None
 
     @staticmethod
     def _init_anchor_attrs(instance, x, y, anchor, layer):
@@ -67,12 +73,8 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
     def __init__(self, image=None, x=0, y=0, anchor=None, layer=0):
         # Subclasses set their own field values BEFORE calling super().__init__() so
-        # that start_physics() can use the correct dimensions.  The hasattr guards
-        # provide fallback defaults when Sprite is instantiated directly.
-        if not hasattr(self, "_angle"):
-            self._angle = 0
-        if not hasattr(self, "_transparency"):
-            self._transparency = 100
+        # that start_physics() can use the correct dimensions; the class
+        # defaults above cover Sprite instantiated directly.
 
         # Anchor/layer attrs bypass __setattr__ to avoid triggering _should_recompute.
         # Text calls this same helper before its early update() so the values are
@@ -81,18 +83,15 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
         # _x/_y: use anchor-aware defaults unless the subclass already set them
         # (Text sets these before calling super() because it calls update() first).
-        if not hasattr(self, "_x"):
+        if self._x is None:
             self._x = 0 if anchor else x
-        if not hasattr(self, "_y"):
+        if self._y is None:
             self._y = 0 if anchor else y
 
-        if not hasattr(self, "events"):
-            self.events = EventComponent(self)
+        self.events = EventComponent(self)
 
         if self._image is None:
             self._image = image
-        if not hasattr(self, "_is_hidden"):
-            self._is_hidden = False
         self._should_recompute = True
 
         if self.rect is None:
@@ -119,7 +118,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         # ignore if it's in the ignored list or if the variable doesn't change
         if name not in _should_ignore_update and getattr(self, name, value) != value:
             self._should_recompute = True
-            if hasattr(self, "events"):
+            if self.events is not None:
                 for sprite in self.events._dependent_sprites:
                     sprite._should_recompute = True
         super().__setattr__(name, value)
@@ -514,11 +513,8 @@ You might want to look in your code where you're setting transparency and make s
         # Wall callback types don't register in _dependent_sprites, so only
         # WHEN_TOUCHING / WHEN_STOPPED_TOUCHING need cleanup here.
         for cb_type in [CallbackType.WHEN_TOUCHING, CallbackType.WHEN_STOPPED_TOUCHING]:
-            for item in saved.get(cb_type, []):
-                if isinstance(item, tuple) and len(item) == 2:
-                    _, target = item
-                    if hasattr(target, "events"):
-                        target.events._dependent_sprites.discard(self)
+            for _, target in saved[cb_type]:
+                target.events._dependent_sprites.discard(self)
         collision_registry.forget(self.physics._pymunk_shape)
         for callback_type in CallbackType:
             callback_manager.remove_callbacks(callback_type, id(self))
@@ -567,23 +563,31 @@ You might want to look in your code where you're setting transparency and make s
         surface.blit(overlay, (0, 0))
 
     def _finalize_image(self, draw_image):
-        """Apply transparency + rotation and centre the sprite at its play position.
+        """Scale *draw_image* by the sprite's size, then place it.
 
-        Shared render tail for widgets drawn into *draw_image* that sit centred
-        on ``(self.x, self.y)``."""
-        # _hit_dims() scales the pymunk hit-shape by _size, so the drawn image
-        # has to scale with it or clicks land off the visible widget.
-        size = self._size
-        if size != 100:
-            draw_image = _scale_to_percent(draw_image, size)
+        The shared render tail: _hit_dims() scales the pymunk hit-shape by
+        size, so the drawn image has to scale with it."""
+        if self._size != 100:
+            draw_image = _scale_to_percent(draw_image, self._size)
+        self._place_image(draw_image)
+
+    def _place_image(self, draw_image):
+        """Apply transparency, rotate and centre *draw_image* on ``(x, y)``."""
         draw_image.set_alpha(round(self._transparency * 255 / 100))
-        self.rect = draw_image.get_rect()
+        rect = draw_image.get_rect()
         pos = convert_pos(self.x, self.y)
-        self.rect.x = pos[0] - self.rect.width // 2
-        self.rect.y = pos[1] - self.rect.height // 2
-        angle_deg = _math.degrees(self.physics._pymunk_body.angle)
-        self.image = pygame.transform.rotate(draw_image, angle_deg)
-        self.rect = self.image.get_rect(center=self.rect.center)
+        rect.x = pos[0] - rect.width // 2
+        rect.y = pos[1] - rect.height // 2
+        if self.physics is not None:
+            angle_deg = _math.degrees(self.physics._pymunk_body.angle)
+        else:  # Text renders once before Sprite.__init__ builds the body
+            angle_deg = self._angle
+        if angle_deg:
+            self.image = pygame.transform.rotate(draw_image, angle_deg)
+            self.rect = self.image.get_rect(center=rect.center)
+        else:
+            self.image = draw_image
+            self.rect = rect
 
     # Whether the pymunk hit-shape is a circle. It is a property of the kind
     # of sprite, not of the sign of the radius: a circle built at a negative
