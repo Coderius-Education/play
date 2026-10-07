@@ -104,11 +104,13 @@ class Text(Sprite):
     @color.setter
     def color(self, color_):
         """Set the color of the text object."""
+        _color_name_to_rgb(color_)  # a misspelt name fails here, not next frame
         self._color = color_
 
     def _load_font(self, font_name, font_size):
         """Helper method to load a font, either from a file or system."""
-        if font_name == "default":
+        font_size = round(font_size)  # pygame only takes whole sizes
+        if font_name in ("default", None):
             self._pygame_font = pygame.font.Font(
                 pygame.font.get_default_font(), font_size
             )

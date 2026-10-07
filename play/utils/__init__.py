@@ -41,8 +41,8 @@ def color_name_to_rgb(
 
     are all valid and will produce an RGB value.
     """
-    if isinstance(name, tuple):
-        return name
+    if isinstance(name, (tuple, list)):
+        return tuple(name)
 
     stripped = name.strip()
     # Expand shorthand hex: #F00 -> #FF0000

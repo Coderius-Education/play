@@ -129,3 +129,11 @@ def test_random_position_negative_bounds():
         pos = play.random_position(x_min=-100, x_max=-50, y_min=-100, y_max=-50)
         assert -100 <= pos.x <= -50
         assert -100 <= pos.y <= -50
+
+
+def test_random_number_takes_its_bounds_in_either_order():
+    import play
+
+    for _ in range(50):
+        assert 1 <= play.random_number(10, 1) <= 10
+        assert 1.5 <= play.random_number(4.5, 1.5) <= 4.5
