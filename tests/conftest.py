@@ -455,8 +455,9 @@ def clean_play_state(request):
     physics_space.gravity = (0, -100)
     from play.io.screen import screen
 
-    screen.width = 800
-    screen.height = 600
+    # Not the width/height setters: they rebuild the walls, which are
+    # cleared and created again below.
+    screen._width, screen._height = 800, 600
     screen.update_display()
 
     # Clean Pymunk physics spaces
