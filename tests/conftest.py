@@ -458,6 +458,7 @@ def clean_play_state(request):
     # Not the width/height setters: they rebuild the walls, which are
     # cleared and created again below.
     screen._width, screen._height = 800, 600
+    screen._resizable = False
     screen.update_display()
 
     # Clean Pymunk physics spaces
