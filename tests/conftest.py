@@ -202,6 +202,43 @@ def fake_clock():
     return FakeClock()
 
 
+@pytest.fixture
+def run_script(tmp_path):
+    """Run a student's script in a fresh Python and return what it printed.
+
+    Some behaviour only shows when the student's file really is __main__ and
+    the game really runs, so it cannot be tested in-process. *body* follows
+    an ``import os`` and ``import play`` with the dummy SDL drivers set; it
+    should end the process with ``os._exit(0)``.
+    """
+    import subprocess
+    import play
+
+    # The script lives in tmp_path, so point it at the play under test.
+    root = os.path.dirname(os.path.dirname(os.path.abspath(play.__file__)))
+    env = {**os.environ, "PYTHONPATH": root, "PYGAME_HIDE_SUPPORT_PROMPT": "1"}
+
+    def run(body):
+        script = tmp_path / "game.py"
+        script.write_text(
+            "import os\n"
+            "os.environ['SDL_VIDEODRIVER'] = 'dummy'\n"
+            "os.environ['SDL_AUDIODRIVER'] = 'dummy'\n"
+            "import play\n" + body
+        )
+        result = subprocess.run(
+            [_sys.executable, str(script)],
+            timeout=20,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        assert result.returncode == 0, result.stderr
+        return result.stdout.split()
+
+    return run
+
+
 def count_color(surface, rgb):
     """Count pixels in *surface* whose RGB matches *rgb* (alpha ignored).
 

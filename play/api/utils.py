@@ -10,7 +10,7 @@ from ..callback import callback_manager, CallbackType
 from ..core import game_loop as _game_loop
 from ..globals import globals_list, ProgramState
 from ..io.keypress import keyboard_state
-from ..loop import get_loop as _get_loop
+from ..loop import get_loop as _get_loop, stop_loop as _stop_loop
 from ..physics import set_physics_simulation_steps as _set_physics_simulation_steps
 from ..objects.video import close_all_videos as _close_all_videos
 from ..utils import color_name_to_rgb as _color_name_to_rgb
@@ -63,8 +63,7 @@ def stop_program():
 
     play.stop_program() should almost certainly go at the very end of your program.
     """
-    globals_list.program_state = ProgramState.STOPPED
-    _get_loop().stop()
+    _stop_loop()
 
 
 async def animate():

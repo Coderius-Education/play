@@ -6,7 +6,7 @@ import functools
 import inspect
 
 from ..io.logging import play_logger
-from ..loop import get_loop as _get_loop
+from ..loop import stop_loop as _stop_loop
 
 
 # @decorator
@@ -24,7 +24,7 @@ def listen_to_failure():
                     return await result
                 return result
             except Exception as e:
-                _get_loop().stop()
+                _stop_loop()
                 play_logger.critical("Error in %s: %s", f.__name__, e)
                 raise
 
