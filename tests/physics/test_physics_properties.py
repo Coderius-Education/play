@@ -282,3 +282,17 @@ def test_hiding_showing_or_restarting_a_removed_sprite_is_harmless():
 
     assert coin.physics._pymunk_body not in physics_space.bodies
     assert coin.physics._pymunk_shape not in physics_space.shapes
+
+
+def test_showing_a_sprite_that_was_hidden_and_then_removed_keeps_it_out():
+    # hide() takes the body out of the space; show() must not put it back
+    # once the sprite has been removed in between.
+    from play.physics import physics_space
+    import play
+
+    coin = play.new_circle()
+    coin.hide()
+    coin.remove()
+    coin.show()
+
+    assert coin.physics._pymunk_body not in physics_space.bodies
