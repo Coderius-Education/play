@@ -127,7 +127,7 @@ class Screen:
             CallbackType.WHEN_RESIZED,
             wrapper,
         )
-        return wrapper
+        return func
 
     def resize(self, new_width, new_height):
         """Resize the screen to new dimensions.

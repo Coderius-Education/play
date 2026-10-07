@@ -18,3 +18,16 @@ def test_when_resized_registers_callback():
 
     callbacks = callback_manager.get_callbacks(CallbackType.WHEN_RESIZED)
     assert len(callbacks) >= 1
+
+
+def test_when_resized_leaves_the_function_callable():
+    # Students call their layout function once at start-up as well.
+    ran = []
+
+    @screen.when_resized
+    def layout():
+        ran.append(True)
+        return "laid out"
+
+    assert layout() == "laid out"
+    assert ran == [True]
