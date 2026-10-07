@@ -227,7 +227,8 @@ def run_script(tmp_path):
             "import play\n" + body
         )
         result = subprocess.run(
-            [_sys.executable, str(script)],
+            # -u: os._exit() skips flushing, so stdout must not be buffered.
+            [_sys.executable, "-u", str(script)],
             timeout=20,
             capture_output=True,
             text=True,
