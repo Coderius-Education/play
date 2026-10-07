@@ -369,14 +369,16 @@ You might want to look in your code where you're setting transparency and make s
         if self._is_hidden:
             return
         self._is_hidden = True
-        self.physics.pause()
+        if self.alive():  # a removed sprite's body has already left the space
+            self.physics.pause()
 
     def show(self):
         """Show the sprite."""
         if not self._is_hidden:
             return
         self._is_hidden = False
-        self.physics.unpause()
+        if self.alive():
+            self.physics.unpause()
 
     @property
     def is_hidden(self):
@@ -832,6 +834,9 @@ You might want to look in your code where you're setting transparency and make s
             unless you pass ``sensor=True``; that holds even if you only meant
             to change, say, its bounciness.
         """
+        if self.physics is not None and not self.alive():
+            return  # removed: nothing to simulate any more
+
         saved_callbacks = self._save_and_clear_callbacks()
 
         if self.physics is not None:

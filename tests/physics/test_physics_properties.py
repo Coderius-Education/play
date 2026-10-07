@@ -203,3 +203,71 @@ def test_physics_pause_unpause():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+def test_setting_mass_on_a_sprite_without_physics_keeps_python_running():
+    # Chipmunk aborts the whole process when a static or kinematic body gets
+    # a mass; the value has to wait until the body is dynamic.
+    import play
+
+    box = play.new_box()
+    box.physics.mass = 50
+    assert box.physics.mass == 50
+
+    box.start_physics(can_move=False)
+    box.physics.mass = 30
+    box.physics.can_move = True
+    assert box.physics._pymunk_body.mass == 30
+
+
+@pytest.mark.parametrize("mass", [0, -5, "heavy", float("inf")])
+def test_a_mass_pymunk_cannot_use_gives_a_clear_error(mass):
+    import play
+
+    box = play.new_box()
+    box.start_physics()
+    with pytest.raises(ValueError, match="number above 0"):
+        box.physics.mass = mass
+    with pytest.raises(ValueError, match="number above 0"):
+        box.start_physics(mass=mass)
+
+
+def test_setting_friction_reaches_the_physics_shape():
+    import play
+
+    box = play.new_box()
+    box.start_physics()
+    box.physics.friction = 1
+
+    assert box.physics.friction == 1
+    assert box.physics._pymunk_shape.friction == 1
+
+
+def test_a_floating_platform_falls_once_it_obeys_gravity():
+    import pymunk
+    import play
+
+    platform = play.new_box(y=100)
+    platform.start_physics(stable=True, obeys_gravity=False)
+    assert platform.physics._pymunk_body.body_type == pymunk.Body.KINEMATIC
+
+    platform.physics.obeys_gravity = True
+
+    assert platform.physics._pymunk_body.body_type == pymunk.Body.DYNAMIC
+
+
+def test_hiding_showing_or_restarting_a_removed_sprite_is_harmless():
+    from play.physics import physics_space
+    import play
+
+    coin = play.new_circle()
+    coin.start_physics(can_move=False)
+    coin.remove()
+
+    coin.hide()
+    coin.show()
+    coin.start_physics()
+    coin.stop_physics()
+
+    assert coin.physics._pymunk_body not in physics_space.bodies
+    assert coin.physics._pymunk_shape not in physics_space.shapes
