@@ -44,7 +44,7 @@ class Physics:
             Sensor (detects collisions without blocking):
                 sensor = True
         """
-        _check_mass(mass)
+        _check_mass(mass, can_move)
         self.sprite = sprite
         self._can_move = can_move
         self._stable = stable
@@ -218,6 +218,8 @@ class Physics:
     @can_move.setter
     def can_move(self, _can_move):
         prev_can_move = self._can_move
+        if _can_move:
+            _check_mass(self._mass, _can_move)
         self._can_move = _can_move
         if prev_can_move != _can_move:
             self._retype_body()
@@ -278,7 +280,7 @@ class Physics:
     def mass(self, _mass):
         """Set the mass of the object.
         :param _mass: The mass of the object."""
-        _check_mass(_mass)
+        _check_mass(_mass, self._can_move)
         self._mass = _mass
         # Chipmunk aborts the process when a static or kinematic body gets a
         # mass; _retype_body() applies it once the body becomes dynamic.
@@ -325,12 +327,16 @@ class Physics:
             self._retype_body()
 
 
-def _check_mass(mass):
-    """Raise a student-readable error for a mass pymunk cannot use."""
+def _check_mass(mass, can_move):
+    """Raise a student-readable error for a mass pymunk cannot use.
+
+    A sprite that cannot move ignores its mass, so 0 is fine for it.
+    """
     if (
         isinstance(mass, bool)
         or not isinstance(mass, (int, float))
-        or not 0 < mass < _math.inf
+        or not 0 <= mass < _math.inf
+        or (mass == 0 and can_move)
     ):
         raise ValueError(
             f"""The mass of a sprite has to be a number above 0, but it was set to {mass!r}.

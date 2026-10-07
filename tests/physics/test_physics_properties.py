@@ -232,6 +232,17 @@ def test_a_mass_pymunk_cannot_use_gives_a_clear_error(mass):
         box.start_physics(mass=mass)
 
 
+def test_a_sprite_that_cannot_move_may_have_no_mass():
+    import play
+
+    floor = play.new_box(y=-100, width=300, height=20)
+    floor.start_physics(can_move=False, mass=0)
+    floor.physics.mass = 0
+
+    with pytest.raises(ValueError, match="number above 0"):
+        floor.physics.can_move = True
+
+
 def test_setting_friction_reaches_the_physics_shape():
     import play
 
