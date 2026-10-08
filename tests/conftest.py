@@ -329,11 +329,12 @@ def _drop_pymunk_at_exit():
     own module cleanup: removing it from sys.modules at exit avoids the
     teardown path entirely and the process exits 0.
 
-    A real game is unaffected, because start_program()'s teardown already
-    tears pygame down in an order that avoids it. This is here rather than in
-    play/ because the visible cost is to tooling — a pytest run reporting
-    exit 139 after every test passed — and a library should not be mutating
-    sys.modules on someone else's behalf for that.
+    A game that runs is unaffected, because start_program()'s teardown
+    already tears pygame down in an order that avoids it. A student's script
+    that fails on a top-level line before the game starts does hit it: the
+    traceback is followed by a segfault (#232). This workaround stays here
+    rather than in play/ because a library should not be mutating sys.modules
+    on someone else's behalf; #232 is about fixing that case in play itself.
     """
     import atexit
 
