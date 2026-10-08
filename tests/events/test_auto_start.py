@@ -109,3 +109,45 @@ def test_auto_start_end_to_end():
         capture_output=True,
     )
     assert result.returncode == 0, result.stderr.decode()
+
+
+def test_a_helper_function_that_makes_sprites_does_not_start_the_game(run_script):
+    printed = run_script(
+        "def make_enemy(i):\n"
+        "    play.new_box(x=i * 50)\n"
+        "for i in range(3):\n"
+        "    make_enemy(i)\n"
+        "print('loop-done')\n"
+        "@play.when_program_starts\n"
+        "def start():\n"
+        "    print('sprites', len(play.globals.globals_list.sprites_group))\n"
+        "    os._exit(0)\n",
+    )
+    assert printed == ["loop-done", "sprites", "3"]
+
+
+def test_a_setup_function_does_not_start_the_game_before_start_program(run_script):
+    printed = run_script(
+        "def setup():\n"
+        "    @play.repeat_forever\n"
+        "    def tick():\n"
+        "        print('tick')\n"
+        "        os._exit(0)\n"
+        "setup()\n"
+        "print('after-setup')\n"
+        "play.start_program()\n",
+    )
+    assert printed == ["after-setup", "tick"]
+
+
+def test_sprites_made_in_a_list_comprehension_are_all_made(run_script):
+    # Before Python 3.12 a comprehension runs in its own frame, which also
+    # carries the script's __main__ globals.
+    printed = run_script(
+        "enemies = [play.new_box(x=i * 50) for i in range(4)]\n"
+        "print('made', len(enemies))\n"
+        "@play.when_program_starts\n"
+        "def start():\n"
+        "    os._exit(0)\n",
+    )
+    assert printed == ["made", "4"]

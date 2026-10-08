@@ -4,6 +4,7 @@ import os
 import pygame
 from .sprite import Sprite
 from ..utils import (
+    check_color as _check_color,
     color_name_to_rgb as _color_name_to_rgb,
     render_text as _render_text,
 )
@@ -104,11 +105,13 @@ class Text(Sprite):
     @color.setter
     def color(self, color_):
         """Set the color of the text object."""
+        _check_color(color_)
         self._color = color_
 
     def _load_font(self, font_name, font_size):
         """Helper method to load a font, either from a file or system."""
-        if font_name == "default":
+        font_size = round(font_size)  # pygame only takes whole sizes
+        if font_name in ("default", None):
             self._pygame_font = pygame.font.Font(
                 pygame.font.get_default_font(), font_size
             )

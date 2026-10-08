@@ -234,6 +234,32 @@ def test_clicking_elsewhere_blurs_focused_input():
     assert globals_list.focused_text_input is None
 
 
+def test_clicking_a_button_blurs_the_focused_input():
+    # The button owns the click, but the field must still let go of focus.
+    ti = play.new_text_input(x=0, y=100)
+    button = play.new_button("Start", x=0, y=-100)
+    registry.focus(ti)
+
+    click_at(0, -100, ti, button)
+
+    assert ti._is_focused is False
+    assert globals_list.focused_text_input is None
+
+
+@pytest.mark.parametrize("first", ["a", "b"])
+def test_clicking_another_input_moves_the_focus(first):
+    # Both update orders: the old field must not clear the new one's focus.
+    a = play.new_text_input(x=0, y=100)
+    b = play.new_text_input(x=0, y=-100)
+    registry.focus(a)
+
+    order = (a, b) if first == "a" else (b, a)
+    click_at(0, -100, *order)
+
+    assert globals_list.focused_text_input is b
+    assert a._is_focused is False
+
+
 def test_cursor_toggles_after_500ms():
     ti = play.new_text_input()
     registry.focus(ti)

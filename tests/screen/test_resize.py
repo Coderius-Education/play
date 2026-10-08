@@ -115,3 +115,70 @@ def test_screen_resize_very_tall():
     assert play.screen.height == 2000
     assert play.screen.top == 1000
     assert play.screen.bottom == -1000
+
+
+def _wall_edges():
+    """Where the four walls are, as (min x, max x, min y, max y)."""
+    from play.globals import globals_list
+
+    xs = [p.x for w in globals_list.walls for p in (w.a, w.b)]
+    ys = [p.y for w in globals_list.walls for p in (w.a, w.b)]
+    return min(xs), max(xs), min(ys), max(ys)
+
+
+def test_resize_moves_the_walls_to_the_new_edges():
+    import play
+
+    play.screen.resize(400, 300)
+
+    assert _wall_edges() == (-200, 200, -150, 150)
+
+
+def test_a_ball_bounces_off_the_edge_after_a_resize():
+    import play
+
+    play.screen.resize(400, 300)
+    ball = play.new_circle(radius=10)
+    ball.start_physics(x_speed=400, y_speed=0, obeys_gravity=False)
+    furthest = [0]
+    frames = [0]
+
+    @play.repeat_forever
+    def watch():
+        furthest[0] = max(furthest[0], ball.x)
+        frames[0] += 1
+        if frames[0] == 60:  # a second: long enough to reach the old wall
+            play.stop_program()
+
+    play.start_program()
+
+    assert furthest[0] <= play.screen.right
+
+
+def test_setting_width_and_height_resizes_the_window_and_walls():
+    import pygame
+    import play
+
+    play.screen.width = 400
+    play.screen.height = 300
+
+    assert pygame.display.get_surface().get_size() == (400, 300)
+    assert _wall_edges() == (-200, 200, -150, 150)
+
+
+def test_setting_resizable_takes_effect_straight_away(monkeypatch):
+    import pygame
+    import play
+
+    flags = []
+    real_set_mode = pygame.display.set_mode
+
+    def set_mode(size, mode_flags=0, *args, **kwargs):
+        flags.append(mode_flags)
+        return real_set_mode(size, mode_flags, *args, **kwargs)
+
+    monkeypatch.setattr(pygame.display, "set_mode", set_mode)
+
+    play.screen.resizable = True
+
+    assert flags and flags[-1] & pygame.RESIZABLE

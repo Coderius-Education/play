@@ -208,6 +208,62 @@ def test_text_input_captures_the_keyboard_in_the_game_loop():
     assert seen["after"] > seen["during"], "blurring should restore the game's keyboard"
 
 
+def test_clicking_a_button_gives_the_game_its_keyboard_back():
+    # Type a name, click Start, play with the arrow keys (#237).
+    import pygame
+    import play
+    from play.io.screen import screen
+    from play.globals import globals_list
+
+    game_keys = []
+    name = play.new_text_input(x=0, y=100, width=200, height=40)
+    start = play.new_button("Start", x=0, y=-100)
+    started = []
+    start.when_clicked(lambda: started.append(True))
+    seen = {}
+
+    @play.when_key_pressed("right")
+    def on_right(key=None):
+        game_keys.append("right")
+
+    @play.when_program_starts
+    async def driver():
+        async def click(x, y):
+            pos = _screen_xy(screen, x, y)
+            post_mouse_motion(*pos)
+            await play.animate()
+            post_mouse_down(*pos)
+            await play.animate()
+            post_mouse_up(*pos)
+            await play.animate()
+
+        for _ in range(5):
+            await play.animate()
+        await click(0, 100)
+        seen["focused"] = globals_list.focused_text_input is name
+        pygame.event.post(pygame.event.Event(pygame.TEXTINPUT, {"text": "Bo"}))
+        await play.animate()
+
+        await click(0, -100)
+        seen["blurred"] = globals_list.focused_text_input is None
+
+        post_key_down(pygame.K_RIGHT)
+        await play.animate()
+        await play.animate()
+        post_key_up(pygame.K_RIGHT)
+        await play.animate()
+        play.stop_program()
+
+    add_safety_timeout(max_frames)
+    play.start_program()
+
+    assert seen.get("focused") is True
+    assert name.value == "Bo"
+    assert started, "the Start button should still get its click"
+    assert seen["blurred"] is True, "clicking Start should release the field"
+    assert game_keys, "the arrow key should reach the game after clicking Start"
+
+
 def test_tab_moves_focus_between_fields_in_the_game_loop():
     import pygame
     import play

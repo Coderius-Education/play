@@ -75,6 +75,17 @@ def test_real_async_failures_are_still_reported_as_critical(caplog):
     assert [r for r in caplog.records if r.levelno >= logging.CRITICAL]
 
 
+def test_a_real_async_failure_marks_the_program_as_stopped():
+    from play.globals import globals_list, ProgramState
+
+    globals_list.program_state = ProgramState.RUNNING
+    play.loop._handle_exception(
+        play.loop.get_loop(), {"message": "Some other asyncio problem", "future": None}
+    )
+
+    assert globals_list.program_state is ProgramState.STOPPED
+
+
 def test_loop_type_on_windows():
     """On Windows, the loop should be a ProactorEventLoop (or SelectorEventLoop
     on Python 3.14+ where the default policy changed)."""

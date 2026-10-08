@@ -44,6 +44,7 @@ class Physics:
             Sensor (detects collisions without blocking):
                 sensor = True
         """
+        _check_mass(mass, can_move)
         self.sprite = sprite
         self._can_move = can_move
         self._stable = stable
@@ -217,6 +218,7 @@ class Physics:
     @can_move.setter
     def can_move(self, _can_move):
         prev_can_move = self._can_move
+        _check_mass(self._mass, _can_move)
         self._can_move = _can_move
         if prev_can_move != _can_move:
             self._retype_body()
@@ -277,8 +279,23 @@ class Physics:
     def mass(self, _mass):
         """Set the mass of the object.
         :param _mass: The mass of the object."""
+        _check_mass(_mass, self._can_move)
         self._mass = _mass
-        self._pymunk_body.mass = _mass
+        # Chipmunk aborts the process when a static or kinematic body gets a
+        # mass; _retype_body() applies it once the body becomes dynamic.
+        if self._pymunk_body.body_type == _pymunk.Body.DYNAMIC:
+            self._pymunk_body.mass = _mass
+
+    @property
+    def friction(self):
+        """Get the friction of the object.
+        :return: The friction of the object."""
+        return self._friction
+
+    @friction.setter
+    def friction(self, _friction):
+        self._friction = _friction
+        self._pymunk_shape.friction = _friction
 
     @property
     def sensor(self):
@@ -304,6 +321,26 @@ class Physics:
             self._pymunk_body.velocity_func = _pymunk.Body.update_velocity
         else:
             self._pymunk_body.velocity_func = lambda body, gravity, damping, dt: None
+        # A platform that starts obeying gravity has to become dynamic to fall.
+        if self._compute_body_type() != self._pymunk_body.body_type:
+            self._retype_body()
+
+
+def _check_mass(mass, can_move):
+    """Raise a student-readable error for a mass pymunk cannot use.
+
+    A sprite that cannot move ignores its mass, so 0 is fine for it.
+    """
+    if (
+        isinstance(mass, bool)
+        or not isinstance(mass, (int, float))
+        or not 0 <= mass < _math.inf
+        or (mass == 0 and can_move)
+    ):
+        raise ValueError(
+            f"""The mass of a sprite has to be a number above 0, but it was set to {mass!r}.
+Try a value like 10, which is the mass play uses when you don't give one."""
+        )
 
 
 def _box_vertices(width, height):

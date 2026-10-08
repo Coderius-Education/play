@@ -32,3 +32,46 @@ def test_type_handling_physics_args():
     with pytest.raises((TypeError, ValueError)):
         # Bounciness expects a float/int, not a list.
         box.start_physics(bounciness=[1, 2])
+
+
+@pytest.mark.parametrize(
+    "make, attribute",
+    [
+        (lambda: play.new_text("hi"), "color"),
+        (lambda: play.new_box(), "color"),
+        (lambda: play.new_box(), "border_color"),
+        (lambda: play.new_circle(), "color"),
+        (lambda: play.new_circle(), "border_color"),
+    ],
+    ids=["text", "box", "box border", "circle", "circle border"],
+)
+def test_a_misspelt_color_fails_where_it_is_set(make, attribute):
+    # Not a frame later in the sprite loop, where the student's line is gone.
+    sprite = make()
+    with pytest.raises(ValueError, match="purpel"):
+        setattr(sprite, attribute, "purpel")
+
+
+def test_a_color_can_be_a_list():
+    from play.globals import globals_list
+
+    play.set_backdrop([255, 0, 0])
+    assert globals_list.backdrop[:3] == (255, 0, 0)
+    box = play.new_box(color=[0, 0, 255])
+    box.update()
+    assert box.image.get_at(box.image.get_rect().center)[:3] == (0, 0, 255)
+
+
+def test_a_font_size_with_decimals_is_rounded():
+    text = play.new_text("hi", font_size=20.5)
+    text.font_size = 30.4
+    assert (
+        text._pygame_font.get_height()
+        == play.new_text("hi", font_size=30)._pygame_font.get_height()
+    )
+
+
+def test_no_font_means_the_default_font():
+    text = play.new_text("hi", font=None)
+    default = play.new_text("hi", font="default")
+    assert text.image.get_size() == default.image.get_size()

@@ -202,6 +202,44 @@ def fake_clock():
     return FakeClock()
 
 
+@pytest.fixture
+def run_script(tmp_path):
+    """Run a student's script in a fresh Python and return what it printed.
+
+    Some behaviour only shows when the student's file really is __main__ and
+    the game really runs, so it cannot be tested in-process. *body* follows
+    an ``import os`` and ``import play`` with the dummy SDL drivers set; it
+    should end the process with ``os._exit(0)``.
+    """
+    import subprocess
+    import play
+
+    # The script lives in tmp_path, so point it at the play under test.
+    root = os.path.dirname(os.path.dirname(os.path.abspath(play.__file__)))
+    env = {**os.environ, "PYTHONPATH": root, "PYGAME_HIDE_SUPPORT_PROMPT": "1"}
+
+    def run(body):
+        script = tmp_path / "game.py"
+        script.write_text(
+            "import os\n"
+            "os.environ['SDL_VIDEODRIVER'] = 'dummy'\n"
+            "os.environ['SDL_AUDIODRIVER'] = 'dummy'\n"
+            "import play\n" + body
+        )
+        result = subprocess.run(
+            # -u: os._exit() skips flushing, so stdout must not be buffered.
+            [_sys.executable, "-u", str(script)],
+            timeout=20,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        assert result.returncode == 0, result.stderr
+        return result.stdout.split()
+
+    return run
+
+
 def count_color(surface, rgb):
     """Count pixels in *surface* whose RGB matches *rgb* (alpha ignored).
 
@@ -291,11 +329,12 @@ def _drop_pymunk_at_exit():
     own module cleanup: removing it from sys.modules at exit avoids the
     teardown path entirely and the process exits 0.
 
-    A real game is unaffected, because start_program()'s teardown already
-    tears pygame down in an order that avoids it. This is here rather than in
-    play/ because the visible cost is to tooling — a pytest run reporting
-    exit 139 after every test passed — and a library should not be mutating
-    sys.modules on someone else's behalf for that.
+    A game that runs is unaffected, because start_program()'s teardown
+    already tears pygame down in an order that avoids it. A student's script
+    that fails on a top-level line before the game starts does hit it: the
+    traceback is followed by a segfault (#232). This workaround stays here
+    rather than in play/ because a library should not be mutating sys.modules
+    on someone else's behalf; #232 is about fixing that case in play itself.
     """
     import atexit
 
@@ -417,8 +456,10 @@ def clean_play_state(request):
     physics_space.gravity = (0, -100)
     from play.io.screen import screen
 
-    screen.width = 800
-    screen.height = 600
+    # Not the width/height setters: they rebuild the walls, which are
+    # cleared and created again below.
+    screen._width, screen._height = 800, 600
+    screen._resizable = False
     screen.update_display()
 
     # Clean Pymunk physics spaces

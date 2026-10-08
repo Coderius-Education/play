@@ -56,6 +56,7 @@ class Screen:
         """Set whether the screen is resizable.
         :param _resizable: Whether the screen is resizable."""
         self._resizable = _resizable
+        self.update_display()
 
     @property
     def width(self):
@@ -67,7 +68,7 @@ class Screen:
     def width(self, _width):
         """Set the width of the screen.
         :param _width: The new width of the screen."""
-        self._width = _width
+        self._set_size(_width, self._height)
 
     @property
     def height(self):
@@ -79,7 +80,14 @@ class Screen:
     def height(self, _height):
         """Set the height of the screen.
         :param _height: The new height of the screen."""
-        self._height = _height
+        self._set_size(self._width, _height)
+
+    def _set_size(self, width, height):
+        """Resize the window and move the walls to its new edges."""
+        self._width = width
+        self._height = height
+        self.update_display()
+        rebuild_walls()
 
     @property
     def top(self):
@@ -127,7 +135,7 @@ class Screen:
             CallbackType.WHEN_RESIZED,
             wrapper,
         )
-        return wrapper
+        return func
 
     def resize(self, new_width, new_height):
         """Resize the screen to new dimensions.
@@ -149,9 +157,7 @@ class Screen:
                 f"    cirkel = play.new_circle()     # ← Before creating sprites\n"
             )
 
-        self.width = new_width
-        self.height = new_height
-        self.update_display()
+        self._set_size(new_width, new_height)
 
 
 screen = Screen()

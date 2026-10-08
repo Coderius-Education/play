@@ -3,6 +3,7 @@
 import os
 import asyncio
 import traceback
+from .globals import globals_list, ProgramState
 from .io.logging import play_logger
 
 _loop = None  # pylint: disable=invalid-name
@@ -32,7 +33,7 @@ def _handle_exception(the_loop, context):
     else:
         play_logger.critical(message)
 
-    the_loop.stop()
+    stop_loop(the_loop)
 
 
 def get_loop():
@@ -51,3 +52,14 @@ def get_loop():
         _creator_pid = pid
 
     return _loop
+
+
+def stop_loop(loop=None):
+    """Stop the event loop (play's own unless *loop* is given) and mark the
+    program as stopped.
+
+    start_program() keeps the loop running until the program is stopped, so
+    a stop that is not marked here leaves it waiting on an empty loop.
+    """
+    globals_list.program_state = ProgramState.STOPPED
+    (loop if loop is not None else get_loop()).stop()

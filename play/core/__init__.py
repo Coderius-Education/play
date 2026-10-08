@@ -22,8 +22,8 @@ from .physics_loop import simulate_physics
 from .sprites_loop import update_sprites as _update_sprites
 from ..callback import callback_manager, CallbackType
 from ..globals import globals_list
-from ..io.screen import screen, rebuild_walls as _rebuild_walls
-from ..loop import get_loop as _get_loop
+from ..io.screen import screen
+from ..loop import get_loop as _get_loop, stop_loop as _stop_loop
 from ..io.keypress import keyboard_state
 from ..objects.text_input_registry import (
     dispatch_text as _dispatch_text_input,
@@ -45,7 +45,7 @@ def _handle_pygame_events():
             )
         ):
             # quitting by clicking window's close button or pressing ctrl+q / command+q
-            _get_loop().stop()
+            _stop_loop()
             return False
 
         # Skip KEYDOWN recording while a TextInput is focused so typed characters
@@ -62,12 +62,7 @@ def _handle_pygame_events():
             _dispatch_text_keydown(event)
 
         if event.type == pygame.VIDEORESIZE:
-            screen.width = event.w
-            screen.height = event.h
-            screen.update_display()
-            # The walls are pymunk segments built from the old dimensions, so
-            # they have to be rebuilt or the playfield keeps its old boundary.
-            _rebuild_walls()
+            screen._set_size(event.w, event.h)
             callback_manager.run_callbacks(CallbackType.WHEN_RESIZED)
 
     return True

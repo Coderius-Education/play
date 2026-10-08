@@ -41,8 +41,8 @@ def color_name_to_rgb(
 
     are all valid and will produce an RGB value.
     """
-    if isinstance(name, tuple):
-        return name
+    if isinstance(name, (tuple, list)):
+        return tuple(name)
 
     stripped = name.strip()
     # Expand shorthand hex: #F00 -> #FF0000
@@ -62,6 +62,15 @@ Try using a hex code like '#FF0000' or '#F00',
 or the RGB number form e.g. '(0, 255, 255)'.
 You can find the RGB form of a color on websites like this: https://www.rapidtables.com/web/color/RGB_Color.html\n"""
         ) from exc
+
+
+def check_color(name):
+    """Raise play's own error for a colour name it does not know.
+
+    Setters call this so a typo fails on the student's line, not a frame
+    later when the sprite is drawn.
+    """
+    color_name_to_rgb(name)
 
 
 def reject_async_callback(func, kind):

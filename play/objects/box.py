@@ -2,7 +2,7 @@
 
 import pygame
 from .sprite import Sprite
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from ..utils import check_color as _check_color, color_name_to_rgb as _color_name_to_rgb
 
 
 class Box(Sprite):
@@ -111,6 +111,7 @@ class Box(Sprite):
     def color(self, _color):
         """Set the color of the box.
         :param _color: The new color of the box."""
+        _check_color(_color)
         self._color = _color
 
     ##### border_color #####
@@ -124,6 +125,7 @@ class Box(Sprite):
     def border_color(self, _border_color):
         """Set the color of the box's border.
         :param _border_color: The new color of the box's border."""
+        _check_color(_border_color)
         self._border_color = _border_color
 
     ##### border_width #####
