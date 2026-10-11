@@ -4,7 +4,6 @@ import os
 import pygame
 from .sprite import Sprite
 from ..utils import (
-    check_color as _check_color,
     color_name_to_rgb as _color_name_to_rgb,
     render_text as _render_text,
 )
