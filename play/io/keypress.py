@@ -2,9 +2,9 @@
 
 import pygame
 
-from ..callback import callback_manager, CallbackType
-from ..utils.async_helpers import make_async
-from ..callback.callback_helpers import run_async_callback
+from play.callback import callback_manager, CallbackType
+from play.utils.async_helpers import make_async
+from play.callback.callback_helpers import run_async_callback
 
 
 class KeyboardState:  # pylint: disable=too-few-public-methods

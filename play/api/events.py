@@ -2,17 +2,17 @@
 
 import inspect
 
-from ..callback import callback_manager, CallbackType
-from ..callback.callback_helpers import run_async_callback, fire_async_callback
-from ..io.keypress import (
+from play.callback import callback_manager, CallbackType
+from play.callback.callback_helpers import run_async_callback, fire_async_callback
+from play.io.keypress import (
     when_key as _when_key,
     when_any_key as _when_any_key,
     while_key as _while_key,
     while_any_key as _while_any_key,
 )
-from ..io.mouse import mouse
+from play.io.mouse import mouse
 from play.objects.video.video import Video
-from ..utils.async_helpers import make_async
+from play.utils.async_helpers import make_async
 
 
 # @decorator

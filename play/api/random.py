@@ -4,7 +4,7 @@ import random as _random
 
 import pygame
 
-from ..io.screen import screen
+from play.io.screen import screen
 
 
 def random_number(lowest=0, highest=100):

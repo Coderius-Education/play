@@ -5,8 +5,8 @@ This module contains a decorator that listens to exceptions in the game loop.
 import functools
 import inspect
 
-from ..io.logging import play_logger
-from ..loop import get_loop as _get_loop
+from play.io.logging import play_logger
+from play.loop import get_loop as _get_loop
 
 
 # @decorator

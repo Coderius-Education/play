@@ -1,8 +1,8 @@
 """This module defines the Circle class, which represents a circle in the game."""
 
 import pygame
-from .sprite import Sprite
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from play.objects.sprite import Sprite
+from play.utils import color_name_to_rgb as _color_name_to_rgb
 
 
 class Circle(Sprite):

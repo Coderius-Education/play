@@ -2,10 +2,10 @@
 
 import math as _math
 
-from ..callback import callback_manager, CallbackType
-from ..utils.async_helpers import make_async
-from ..objects.sprite import point_touching_sprite
-from ..callback.callback_helpers import run_async_callback
+from play.callback import callback_manager, CallbackType
+from play.utils.async_helpers import make_async
+from play.objects.sprite import point_touching_sprite
+from play.callback.callback_helpers import run_async_callback
 
 
 class Mouse:

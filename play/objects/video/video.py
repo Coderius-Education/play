@@ -8,8 +8,8 @@ import numpy as np
 import pygame
 
 from play.objects.sprite import Sprite
-from . import video_controls
-from .video_decoder import FrameDecoder, decode_audio, probe
+from play.objects.video import video_controls
+from play.objects.video.video_decoder import FrameDecoder, decode_audio, probe
 from play.callback import callback_manager, CallbackType
 from play.callback.callback_helpers import run_async_callback
 from play.io.logging import play_logger as logger
@@ -659,8 +659,8 @@ class Video(Sprite):  # pylint: disable=too-many-public-methods
         """
         # Imported here to avoid a circular import at module load.
         # pylint: disable=import-outside-toplevel
-        from ..core.mouse_loop import mouse_state
-        from ..io.keypress import keyboard_state
+        from play.core.mouse_loop import mouse_state
+        from play.io.keypress import keyboard_state
 
         player = self._player
         point = self._local_point()

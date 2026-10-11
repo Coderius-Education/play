@@ -2,7 +2,7 @@
 This module contains the API for the game.
 """
 
-from .generators import (
+from play.api.generators import (
     new_text,
     new_box,
     new_button,
@@ -20,7 +20,7 @@ from .generators import (
     new_text_input,
     new_tooltip,
 )
-from .events import (
+from play.api.events import (
     when_program_starts,
     repeat_forever,
     when_sprite_clicked,
@@ -40,7 +40,7 @@ from .events import (
     when_video_pauses,
     when_video_frame_changes,
 )
-from .utils import (
+from play.api.utils import (
     start_program,
     stop_program,
     animate,
@@ -50,6 +50,6 @@ from .utils import (
     key_is_pressed,
     set_physics_simulation_steps,
 )
-from . import auto_start as _auto_start  # noqa: F401 — trigger callback wiring
-from .random import random_number, random_color, random_position
-from ..callback.collision_callbacks import WallSide
+from play.api import auto_start as _auto_start  # noqa: F401 — trigger callback wiring
+from play.api.random import random_number, random_color, random_position
+from play.callback.collision_callbacks import WallSide

@@ -5,8 +5,8 @@ This module contains helper functions for running callback functions.
 import inspect
 import traceback
 
-from ..io.logging import play_logger
-from ..loop import get_loop as _get_loop
+from play.io.logging import play_logger
+from play.loop import get_loop as _get_loop
 
 
 def run_callback(callback, required_args, optional_args, *args, **kwargs):

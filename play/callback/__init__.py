@@ -5,7 +5,11 @@ This module contains the CallbackManager class and CallbackType enum.
 from enum import Enum
 from typing import Callable
 
-from .callback_helpers import run_callback, run_async_callback, fire_async_callback
+from play.callback.callback_helpers import (
+    run_callback,
+    run_async_callback,
+    fire_async_callback,
+)
 
 
 class CallbackType(Enum):

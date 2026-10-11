@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import pygame
 import pymunk as _pymunk
 
-from ..globals import globals_list
+from play.globals import globals_list
 
 
 class Physics:
