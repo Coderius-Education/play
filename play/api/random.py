@@ -13,7 +13,8 @@ def random_number(lowest=0, highest=100):
     :param highest: The highest number that can be returned.
     :return: A random number between `lowest` and `highest`.
     """
-    lowest, highest = min(lowest, highest), max(lowest, highest)
+    if lowest > highest:
+        raise ValueError(f"You gave an higher value for lowest then highest. {lowest} > {highest}")
     if isinstance(lowest, int) and isinstance(highest, int):
         return _random.randint(lowest, highest)
     # if user supplied any floats, return decimals
