@@ -15,7 +15,8 @@ def random_number(lowest=0, highest=100):
     """
     if lowest > highest:
         raise ValueError(
-            f"You gave an higher value for lowest then highest. {lowest} > {highest}"
+            f"""random_number() needs the lowest number first, but got lowest={lowest} and highest={highest}.
+Try play.random_number({highest}, {lowest}) instead."""
         )
     if isinstance(lowest, int) and isinstance(highest, int):
         return _random.randint(lowest, highest)
