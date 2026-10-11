@@ -1,6 +1,7 @@
 """This handles the physics of the game."""
 
 import math as _math
+import numbers as _numbers
 from dataclasses import dataclass
 
 import pygame
@@ -333,7 +334,7 @@ def _check_mass(mass, can_move):
     """
     if (
         isinstance(mass, bool)
-        or not isinstance(mass, (int, float))
+        or not isinstance(mass, _numbers.Real)
         or not 0 <= mass < _math.inf
         or (mass == 0 and can_move)
     ):
