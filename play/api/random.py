@@ -14,7 +14,9 @@ def random_number(lowest=0, highest=100):
     :return: A random number between `lowest` and `highest`.
     """
     if lowest > highest:
-        raise ValueError(f"You gave an higher value for lowest then highest. {lowest} > {highest}")
+        raise ValueError(
+            f"You gave an higher value for lowest then highest. {lowest} > {highest}"
+        )
     if isinstance(lowest, int) and isinstance(highest, int):
         return _random.randint(lowest, highest)
     # if user supplied any floats, return decimals
