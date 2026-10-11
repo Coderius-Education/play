@@ -131,9 +131,10 @@ def test_random_position_negative_bounds():
         assert -100 <= pos.y <= -50
 
 
-def test_random_number_takes_its_bounds_in_either_order():
+def test_random_number_raises_when_lowest_is_above_highest():
     import play
 
-    for _ in range(50):
-        assert 1 <= play.random_number(10, 1) <= 10
-        assert 1.5 <= play.random_number(4.5, 1.5) <= 4.5
+    with pytest.raises(ValueError):
+        play.random_number(10, 1)
+    with pytest.raises(ValueError):
+        play.random_number(4.5, 1.5)
