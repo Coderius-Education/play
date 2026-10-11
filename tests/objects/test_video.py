@@ -433,7 +433,7 @@ def test_control_bar_is_reused_when_the_duration_is_unknown(
     # A video with no duration metadata reports length 0 and runs its clock on
     # regardless. The cache key divides time by the length, so without a clamp
     # every frame produced a fresh key and the whole bar was redrawn each time.
-    from play.objects import video as video_module
+    from play.objects.video import video as video_module
 
     real_probe = video_module.probe
 
@@ -532,7 +532,7 @@ def test_the_control_bar_sits_inside_the_video(video_file, fake_clock):
 def test_unknown_duration_does_not_end_instantly(video_file, fake_clock, monkeypatch):
     # Some streams carry no duration; probe() then reports 0.0. The clock used
     # to clamp to that, so the video "ended" on its very first frame.
-    from play.objects import video as video_module
+    from play.objects.video import video as video_module
 
     real_probe = video_module.probe
 
