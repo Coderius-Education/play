@@ -12,7 +12,7 @@ from ..globals import globals_list, ProgramState
 from ..io.keypress import keyboard_state
 from ..loop import get_loop as _get_loop
 from ..physics import set_physics_simulation_steps as _set_physics_simulation_steps
-from ..objects.video import close_all_videos as _close_all_videos
+from play.objects.video.video import close_all_videos as _close_all_videos
 from ..utils import color_name_to_rgb as _color_name_to_rgb
 
 

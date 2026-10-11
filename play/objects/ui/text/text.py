@@ -2,12 +2,12 @@
 
 import os
 import pygame
-from .sprite import Sprite
-from ..utils import (
+from play.objects.sprite import Sprite
+from play.utils import (
     color_name_to_rgb as _color_name_to_rgb,
     render_text as _render_text,
 )
-from ..io.logging import play_logger
+from play.io.logging import play_logger
 
 
 class Text(Sprite):

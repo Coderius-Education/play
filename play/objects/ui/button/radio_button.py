@@ -2,16 +2,16 @@
 
 import pygame
 
-from .sprite import Sprite
-from .widget import WidgetMixin
-from ..io.mouse import mouse
-from ..utils import (
+from play.objects.sprite import Sprite
+from play.objects.widget import WidgetMixin
+from play.io.mouse import mouse
+from play.utils import (
     render_text as _render_text,
     color_name_to_rgb as _color_name_to_rgb,
     load_font as _load_font,
     reject_async_callback as _reject_async,
 )
-from ..core.mouse_loop import mouse_state
+from play.core.mouse_loop import mouse_state
 
 
 class RadioGroup:

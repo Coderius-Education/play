@@ -5,7 +5,7 @@ import time
 import pytest
 
 import play
-from play.objects.video import Video
+from play.objects.video.video import Video
 
 
 @pytest.fixture(autouse=True)

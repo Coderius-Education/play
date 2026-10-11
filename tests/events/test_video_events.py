@@ -9,7 +9,7 @@ from play.core.mouse_loop import mouse_state
 from play.core.sprites_loop import update_sprites
 from play.io.keypress import keyboard_state
 from play.io.mouse import mouse
-from play.objects.video import Video
+from play.objects.video.video import Video
 
 
 @pytest.fixture(autouse=True)

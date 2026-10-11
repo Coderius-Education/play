@@ -9,7 +9,7 @@ import pytest
 
 import play
 from play.io.screen import convert_pos
-from play.objects.image import Image
+from play.objects.ui.image import Image
 
 
 @pytest.fixture(autouse=True)

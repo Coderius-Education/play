@@ -17,7 +17,7 @@ exist to prevent. Each one pins a mistake to outcome 1 or 2.
 import pytest
 import pygame
 import play
-from play.objects.image import Image
+from play.objects.ui.image import Image
 
 
 @pytest.fixture(autouse=True)

@@ -3,8 +3,8 @@
 import os
 import pygame
 
-from .sprite import Sprite
-from ..utils import scale_to_percent as _scale_to_percent
+from play.objects.sprite import Sprite
+from play.utils import scale_to_percent as _scale_to_percent
 
 
 class Image(Sprite):

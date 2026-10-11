@@ -11,7 +11,7 @@ from ..io.keypress import (
     while_any_key as _while_any_key,
 )
 from ..io.mouse import mouse
-from ..objects.video import Video
+from play.objects.video.video import Video
 from ..utils.async_helpers import make_async
 
 

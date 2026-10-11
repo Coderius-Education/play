@@ -25,7 +25,7 @@ from ..globals import globals_list
 from ..io.screen import screen, rebuild_walls as _rebuild_walls
 from ..loop import get_loop as _get_loop
 from ..io.keypress import keyboard_state
-from ..objects.text_input_registry import (
+from play.objects.ui.text.text_input_registry import (
     dispatch_text as _dispatch_text_input,
     dispatch_keydown as _dispatch_text_keydown,
 )

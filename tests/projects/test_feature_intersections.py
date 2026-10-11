@@ -27,7 +27,7 @@ def test_removing_a_focused_text_input_releases_focus():
     every keystroke goes to something the user cannot see and the game's own
     key callbacks stay suspended forever.
     """
-    from play.objects import text_input_registry as registry
+    from play.objects.ui.text import text_input_registry as registry
 
     field = play.new_text_input(x=0, y=0)
     registry.focus(field)
@@ -40,7 +40,7 @@ def test_removing_a_focused_text_input_releases_focus():
 
 def test_hiding_a_focused_text_input_releases_focus():
     """Same reasoning as removal: an invisible field must not eat the keyboard."""
-    from play.objects import text_input_registry as registry
+    from play.objects.ui.text import text_input_registry as registry
 
     field = play.new_text_input(x=0, y=0)
     registry.focus(field)
@@ -51,7 +51,7 @@ def test_hiding_a_focused_text_input_releases_focus():
 
 
 def test_disabling_a_focused_text_input_releases_focus():
-    from play.objects import text_input_registry as registry
+    from play.objects.ui.text import text_input_registry as registry
 
     field = play.new_text_input(x=0, y=0)
     registry.focus(field)

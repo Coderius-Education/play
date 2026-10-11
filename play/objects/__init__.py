@@ -6,17 +6,17 @@ For example, play.new_box() creates a new Box object.
 """
 
 from .box import Box
-from .button import Button
-from .checkbox import Checkbox
+from play.objects.ui.button.button import Button
+from play.objects.ui.button.checkbox import Checkbox
 from .circle import Circle
-from .dropdown import Dropdown
-from .progress_bar import ProgressBar
-from .radio_button import RadioButton, RadioGroup
-from .slider import Slider
+from play.objects.ui.button.dropdown import Dropdown
+from play.objects.ui.progress_bar import ProgressBar
+from play.objects.ui.button.radio_button import RadioButton, RadioGroup
+from play.objects.ui.button.slider import Slider
 from .sprite import Sprite
-from .text import Text
-from .image import Image
+from play.objects.ui.text.text import Text
+from play.objects.ui.image import Image
 from .sound import Sound
-from .text_input import TextInput
-from .tooltip import Tooltip
-from .video import Video
+from play.objects.ui.text.text_input import TextInput
+from play.objects.ui.text.tooltip import Tooltip
+from play.objects.video.video import Video

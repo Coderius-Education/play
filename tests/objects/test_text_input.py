@@ -2,7 +2,7 @@ import pygame
 import pytest
 import play
 from play.globals import globals_list
-from play.objects import text_input_registry as registry
+from play.objects.ui.text import text_input_registry as registry
 from play.utils import color_name_to_rgb
 from tests.conftest import click_at, count_color
 

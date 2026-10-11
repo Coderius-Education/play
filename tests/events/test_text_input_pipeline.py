@@ -27,7 +27,7 @@ from conftest import post_mouse_down, post_mouse_motion, post_mouse_up
 
 import play
 from play.globals import globals_list
-from play.objects import text_input_registry as registry
+from play.objects.ui.text import text_input_registry as registry
 
 
 @pytest.fixture(autouse=True)
