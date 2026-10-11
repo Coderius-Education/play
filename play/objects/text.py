@@ -105,7 +105,7 @@ class Text(Sprite):
     @color.setter
     def color(self, color_):
         """Set the color of the text object."""
-        _check_color(color_)
+        _color_name_to_rgb(color_)
         self._color = color_
 
     def _load_font(self, font_name, font_size):
