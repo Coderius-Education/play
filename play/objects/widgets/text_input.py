@@ -5,7 +5,7 @@ from typing import Optional as _Optional
 import pygame
 
 from play.objects.box import Box
-from play.objects.widget import WidgetMixin
+from play.objects.widgets.widget import WidgetMixin
 from play.io.mouse import mouse
 from play.utils import (
     render_text as _render_text,
@@ -13,7 +13,7 @@ from play.utils import (
     load_font as _load_font,
     reject_async_callback as _reject_async,
 )
-from play.objects.ui.text import text_input_registry as _registry
+from play.objects.widgets import text_input_registry as _registry
 from play.core.mouse_loop import mouse_state
 
 

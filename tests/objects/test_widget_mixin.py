@@ -8,7 +8,7 @@ ignored the click itself, but the game's own when_clicked handler still ran.
 import pytest
 import play
 from play.io.mouse import mouse
-from play.objects.widget import WidgetMixin
+from play.objects.widgets.widget import WidgetMixin
 
 
 @pytest.fixture(autouse=True)

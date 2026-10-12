@@ -4,7 +4,7 @@ import pygame
 import pytest
 import play
 from play.globals import globals_list
-from play.objects.ui.text import text_input_registry as registry
+from play.objects.widgets import text_input_registry as registry
 
 
 @pytest.fixture(autouse=True)
@@ -248,14 +248,14 @@ def test_copy_survives_unavailable_scrap(monkeypatch):
 
 
 def test_register_on_creation():
-    from play.objects.ui.text.text_input_registry import _tab_order
+    from play.objects.widgets.text_input_registry import _tab_order
 
     ti = play.new_text_input()
     assert ti in _tab_order
 
 
 def test_unregister_on_remove():
-    from play.objects.ui.text.text_input_registry import _tab_order
+    from play.objects.widgets.text_input_registry import _tab_order
 
     ti = play.new_text_input()
     ti.remove()

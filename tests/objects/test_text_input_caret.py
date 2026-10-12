@@ -19,7 +19,7 @@ import pygame
 import pytest
 
 import play
-from play.objects.ui.text import text_input_registry as registry
+from play.objects.widgets import text_input_registry as registry
 
 
 @pytest.fixture

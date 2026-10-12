@@ -4,7 +4,7 @@ import math as _math
 import pygame
 
 from play.objects.sprite import Sprite
-from play.objects.widget import WidgetMixin
+from play.objects.widgets.widget import WidgetMixin
 from play.io.mouse import mouse
 from play.utils import (
     render_text as _render_text,

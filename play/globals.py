@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Optional
 import pygame
 
 if TYPE_CHECKING:
-    from play.objects.ui.text.text_input import TextInput
+    from play.objects.widgets.text_input import TextInput
 
 
 class ProgramState(Enum):

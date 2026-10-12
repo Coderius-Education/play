@@ -1,6 +1,6 @@
 import pytest
 import pygame
-from play.objects.ui.image import Image
+from play.objects.image import Image
 
 
 @pytest.fixture(autouse=True)

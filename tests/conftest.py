@@ -450,7 +450,7 @@ def clean_play_state(request):
     # test, leaving that line permanently unverifiable.
     collision_registry.reset()
 
-    from play.objects.ui.text import text_input_registry as _ti_registry
+    from play.objects.widgets import text_input_registry as _ti_registry
 
     _ti_registry.reset()
 
