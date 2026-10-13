@@ -3,17 +3,17 @@
 import math as _math
 import pygame
 
-from .box import Box
-from .widget import WidgetMixin
-from ..io.mouse import mouse
-from ..utils import (
+from play.objects.box import Box
+from play.objects.widgets.widget import WidgetMixin
+from play.io.mouse import mouse
+from play.utils import (
     render_text as _render_text,
     color_name_to_rgb as _color_name_to_rgb,
     load_font as _load_font,
     reject_async_callback as _reject_async,
 )
-from ..io.screen import convert_pos
-from ..core.mouse_loop import mouse_state
+from play.io.screen import convert_pos
+from play.core.mouse_loop import mouse_state
 
 
 class Dropdown(WidgetMixin, Box):

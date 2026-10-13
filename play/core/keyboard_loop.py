@@ -2,8 +2,8 @@
 
 import pygame
 
-from ..callback import callback_manager, CallbackType
-from ..io.keypress import (
+from play.callback import callback_manager, CallbackType
+from play.io.keypress import (
     key_num_to_name as _pygame_key_to_name,
     keyboard_state,
     KEYS_TO_SKIP,

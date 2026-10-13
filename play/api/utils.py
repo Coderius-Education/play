@@ -6,14 +6,14 @@ import os as _os
 
 import pygame
 
-from ..callback import callback_manager, CallbackType
-from ..core import game_loop as _game_loop
-from ..globals import globals_list, ProgramState
-from ..io.keypress import keyboard_state
-from ..loop import get_loop as _get_loop
-from ..physics import set_physics_simulation_steps as _set_physics_simulation_steps
-from ..objects.video import close_all_videos as _close_all_videos
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from play.callback import callback_manager, CallbackType
+from play.core import game_loop as _game_loop
+from play.globals import globals_list, ProgramState
+from play.io.keypress import keyboard_state
+from play.loop import get_loop as _get_loop
+from play.physics import set_physics_simulation_steps as _set_physics_simulation_steps
+from play.objects.video.video import close_all_videos as _close_all_videos
+from play.utils import color_name_to_rgb as _color_name_to_rgb
 
 
 def start_program():

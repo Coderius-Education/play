@@ -2,11 +2,11 @@
 
 import math as _math
 
-from .mouse_loop import mouse_state
-from ..callback import callback_manager, CallbackType
-from ..callback.callback_helpers import run_any_async_callback
-from ..globals import globals_list
-from ..io.mouse import mouse
+from play.core.mouse_loop import mouse_state
+from play.callback import callback_manager, CallbackType
+from play.callback.callback_helpers import run_any_async_callback
+from play.globals import globals_list
+from play.io.mouse import mouse
 
 # Track which sprite was clicked for when_click_released events
 _clicked_sprite_id = None  # pylint: disable=invalid-name

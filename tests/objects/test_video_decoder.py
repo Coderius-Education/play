@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from play.objects import video_decoder
+from play.objects.video import video_decoder
 
 
 @pytest.fixture(autouse=True)
@@ -113,7 +113,7 @@ def test_the_player_skips_frames_from_before_a_seek():
     """
     import queue
 
-    from play.objects.video import Video
+    from play.objects.video.video import Video
 
     class _Decoder:
         generation = 2

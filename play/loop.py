@@ -3,7 +3,7 @@
 import os
 import asyncio
 import traceback
-from .io.logging import play_logger
+from play.io.logging import play_logger
 
 _loop = None  # pylint: disable=invalid-name
 _creator_pid = None  # pylint: disable=invalid-name

@@ -1,10 +1,14 @@
 """Components for the component-based Sprite design."""
 
-from ..callback import callback_manager, CallbackType
-from ..callback.collision_callbacks import collision_registry, CollisionType, WallSide
-from ..globals import globals_list
-from ..utils.async_helpers import make_async
-from ..callback.callback_helpers import run_async_callback
+from play.callback import callback_manager, CallbackType
+from play.callback.collision_callbacks import (
+    collision_registry,
+    CollisionType,
+    WallSide,
+)
+from play.globals import globals_list
+from play.utils.async_helpers import make_async
+from play.callback.callback_helpers import run_async_callback
 
 
 class EventComponent:

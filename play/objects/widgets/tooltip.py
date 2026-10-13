@@ -3,14 +3,14 @@
 import math as _math
 import pygame
 
-from .sprite import Sprite
-from ..io.mouse import mouse
-from ..utils import (
+from play.objects.sprite import Sprite
+from play.io.mouse import mouse
+from play.utils import (
     color_name_to_rgb as _color_name_to_rgb,
     load_font as _load_font,
     render_text as _render_text,
 )
-from ..io.screen import convert_pos
+from play.io.screen import convert_pos
 
 
 class Tooltip(Sprite):

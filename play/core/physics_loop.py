@@ -1,8 +1,8 @@
 """This module contains the function that simulates the physics of the game"""
 
-from .sprites_loop import update_sprites
-from ..globals import globals_list
-from ..physics import physics_space
+from play.core.sprites_loop import update_sprites
+from play.globals import globals_list
+from play.physics import physics_space
 
 
 async def simulate_physics():

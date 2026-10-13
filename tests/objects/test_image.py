@@ -1,6 +1,4 @@
 import pytest
-import play
-import os
 import pygame
 from play.objects.image import Image
 

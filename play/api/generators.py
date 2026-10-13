@@ -2,8 +2,8 @@
 
 from typing import Optional
 
-from ..db import Database
-from ..objects import (
+from play.db import Database
+from play.objects import (
     Box as _Box,
     Button as _Button,
     Checkbox as _Checkbox,

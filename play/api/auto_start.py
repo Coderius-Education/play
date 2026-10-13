@@ -2,9 +2,9 @@
 
 import sys as _sys
 
-from ..callback import callback_manager
-from ..globals import globals_list, ProgramState
-from ..utils import run_once as _run_once
+from play.callback import callback_manager
+from play.globals import globals_list, ProgramState
+from play.utils import run_once as _run_once
 
 
 def _make_main_return_trace(existing_trace, existing_f_trace):
