@@ -2,30 +2,30 @@
 
 import pygame
 
-from .controller_loop import (
+from play.core.controller_loop import (
     controller_state,
     handle_controller as _handle_controller,
     handle_controller_events as _handle_controller_events,
 )
-from .game_loop_wrapper import listen_to_failure
-from .keyboard_loop import (
+from play.core.game_loop_wrapper import listen_to_failure
+from play.core.keyboard_loop import (
     handle_keyboard as _handle_keyboard,
     handle_keyboard_events as _handle_keyboard_events,
 )
-from .mouse_loop import (
+from play.core.mouse_loop import (
     handle_mouse_loop as _handle_mouse_loop,
     handle_mouse_events as _handle_mouse_events,
     mouse_state,
 )
-from ..io.mouse import mouse
-from .physics_loop import simulate_physics
-from .sprites_loop import update_sprites as _update_sprites
-from ..callback import callback_manager, CallbackType
-from ..globals import globals_list
-from ..io.screen import screen
-from ..loop import get_loop as _get_loop, stop_loop as _stop_loop
-from ..io.keypress import keyboard_state
-from ..objects.text_input_registry import (
+from play.io.mouse import mouse
+from play.core.physics_loop import simulate_physics
+from play.core.sprites_loop import update_sprites as _update_sprites
+from play.callback import callback_manager, CallbackType
+from play.globals import globals_list
+from play.io.screen import screen, rebuild_walls as _rebuild_walls
+from play.loop import get_loop as _get_loop, stop_loop as _stop_loop
+from play.io.keypress import keyboard_state
+from play.objects.widgets.text_input_registry import (
     dispatch_text as _dispatch_text_input,
     dispatch_keydown as _dispatch_text_keydown,
 )

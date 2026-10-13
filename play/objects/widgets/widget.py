@@ -18,8 +18,8 @@ same contract. Subclasses must:
 import functools as _functools
 import inspect as _inspect
 
-from ..core.mouse_loop import mouse_state
-from ..utils import reject_async_callback as _reject_async
+from play.core.mouse_loop import mouse_state
+from play.utils import reject_async_callback as _reject_async
 
 
 class WidgetMixin:

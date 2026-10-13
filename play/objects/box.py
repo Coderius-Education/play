@@ -1,8 +1,8 @@
 """This module contains the Box class, which represents a box in the game."""
 
 import pygame
-from .sprite import Sprite
-from ..utils import color_name_to_rgb as _color_name_to_rgb
+from play.objects.sprite import Sprite
+from play.utils import color_name_to_rgb as _color_name_to_rgb
 
 
 class Box(Sprite):

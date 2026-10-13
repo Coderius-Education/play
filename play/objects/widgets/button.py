@@ -1,9 +1,9 @@
 """This module contains the Button class, a Box with a text label and hover/press/disabled state."""
 
-from .box import Box
-from .widget import WidgetMixin
-from ..io.mouse import mouse
-from ..utils import (
+from play.objects.box import Box
+from play.objects.widgets.widget import WidgetMixin
+from play.io.mouse import mouse
+from play.utils import (
     render_text as _render_text,
     color_name_to_rgb as _color_name_to_rgb,
     load_font as _load_font,

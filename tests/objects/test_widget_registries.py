@@ -21,7 +21,7 @@ from play.callback import CallbackType, callback_manager
 from play.globals import globals_list
 from play.physics import physics_space
 from play.callback.collision_callbacks import collision_registry
-from play.objects import text_input_registry as registry
+from play.objects.widgets import text_input_registry as registry
 
 
 def _counts():

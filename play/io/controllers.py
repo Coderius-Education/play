@@ -7,9 +7,9 @@ from pygame.joystick import (
     get_count as _get_controller_count,
 )
 
-from ..callback import callback_manager, CallbackType
-from ..utils.async_helpers import make_async
-from ..callback.callback_helpers import run_async_callback
+from play.callback import callback_manager, CallbackType
+from play.utils.async_helpers import make_async
+from play.callback.callback_helpers import run_async_callback
 
 pygame.joystick.init()
 

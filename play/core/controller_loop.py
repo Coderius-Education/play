@@ -3,7 +3,7 @@
 from collections import defaultdict
 import pygame
 
-from ..callback import callback_manager, CallbackType
+from play.callback import callback_manager, CallbackType
 
 
 class ControllerState:

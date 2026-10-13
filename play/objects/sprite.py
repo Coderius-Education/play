@@ -6,14 +6,14 @@ import warnings as _warnings
 import pygame
 import pymunk as _pymunk
 
-from ..api.auto_start import _schedule_auto_start
-from ..callback import callback_manager, CallbackType
-from ..callback.collision_callbacks import collision_registry
-from ..globals import globals_list
-from ..io.screen import screen, convert_pos
-from ..physics import physics_space, Physics as _Physics
-from ..utils import is_called_from_pygame, scale_to_percent as _scale_to_percent
-from .components import EventComponent
+from play.api.auto_start import _schedule_auto_start
+from play.callback import callback_manager, CallbackType
+from play.callback.collision_callbacks import collision_registry
+from play.globals import globals_list
+from play.io.screen import screen, convert_pos
+from play.physics import physics_space, Physics as _Physics
+from play.utils import is_called_from_pygame, scale_to_percent as _scale_to_percent
+from play.objects.components import EventComponent
 
 
 def point_touching_sprite(point, sprite):

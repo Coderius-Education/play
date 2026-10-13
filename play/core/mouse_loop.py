@@ -2,10 +2,10 @@
 
 import pygame
 
-from ..callback import callback_manager, CallbackType
-from ..globals import globals_list
-from ..io.mouse import mouse
-from ..io.screen import screen
+from play.callback import callback_manager, CallbackType
+from play.globals import globals_list
+from play.io.mouse import mouse
+from play.io.screen import screen
 
 
 class MouseState:

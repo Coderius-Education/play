@@ -491,7 +491,7 @@ def clean_play_state(request):
     # test, leaving that line permanently unverifiable.
     collision_registry.reset()
 
-    from play.objects import text_input_registry as _ti_registry
+    from play.objects.widgets import text_input_registry as _ti_registry
 
     _ti_registry.reset()
 
@@ -533,7 +533,7 @@ def clean_play_state(request):
 
     # Teardown: stop any video decoding threads before anything else, so they
     # don't outlive the test and keep decoding into the next one.
-    from play.objects.video import close_all_videos
+    from play.objects.video.video import close_all_videos
 
     close_all_videos()
 

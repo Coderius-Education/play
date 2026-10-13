@@ -13,7 +13,7 @@ import os
 import queue
 import threading
 
-from ..io.logging import play_logger as logger
+from play.io.logging import play_logger as logger
 
 _AV_IMPORT_ERROR = (
     "Playing videos needs the 'av' package, which should have been installed "

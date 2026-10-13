@@ -2,9 +2,9 @@
 
 import pygame
 
-from .api import *
-from .io.controllers import controllers
-from .io.mouse import mouse
-from .io.screen import screen
+from play.api import *
+from play.io.controllers import controllers
+from play.io.mouse import mouse
+from play.io.screen import screen
 
 pygame.init()

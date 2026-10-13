@@ -1,7 +1,7 @@
 """Handles custom music/sound being played."""
 
 import pygame
-from ..io.logging import play_logger as logger
+from play.io.logging import play_logger as logger
 
 
 class Sound:

@@ -2,8 +2,8 @@
 
 import pygame
 
-from .box import Box
-from ..utils import (
+from play.objects.box import Box
+from play.utils import (
     render_text as _render_text,
     color_name_to_rgb as _color_name_to_rgb,
     load_font as _load_font,

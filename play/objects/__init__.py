@@ -5,18 +5,18 @@ Each object has a corresponding new_* function that can be used to create the ob
 For example, play.new_box() creates a new Box object.
 """
 
-from .box import Box
-from .button import Button
-from .checkbox import Checkbox
-from .circle import Circle
-from .dropdown import Dropdown
-from .progress_bar import ProgressBar
-from .radio_button import RadioButton, RadioGroup
-from .slider import Slider
-from .sprite import Sprite
-from .text import Text
-from .image import Image
-from .sound import Sound
-from .text_input import TextInput
-from .tooltip import Tooltip
-from .video import Video
+from play.objects.box import Box
+from play.objects.widgets.button import Button
+from play.objects.widgets.checkbox import Checkbox
+from play.objects.circle import Circle
+from play.objects.widgets.dropdown import Dropdown
+from play.objects.widgets.progress_bar import ProgressBar
+from play.objects.widgets.radio_button import RadioButton, RadioGroup
+from play.objects.widgets.slider import Slider
+from play.objects.sprite import Sprite
+from play.objects.text import Text
+from play.objects.image import Image
+from play.objects.sound import Sound
+from play.objects.widgets.text_input import TextInput
+from play.objects.widgets.tooltip import Tooltip
+from play.objects.video.video import Video

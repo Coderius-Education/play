@@ -3,11 +3,11 @@
 import pygame
 import pymunk as _pymunk
 
-from ..callback import run_callback, CallbackType, callback_manager
-from ..callback.collision_callbacks import WallSide
-from ..globals import globals_list
-from ..physics import physics_space
-from ..utils.async_helpers import make_async
+from play.callback import run_callback, CallbackType, callback_manager
+from play.callback.collision_callbacks import WallSide
+from play.globals import globals_list
+from play.physics import physics_space
+from play.utils.async_helpers import make_async
 
 
 class Screen:
