@@ -288,11 +288,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         self._move_body()
 
     def _move_body(self):
-        """Move the pymunk body to ``(x, y)`` and update the shape right away.
-
-        is_touching() reads the shape's cached position, which pymunk would
-        otherwise only update at the next physics step.
-        """
+        """Move the pymunk body and its shape to ``(x, y)`` right away."""
         self.physics._pymunk_body.position = self._x, self._y
         self.physics._pymunk_shape.cache_bb()
         if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:
@@ -369,7 +365,7 @@ You might want to look in your code where you're setting transparency and make s
         if self._is_hidden:
             return
         self._is_hidden = True
-        if self.alive():  # a removed sprite's body has already left the space
+        if self.alive():
             self.physics.pause()
 
     def show(self):
@@ -428,11 +424,7 @@ You might want to look in your code where you're setting transparency and make s
         return point_touching_sprite(sprite_or_point, self)
 
     def _can_touch(self):
-        """Whether the sprite takes part in touching at all.
-
-        A hidden or removed sprite's shape keeps its last position, so the
-        collision tests would still report contacts there.
-        """
+        """Whether the sprite takes part in touching: not hidden or removed."""
         return not self._is_hidden and self.alive()
 
     def distance_to(self, x, y=None):
@@ -835,7 +827,7 @@ You might want to look in your code where you're setting transparency and make s
             to change, say, its bounciness.
         """
         if not self.alive():
-            return  # removed: nothing to simulate any more
+            return
 
         saved_callbacks = self._save_and_clear_callbacks()
 

@@ -282,8 +282,6 @@ class Physics:
         :param _mass: The mass of the object."""
         _check_mass(_mass, self._can_move)
         self._mass = _mass
-        # Chipmunk aborts the process when a static or kinematic body gets a
-        # mass; _retype_body() applies it once the body becomes dynamic.
         if self._pymunk_body.body_type == _pymunk.Body.DYNAMIC:
             self._pymunk_body.mass = _mass
 
@@ -322,16 +320,12 @@ class Physics:
             self._pymunk_body.velocity_func = _pymunk.Body.update_velocity
         else:
             self._pymunk_body.velocity_func = lambda body, gravity, damping, dt: None
-        # A platform that starts obeying gravity has to become dynamic to fall.
         if self._compute_body_type() != self._pymunk_body.body_type:
             self._retype_body()
 
 
 def _check_mass(mass, can_move):
-    """Raise a student-readable error for a mass pymunk cannot use.
-
-    A sprite that cannot move ignores its mass, so 0 is fine for it.
-    """
+    """Raise a student-readable error for a mass pymunk cannot use."""
     if (
         isinstance(mass, bool)
         or not isinstance(mass, _numbers.Real)

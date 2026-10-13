@@ -51,11 +51,7 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
 
 
 def _main_module_frame():
-    """The frame running the student's script, or None.
-
-    Functions defined in the script share its ``__main__`` globals, so the
-    code name tells the script's own frame apart from theirs.
-    """
+    """The frame running the student's script, or None."""
     # CPython-specific: _getframe() is an implementation detail but fine here
     # since pygame targets CPython.
     frame = _sys._getframe()

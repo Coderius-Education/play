@@ -55,11 +55,6 @@ def get_loop():
 
 
 def stop_loop(loop=None):
-    """Stop the event loop (play's own unless *loop* is given) and mark the
-    program as stopped.
-
-    start_program() keeps the loop running until the program is stopped, so
-    a stop that is not marked here leaves it waiting on an empty loop.
-    """
+    """Stop the event loop and mark the program as stopped."""
     globals_list.program_state = ProgramState.STOPPED
     (loop if loop is not None else get_loop()).stop()
