@@ -409,7 +409,6 @@ def test_button_pressed_callback_fires_once_on_press():
 
 
 def test_when_axis_moved_only_hears_its_own_controller():
-    # In a two-player game the second stick must not move player 1.
     import asyncio
     import pygame
     import play

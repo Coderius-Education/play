@@ -235,7 +235,6 @@ def test_clicking_elsewhere_blurs_focused_input():
 
 
 def test_clicking_a_button_blurs_the_focused_input():
-    # The button owns the click, but the field must still let go of focus.
     ti = play.new_text_input(x=0, y=100)
     button = play.new_button("Start", x=0, y=-100)
     registry.focus(ti)

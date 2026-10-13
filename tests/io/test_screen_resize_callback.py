@@ -21,7 +21,6 @@ def test_when_resized_registers_callback():
 
 
 def test_when_resized_leaves_the_function_callable():
-    # Students call their layout function once at start-up as well.
     ran = []
 
     @screen.when_resized

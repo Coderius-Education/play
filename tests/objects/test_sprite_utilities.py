@@ -181,7 +181,6 @@ def test_hidden_sprite_point_touch_is_symmetric():
 
 
 def test_a_removed_sprite_touches_nothing():
-    # The "collect a coin" pattern: once removed, the coin must not score again.
     from play.objects.sprite import point_touching_sprite
 
     coin = play.new_circle(x=10, radius=10)

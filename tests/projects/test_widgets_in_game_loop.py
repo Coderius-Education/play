@@ -209,7 +209,6 @@ def test_text_input_captures_the_keyboard_in_the_game_loop():
 
 
 def test_clicking_a_button_gives_the_game_its_keyboard_back():
-    # Type a name, click Start, play with the arrow keys (#237).
     import pygame
     import play
     from play.io.screen import screen

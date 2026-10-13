@@ -46,7 +46,6 @@ def test_type_handling_physics_args():
     ids=["text", "box", "box border", "circle", "circle border"],
 )
 def test_a_misspelt_color_fails_where_it_is_set(make, attribute):
-    # Not a frame later in the sprite loop, where the student's line is gone.
     sprite = make()
     with pytest.raises(ValueError, match="purpel"):
         setattr(sprite, attribute, "purpel")

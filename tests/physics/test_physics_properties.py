@@ -202,7 +202,6 @@ def test_physics_pause_unpause():
 
 
 def test_setting_mass_on_a_sprite_without_physics_keeps_python_running():
-    # Chipmunk aborts on a mass for a static or kinematic body.
     import play
 
     box = play.new_box()
