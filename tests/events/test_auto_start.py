@@ -141,8 +141,7 @@ def test_a_setup_function_does_not_start_the_game_before_start_program(run_scrip
 
 
 def test_sprites_made_in_a_list_comprehension_are_all_made(run_script):
-    # Before Python 3.12 a comprehension runs in its own frame, which also
-    # carries the script's __main__ globals.
+    # Before Python 3.12 a comprehension has its own __main__ frame.
     printed = run_script(
         "enemies = [play.new_box(x=i * 50) for i in range(4)]\n"
         "print('made', len(enemies))\n"

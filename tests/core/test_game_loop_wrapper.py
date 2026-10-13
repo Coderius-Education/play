@@ -114,8 +114,6 @@ def test_listen_to_failure_logs_exception(caplog):
 
 
 def test_listen_to_failure_marks_the_program_as_stopped():
-    # start_program() only runs the loop on while the program is not
-    # stopped; an unmarked stop left it waiting on an empty loop (#231).
     from play.core.game_loop_wrapper import listen_to_failure
     from play.globals import globals_list, ProgramState
     from play.loop import get_loop

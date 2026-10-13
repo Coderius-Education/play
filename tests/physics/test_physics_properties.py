@@ -202,8 +202,7 @@ def test_physics_pause_unpause():
 
 
 def test_setting_mass_on_a_sprite_without_physics_keeps_python_running():
-    # Chipmunk aborts the whole process when a static or kinematic body gets
-    # a mass; the value has to wait until the body is dynamic.
+    # Chipmunk aborts on a mass for a static or kinematic body.
     import play
 
     box = play.new_box()
@@ -281,8 +280,6 @@ def test_hiding_showing_or_restarting_a_removed_sprite_is_harmless():
 
 
 def test_showing_a_sprite_that_was_hidden_and_then_removed_keeps_it_out():
-    # hide() takes the body out of the space; show() must not put it back
-    # once the sprite has been removed in between.
     from play.physics import physics_space
     import play
 
