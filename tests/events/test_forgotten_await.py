@@ -1,5 +1,6 @@
 """A missing ``await`` gets one clear hint, wherever and however often it runs."""
 
+import inspect
 import logging
 import warnings
 
@@ -92,3 +93,19 @@ def test_an_async_def_is_not_told_to_become_async(caplog):
     assert len(hints) == 1
     assert "await play.animate(...)" in hints[0]
     assert "async def" not in hints[0]
+
+
+def test_a_call_kept_in_a_variable_is_hinted_at_its_own_line(caplog):
+    @play.repeat_forever
+    def blink():
+        wait = play.timer(0.5)
+
+    with caplog.at_level(logging.WARNING, logger="play"):
+        _run_frames()
+
+    source, first_line = inspect.getsourcelines(blink)
+    line = first_line + next(i for i, text in enumerate(source) if "wait =" in text)
+    hints = _hints(caplog)
+    assert len(hints) == 1
+    assert f"line {line} of file {__file__}" in hints[0]
+    assert '"async def blink"' in hints[0]
