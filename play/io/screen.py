@@ -162,13 +162,17 @@ class Screen:
 
 screen = Screen()
 
+_walls_body = _pymunk.Body(body_type=_pymunk.Body.STATIC)
+
 
 def create_wall(a, b, wall_side):
     """Create a wall segment in the physics space.
     :param a: The start point of the wall segment.
     :param b: The end point of the wall segment.
     :param wall_side: The side of the screen this wall represents (WallSide enum)."""
-    segment = _pymunk.Segment(physics_space.static_body, a, b, 0.0)
+    if _walls_body.space is None:
+        physics_space.add(_walls_body)
+    segment = _pymunk.Segment(_walls_body, a, b, 0.0)
     segment.elasticity = 1.0
     segment.friction = 0.0
     segment.wall_side = wall_side

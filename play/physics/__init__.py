@@ -1,5 +1,6 @@
 """This handles the physics of the game."""
 
+import atexit as _atexit
 import math as _math
 import numbers as _numbers
 from dataclasses import dataclass
@@ -356,6 +357,12 @@ physics_space = _pymunk.Space()
 physics_space.sleep_time_threshold = float("inf")
 physics_space.idle_speed_threshold = 0
 physics_space.gravity = globals_list.gravity.horizontal, globals_list.gravity.vertical
+
+
+@_atexit.register
+def _empty_physics_space():
+    """Empty the space at exit, while pymunk can still detach what is in it."""
+    physics_space.remove(*physics_space.shapes, *physics_space.bodies)
 
 
 def set_gravity(vertical=-100, horizontal=None):

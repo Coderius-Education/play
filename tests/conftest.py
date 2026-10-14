@@ -320,30 +320,6 @@ def _install_collision_error_recorder():
     _RECORDER_INSTALLED.append(True)
 
 
-def _drop_pymunk_at_exit():
-    """Stop pymunk's module teardown from segfaulting the interpreter.
-
-    A process that imports play and exits without running a game dies with
-    SIGSEGV during C-level finalisation — after Python is done, which is why
-    faulthandler prints nothing and every test can pass first. It is pymunk's
-    own module cleanup: removing it from sys.modules at exit avoids the
-    teardown path entirely and the process exits 0.
-
-    A game that runs is unaffected, because start_program()'s teardown
-    already tears pygame down in an order that avoids it. A student's script
-    that fails on a top-level line before the game starts does hit it: the
-    traceback is followed by a segfault (#232). This workaround stays here
-    rather than in play/ because a library should not be mutating sys.modules
-    on someone else's behalf; #232 is about fixing that case in play itself.
-    """
-    import atexit
-
-    atexit.register(lambda: _sys.modules.pop("pymunk", None))
-
-
-_drop_pymunk_at_exit()
-
-
 def pytest_sessionfinish(session, exitstatus):
     """Disarm auto-start once the session is over.
 
@@ -360,9 +336,7 @@ def pytest_sessionfinish(session, exitstatus):
 
     Looked up in sys.modules rather than imported: under xdist the tests run
     in workers and this also runs in the controller, which otherwise never
-    imports play. Importing it there is not free — `python -c "import play"`
-    segfaults at interpreter shutdown all on its own — so an unconditional
-    import here turns a clean exit into a 139.
+    imports play.
     """
     auto_start = _sys.modules.get("play.api.auto_start")
     if auto_start is None:
