@@ -303,9 +303,9 @@ def test_controllers_while_any_button_pressed_decorator():
     assert len(callbacks) > 0
 
 
-def test_while_button_pressed_chord_registers_with_frozenset_hash():
+def test_while_button_pressed_chord_registers_with_a_frozenset():
     """Test that while_button_pressed with a list of buttons registers using
-    hash(frozenset(button)) as the discriminator key."""
+    frozenset(button) as the discriminator key."""
     from play.io.controllers import controllers
     from play.callback import callback_manager, CallbackType
 
@@ -315,21 +315,19 @@ def test_while_button_pressed_chord_registers_with_frozenset_hash():
     def on_chord_held(button=None):
         pass
 
-    expected_key = hash(frozenset(chord))
+    expected_key = frozenset(chord)
     callbacks = list(
         callback_manager.get_callback(
             [CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED], expected_key
         )
     )
-    assert len(callbacks) > 0, "Chord callback should be registered with frozenset hash"
+    assert len(callbacks) > 0, "Chord callback should be registered with a frozenset"
 
 
-def test_while_button_pressed_chord_fires_only_on_exact_match():
-    """Test that a chord (list[int]) while_button_pressed callback fires only when
-    exactly those buttons are held — not a superset, not a subset.
-
-    Chord semantics: the callback fires when hash(frozenset(held_buttons)) ==
-    hash(frozenset(registered_chord)), i.e. held == {1, 2} exactly.
+def test_while_button_pressed_chord_fires_while_all_its_buttons_are_held():
+    """Test that a chord (list[int]) while_button_pressed callback fires while
+    all of its buttons are held, also with another button held as well, and
+    not while only part of it is held.
     """
     import asyncio
     import pygame
@@ -367,20 +365,32 @@ def test_while_button_pressed_chord_fires_only_on_exact_match():
     fired_buttons.clear()
     controller_state.clear()
 
-    # --- Superset: buttons 1, 2, and 3 held — chord should NOT fire ---
+    # --- Superset: buttons 1, 2, and 3 held — chord still fires ---
     e3 = pygame.event.Event(pygame.JOYBUTTONDOWN, {"instance_id": 0, "button": 3})
     handle_controller_events(e3)
 
     loop.run_until_complete(handle_controller())
     loop.run_until_complete(asyncio.sleep(0))
+    assert len(fired_buttons) > 0, "Chord callback should fire with an extra button"
+
+    fired_buttons.clear()
+    controller_state.clear()
+
+    # --- Subset: button 1 released — chord should NOT fire ---
+    e1 = pygame.event.Event(pygame.JOYBUTTONUP, {"instance_id": 0, "button": 1})
+    handle_controller_events(e1)
+    controller_state.clear()
+
+    loop.run_until_complete(handle_controller())
+    loop.run_until_complete(asyncio.sleep(0))
     assert (
         len(fired_buttons) == 0
-    ), "Chord callback should NOT fire when a superset of buttons is held"
+    ), "Chord callback should NOT fire when only part of it is held"
 
     # Clean up
     controller_state.buttons_pressed.clear()
     controller_state.buttons_pressed_this_frame.clear()
-    chord_key = hash(frozenset([1, 2]))
+    chord_key = frozenset([1, 2])
     callback_manager.remove_callbacks(
         CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED, chord_key
     )

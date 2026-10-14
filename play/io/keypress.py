@@ -74,7 +74,7 @@ def when_key(*keys, released=False):
 
         for key in keys:
             if isinstance(key, list):
-                key = hash(frozenset(key))
+                key = frozenset(key)
             if released:
                 callback_manager.add_callback(CallbackType.RELEASED_KEYS, wrapper, key)
             else:
@@ -107,7 +107,7 @@ def while_key(*keys):
 
         for key in keys:
             if isinstance(key, list):
-                key = hash(frozenset(key))
+                key = frozenset(key)
             callback_manager.add_callback(CallbackType.WHILE_KEY_PRESSED, wrapper, key)
         return wrapper
 

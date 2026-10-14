@@ -64,7 +64,7 @@ def when_button(index: int, released: bool, *buttons: list[int | list[int]] | No
                     )
                 continue
             if isinstance(button, list):
-                button = hash(frozenset(button))
+                button = frozenset(button)
             if released:
                 callback_manager.add_callback(
                     CallbackType.WHEN_CONTROLLER_BUTTON_RELEASED, wrapper, button
@@ -80,14 +80,43 @@ def when_button(index: int, released: bool, *buttons: list[int | list[int]] | No
 
 class _Controllers:
     def __init__(self):
-        self._controllers = [_Controller(x) for x in range(_get_controller_count())]
-        for controller in self._controllers:
-            controller.init()
+        self._controllers = []
+        for device_index in range(_get_controller_count()):
+            self._connect(device_index)
+
+    def _connect(self, device_index):
+        """Open the controller at an SDL device index in the first free slot."""
+        controller = _Controller(device_index)
+        controller.init()
+        if self._find(controller.get_instance_id()) is not None:
+            return
+        if None in self._controllers:
+            self._controllers[self._controllers.index(None)] = controller
+        else:
+            self._controllers.append(controller)
+
+    def _disconnect(self, instance_id):
+        """Free the slot of a removed controller, so a replugged one gets it back."""
+        index = self._find(instance_id)
+        if index is not None:
+            self._controllers[index] = None
+
+    def _find(self, instance_id):
+        """Return the index of the controller with an SDL instance id, or None."""
+        for index, controller in enumerate(self._controllers):
+            if controller is not None and controller.get_instance_id() == instance_id:
+                return index
+        return None
+
+    def _index_of(self, instance_id):
+        """Return play's index for an SDL instance id; an unknown id is its own index."""
+        index = self._find(instance_id)
+        return instance_id if index is None else index
 
     def get_count(self) -> int:
         """Get the number of controllers.
         :return: The number of controllers."""
-        return len(self._controllers)
+        return len(self.get_all_controllers())
 
     def get_controller(self, index) -> _ControllerType:
         """Get the controller at the specified index.
@@ -98,7 +127,9 @@ class _Controllers:
     def get_all_controllers(self) -> list[_ControllerType]:
         """Get all controllers.
         :return: A list of all controllers."""
-        return self._controllers
+        return [
+            controller for controller in self._controllers if controller is not None
+        ]
 
     def get_num_axes(self, index) -> int:
         """Get the number of axes on the controller at the specified index.
@@ -233,7 +264,7 @@ class _Controllers:
                     )
                     continue
                 if isinstance(button, list):
-                    button = hash(frozenset(button))
+                    button = frozenset(button)
                 callback_manager.add_callback(
                     CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED, wrapper, button
                 )
@@ -298,7 +329,7 @@ class _Controllers:
             wrapper.controller = index
 
             callback_manager.add_callback(
-                CallbackType.WHEN_CONTROLLER_AXIS_MOVED, wrapper
+                CallbackType.WHEN_CONTROLLER_AXIS_MOVED, wrapper, "any"
             )
             return wrapper
 
