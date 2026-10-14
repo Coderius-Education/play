@@ -65,7 +65,7 @@ class ProgressBar(Box):
 
     def _render(self):
         """Draw the background bar then the filled portion."""
-        w, h = self._width, self._height
+        w, h = self._drawn_size()
         bw = self._border_width
         draw_image = pygame.Surface((w, h), pygame.SRCALPHA)
 

@@ -221,8 +221,8 @@ class Dropdown(WidgetMixin, Box):
     def _render(self):
         """Draw the closed button plus the open option list (if open)."""
         n_extra = len(self._options) if self._dropdown_open else 0
-        total_h = self._height * (1 + n_extra)
-        w = self._width
+        w, row_h = self._drawn_size()
+        total_h = row_h * (1 + n_extra)
         bw = self._border_width
 
         draw_image = pygame.Surface((w, total_h), pygame.SRCALPHA)

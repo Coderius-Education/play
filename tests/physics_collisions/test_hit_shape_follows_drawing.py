@@ -83,3 +83,23 @@ def test_a_negative_dimension_draws_and_touches_nothing(make, attribute):
     setattr(sprite, attribute, -3)
     sprite.update()
     assert not sprite.is_touching((0, 0))
+
+
+WIDGETS = {
+    "box": play.new_box,
+    "button": lambda: play.new_button("Go"),
+    "checkbox": play.new_checkbox,
+    "progress bar": play.new_progress_bar,
+    "text input": play.new_text_input,
+    "dropdown": lambda: play.new_dropdown(["a", "b"]),
+}
+
+
+@pytest.mark.parametrize("attribute", ["width", "height"])
+@pytest.mark.parametrize("widget", WIDGETS)
+def test_a_negative_size_draws_a_widget_as_nothing(widget, attribute):
+    sprite = WIDGETS[widget]()
+    setattr(sprite, attribute, -5)
+    sprite._should_recompute = True
+    sprite.update()
+    assert 0 in sprite.image.get_size()

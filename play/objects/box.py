@@ -39,14 +39,18 @@ class Box(Sprite):
         # would let a widget built under the cursor activate itself on creation.
         super().update()
 
+    def _drawn_size(self):
+        """Return ``(width, height)``, counting a negative side as 0."""
+        return max(self._width, 0), max(self._height, 0)
+
     def _hit_dims(self, size_factor):
         """Box hit-shape uses its logical width/height, scaled by size."""
-        width, height = max(self._width, 0), max(self._height, 0)
+        width, height = self._drawn_size()
         return 0.0, width * size_factor, height * size_factor
 
     def _render(self):
         """Draw the box surface with border, scale, alpha, and rotation."""
-        width, height = max(self._width, 0), max(self._height, 0)
+        width, height = self._drawn_size()
         draw_image = pygame.Surface((width, height), pygame.SRCALPHA)
 
         if self._border_width > 0:

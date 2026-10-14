@@ -85,8 +85,8 @@ class Checkbox(WidgetMixin, Box):
 
     def _render(self):
         """Draw the checkbox box, checkmark, and label."""
-        size_px = self._height
-        draw_image = pygame.Surface((self._width, self._height), pygame.SRCALPHA)
+        width, size_px = self._drawn_size()
+        draw_image = pygame.Surface((width, size_px), pygame.SRCALPHA)
 
         border_col = (
             _color_name_to_rgb(self._hover_border_color)
@@ -132,7 +132,7 @@ class Checkbox(WidgetMixin, Box):
                 True,
                 _color_name_to_rgb(self._label_color),
             )
-            ly = (self._height - label_surf.get_height()) // 2
+            ly = (size_px - label_surf.get_height()) // 2
             draw_image.blit(label_surf, (size_px + 10, ly))
 
         self._finalize_image(draw_image)
