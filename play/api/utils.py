@@ -14,6 +14,7 @@ from play.loop import get_loop as _get_loop, stop_loop as _stop_loop
 from play.physics import set_physics_simulation_steps as _set_physics_simulation_steps
 from play.objects.video.video import close_all_videos as _close_all_videos
 from play.utils import color_name_to_rgb as _color_name_to_rgb
+from play.utils.async_helpers import hint_forgotten_awaits as _hint_forgotten_awaits
 
 
 def start_program():
@@ -39,16 +40,17 @@ def start_program():
         _get_loop().create_task(_game_loop())
 
     try:
-        try:
-            _get_loop().run_until_complete(_run_start_then_loop())
-        except RuntimeError:
-            # loop.stop() raced with startup: fine if the program asked to stop.
+        with _hint_forgotten_awaits():
+            try:
+                _get_loop().run_until_complete(_run_start_then_loop())
+            except RuntimeError:
+                # loop.stop() raced with startup: fine if the program asked to stop.
+                if globals_list.program_state is not ProgramState.STOPPED:
+                    raise
+            # run_until_complete absorbs a stop_program() from the first frame, so
+            # without this check the program would run on after asking to stop.
             if globals_list.program_state is not ProgramState.STOPPED:
-                raise
-        # run_until_complete absorbs a stop_program() from the first frame, so
-        # without this check the program would run on after asking to stop.
-        if globals_list.program_state is not ProgramState.STOPPED:
-            _get_loop().run_forever()
+                _get_loop().run_forever()
     finally:
         logger = _logging.getLogger("asyncio")
         logger.setLevel(_logging.CRITICAL)
