@@ -158,3 +158,18 @@ def test_an_unplugged_controller_reads_as_untouched(fake_joysticks):
     assert controllers.get_button(0, 0) is False
     assert controllers.get_hat(0, 0) == (0, 0)
     assert controllers.get_num_axes(0) == 0
+
+
+def test_a_controller_gone_before_it_opens_is_skipped(monkeypatch):
+    def vanished(device_index):
+        raise pygame.error("Invalid joystick device number")
+
+    monkeypatch.setattr("play.io.controllers._Controller", vanished)
+    monkeypatch.setattr(controllers, "_controllers", [])
+    frames = []
+    play.repeat_forever(lambda: frames.append(1))
+
+    _run([[_joy(pygame.JOYDEVICEADDED, device_index=3)]])
+
+    assert controllers.get_count() == 0
+    assert len(frames) > 3

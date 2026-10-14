@@ -126,8 +126,11 @@ class _Controllers:
 
     def _connect(self, device_index):
         """Open the controller at an SDL device index in the first free slot."""
-        controller = _Controller(device_index)
-        controller.init()
+        try:
+            controller = _Controller(device_index)
+            controller.init()
+        except pygame.error:
+            return
         if self._find(controller.get_instance_id()) is not None:
             return
         free = [
