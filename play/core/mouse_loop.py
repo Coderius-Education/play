@@ -16,6 +16,7 @@ class MouseState:
     # Widget that exclusively claimed this frame's click (e.g. an open
     # dropdown menu overlapping other widgets), or None.
     click_owner = None
+    sprites_above_owner = frozenset()
     # Widgets that may claim exclusive ownership of a click. Populated by
     # widgets that draw on top of others (an open Dropdown registers here).
     click_claimants = []
@@ -27,6 +28,7 @@ class MouseState:
         self.click_happened = False
         self.click_release_happened = False
         self.click_owner = None
+        self.sprites_above_owner = set()
 
     def click_hits(self, sprite):
         """Whether *sprite* may respond to this frame's click.
@@ -34,7 +36,9 @@ class MouseState:
         True when a click happened and no overlapping widget (such as an open
         dropdown menu) claimed it exclusively for itself."""
         return self.click_happened and (
-            self.click_owner is None or self.click_owner is sprite
+            self.click_owner is None
+            or self.click_owner is sprite
+            or sprite in self.sprites_above_owner
         )
 
     def resolve_click_owner(self):
@@ -43,8 +47,8 @@ class MouseState:
         Called once per MOUSEBUTTONDOWN. An open overlay (a Dropdown menu)
         claims the click outright; otherwise the top-most interactive widget
         under the cursor takes it, so stacked widgets don't all react to one
-        click. Plain sprites never become the owner, which keeps their original
-        behaviour of every sprite under the cursor receiving the click.
+        click. Plain sprites never become the owner; those drawn above the
+        owning widget, such as an icon on a button, still receive the click.
 
         Called exactly once per click, from handle_mouse_events (and from the
         tests' click_at helper), so this is also where the click id advances."""
@@ -55,16 +59,27 @@ class MouseState:
             # Registration order says nothing about what is drawn on top, so
             # pick by layer rather than taking the first claimant.
             self.click_owner = max(claiming, key=lambda w: w._layer)
+            self.sprites_above_owner = set()
             return
         # sprites() is layer-ordered back-to-front, so the last hit is on top.
         # is_touching() excludes hidden sprites; a disabled one would otherwise
         # win ownership and then decline to act, losing the click.
+        sprites = globals_list.sprites_group.sprites()
         widgets = [
-            s
-            for s in globals_list.sprites_group.sprites()
+            i
+            for i, s in enumerate(sprites)
             if s._is_widget and not s._is_disabled and mouse.is_touching(s)
         ]
-        self.click_owner = widgets[-1] if widgets else None
+        if not widgets:
+            self.click_owner = None
+            self.sprites_above_owner = set()
+            return
+        self.click_owner = sprites[widgets[-1]]
+        self.sprites_above_owner = {
+            s
+            for s in sprites[widgets[-1] + 1 :]
+            if not s._is_widget and mouse.is_touching(s)
+        }
 
 
 mouse_state = MouseState()

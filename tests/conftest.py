@@ -444,7 +444,7 @@ def clean_play_state(request):
 
     import play.core.sprites_loop
 
-    play.core.sprites_loop._clicked_sprite_id = None
+    play.core.sprites_loop._clicked_sprite_ids.clear()
 
     import play.api.auto_start
 

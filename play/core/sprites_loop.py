@@ -9,7 +9,7 @@ from play.globals import globals_list
 from play.io.mouse import mouse
 
 # Track which sprite was clicked for when_click_released events
-_clicked_sprite_id = None  # pylint: disable=invalid-name
+_clicked_sprite_ids = set()
 
 
 def update_sprite_physics(sprite):
@@ -56,10 +56,8 @@ def handle_sprite_click(sprite):
     Tracks which sprite was clicked (for later click-release detection)
     and fires when_clicked callbacks.
     """
-    global _clicked_sprite_id
-
     if mouse.is_touching(sprite) and mouse_state.click_hits(sprite):
-        _clicked_sprite_id = id(sprite)
+        _clicked_sprite_ids.add(id(sprite))
         sprite.events.is_clicked = True
         callback_manager.run_callbacks(
             CallbackType.WHEN_CLICKED_SPRITE, callback_discriminator=id(sprite)
@@ -75,7 +73,7 @@ def handle_sprite_click_released(sprite):
     if (
         mouse_state.click_release_happened
         and mouse.is_touching(sprite)
-        and _clicked_sprite_id == id(sprite)
+        and id(sprite) in _clicked_sprite_ids
     ):
         callback_manager.run_callbacks(
             CallbackType.WHEN_CLICK_RELEASED_SPRITE,
@@ -85,8 +83,7 @@ def handle_sprite_click_released(sprite):
 
 def clear_click_tracking():
     """Clear the clicked sprite tracking after a release event."""
-    global _clicked_sprite_id
-    _clicked_sprite_id = None
+    _clicked_sprite_ids.clear()
 
 
 async def update_sprites(do_events: bool = True):
