@@ -37,12 +37,8 @@ def pytest_collection_modifyitems(config, items):
 # ---------------------------------------------------------------------------
 
 
-# A frame runs update() on every sprite once per physics sub-step, not once:
-# simulate_physics() calls update_sprites() for every step but the last, and
-# game_loop calls it once more. Mirroring that here is what makes a widget
-# whose click action is not idempotent fail in a unit test instead of only in
-# a real game. Kept in step with Globals.num_sim_steps.
-UPDATES_PER_FRAME = 10
+# click_at() runs update() several times, so a widget that acts twice on one click fails.
+UPDATES_PER_CLICK = 10
 
 
 def click_at(x, y, *widgets, hold=False):
@@ -51,7 +47,7 @@ def click_at(x, y, *widgets, hold=False):
     Mirrors the real event path: moves the mouse, resolves exclusive click
     ownership (an open dropdown menu claims clicks that land on it), runs
     ``update()`` on the given widgets in layer order (lowest first, like the
-    real sprite loop) once per sub-step, then clears the frame's mouse state.
+    real sprite loop) several times, then clears the frame's mouse state.
 
     Pass ``hold=True`` to leave the mouse button pressed after the click
     (e.g. to start a slider drag).
@@ -63,7 +59,7 @@ def click_at(x, y, *widgets, hold=False):
     mouse._is_clicked = True
     mouse_state.click_happened = True
     mouse_state.resolve_click_owner()
-    for _ in range(UPDATES_PER_FRAME):
+    for _ in range(UPDATES_PER_CLICK):
         for widget in sorted(widgets, key=lambda w: w._layer):
             widget.update()
     mouse_state.clear()

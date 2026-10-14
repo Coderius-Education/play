@@ -8,9 +8,7 @@ neither notices what happens when the two share a frame.
 
 These run through play.start_program() with real pygame events, so the whole
 path runs: event draining, click-ownership resolution, physics sub-steps and
-update_sprites() — including the detail that update() runs once per sub-step
-rather than once per frame, which is what makes widget actions fire ten times
-if they are not gated.
+update_sprites().
 """
 
 from tests.conftest import post_mouse_motion, post_mouse_down, post_mouse_up
@@ -354,12 +352,7 @@ def test_hiding_a_widget_hands_the_playfield_back():
 
 
 def test_a_slider_drag_survives_a_busy_physics_frame():
-    """Dragging while the space is simulating.
-
-    The drag is state carried across frames; the physics sub-steps run
-    update() repeatedly in between. A drag that reset itself per sub-step
-    would jump or stall exactly here and nowhere else.
-    """
+    """A drag is state carried across frames, also while physics sprites move."""
     import play
     from play.io.screen import screen
 

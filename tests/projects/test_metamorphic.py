@@ -5,10 +5,10 @@ Instead of asserting a specific outcome, these assert that an outcome does not
 of bug an ordinary test cannot see: code which is right at the default settings
 and wrong everywhere else.
 
-The physics sub-step count is the sharpest example. ``update()`` runs once per
-sub-step rather than once per frame, so a widget or callback written as if it
-ran once per frame fires ten times at the default and once at ``num_sim_steps=1``
-— behaviour that silently depends on a setting the user is free to change.
+The physics sub-step count is the sharpest example: anything that ran once per
+sub-step would happen ten times per frame at the default and once at
+``num_sim_steps=1`` — behaviour that silently depends on a setting the user is
+free to change.
 """
 
 import pytest
@@ -92,10 +92,8 @@ def test_scoring_is_independent_of_screen_size(size):
 def test_callback_fires_once_per_collision_regardless_of_sim_steps(sim_steps):
     """An edge-triggered collision must not scale with the sub-step count.
 
-    This is the failure mode the widget notes warn about: work done per
-    ``update()`` happens ``num_sim_steps`` times per frame. A collision
-    callback that fired per sub-step would show a count that tracks the
-    setting, so comparing across settings is what exposes it.
+    A collision callback that fired per sub-step would show a count that
+    tracks the setting, so comparing across settings is what exposes it.
     """
     play.set_physics_simulation_steps(sim_steps)
 
