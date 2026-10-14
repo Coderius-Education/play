@@ -117,6 +117,43 @@ class _DisconnectedController:
         """Return (0, 0), a ball that did not move."""
         return (0, 0)
 
+    def get_name(self):
+        """Return "", an unplugged controller has no name."""
+        return ""
+
+    def get_guid(self):
+        """Return "", an unplugged controller has no GUID."""
+        return ""
+
+    def get_id(self):
+        """Return -1, an unplugged controller has no device index."""
+        return -1
+
+    def get_init(self):
+        """Return False, an unplugged controller is not initialised."""
+        return False
+
+    def get_power_level(self):
+        """Return "unknown"."""
+        return "unknown"
+
+    def init(self):
+        """Do nothing: there is no device to open."""
+
+    def quit(self):
+        """Do nothing: there is no device to close."""
+
+    def rumble(self, _low_frequency, _high_frequency, _duration):
+        """Return False: there is no device to rumble."""
+        return False
+
+    def stop_rumble(self):
+        """Do nothing: there is no device to rumble."""
+
+    def set_led(self, _color):
+        """Return False: there is no device with a light."""
+        return False
+
 
 class _Controllers:
     def __init__(self):

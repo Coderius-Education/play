@@ -208,3 +208,17 @@ def test_a_controller_announced_again_at_start_up_is_counted_once(fake_joysticks
     _run([[_joy(pygame.JOYDEVICEADDED, device_index=0)]])
 
     assert controllers.get_count() == 1
+
+
+def test_an_unplugged_controller_answers_every_joystick_method(fake_joysticks):
+    fake_joysticks.next_instance_id = 5
+    controllers._connect(0)
+
+    _run([[_joy(pygame.JOYDEVICEREMOVED, instance_id=5)]])
+
+    stand_in = controllers.get_all_controllers()[0]
+    for name in dir(pygame.joystick.JoystickType):
+        if not name.startswith("_"):
+            assert hasattr(stand_in, name), name
+    assert stand_in.get_name() == ""
+    assert stand_in.rumble(0.5, 0.5, 100) is False
