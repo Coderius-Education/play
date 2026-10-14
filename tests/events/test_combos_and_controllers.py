@@ -58,6 +58,15 @@ def test_a_key_combination_release_fires_once_when_one_of_its_keys_goes_up():
     assert fired == ["a+s"]
 
 
+def test_a_key_combination_fires_for_a_key_tapped_within_one_frame():
+    fired = []
+    play.when_key_pressed(["left ctrl", "s"])(lambda: fired.append("ctrl+s"))
+
+    _run([[_down(pygame.K_LCTRL)], [_down(pygame.K_s), _up(pygame.K_s)]])
+
+    assert fired == ["ctrl+s"]
+
+
 def test_a_held_key_combination_keeps_firing_with_another_key_held_too():
     frames = []
     play.while_key_pressed(["a", "s"])(lambda: frames.append(1))

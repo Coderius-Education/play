@@ -190,3 +190,20 @@ def test_only_a_sprite_with_area_blocks_and_touches(width, passes_through):
 
     assert (ball.x > 150) is passes_through
     assert bool(hits) is not passes_through
+
+
+def test_text_with_a_new_font_is_hit_where_it_is_drawn():
+    other_font = pygame.font.match_font("dejavusans,arial,liberationsans")
+    if other_font is None:
+        pytest.skip("no second font on this machine")
+    text = play.new_text(words="Hello world")
+    text.font = other_font
+    _assert_hit_shape_matches_drawing(text)
+
+
+def test_an_image_given_a_new_file_is_hit_where_it_is_drawn(tmp_path):
+    bigger = tmp_path / "bigger.png"
+    pygame.image.save(pygame.Surface((300, 120)), str(bigger))
+    image = play.new_image(image=IMAGE)
+    image.image_filename = str(bigger)
+    _assert_hit_shape_matches_drawing(image)
