@@ -610,11 +610,7 @@ You might want to look in your code where you're setting transparency and make s
     _circular_hit_shape = False
 
     def _hit_dims(self, size_factor):
-        """Return ``(radius, width, height)`` for the pymunk hit-shape.
-
-        The physics layer calls this when building or resizing the collision
-        shape. Box and Circle override it; a sprite with
-        ``_circular_hit_shape`` gets a circle of that radius."""
+        """Return ``(radius, width, height)`` for the hit shape, scaled by *size_factor*."""
         width, height = self._unscaled_size()
         return 0.0, float(width * size_factor), float(height * size_factor)
 
@@ -786,11 +782,7 @@ You might want to look in your code where you're setting transparency and make s
             self.when_stopped_touching_wall(callback, wall=wall_side)
 
     def _reregister_dependent_callbacks(self):
-        """Re-register callbacks from other sprites that reference self.
-
-        When self's pymunk shape changes, other sprites' collision registrations
-        become stale and need to be refreshed.
-        """
+        """Redo the collision registrations of sprites with callbacks on this one."""
         for dependent in list(self.events._dependent_sprites):
             if not dependent._has_callbacks_on(self):
                 continue

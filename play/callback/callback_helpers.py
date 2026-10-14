@@ -66,11 +66,7 @@ async def run_async_callback(callback, required_args, optional_args, *args, **kw
 
 
 def _show_first_error(exc):
-    """Stop the program on an error in a callback task; print only the first.
-
-    Prints the full traceback to stderr so students see errors immediately,
-    even if logging is not configured.
-    """
+    """Stop the program and print the traceback, for the first error only."""
     if globals_list.error_shown:
         return
     globals_list.error_shown = True

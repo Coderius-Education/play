@@ -71,10 +71,7 @@ class Physics:
         return _pymunk.Body.DYNAMIC
 
     def _hit_dims(self):
-        """Ask the sprite for its hit-shape as ``(radius, width, height)``.
-
-        Every sprite scales its unscaled, unrotated size by ``size``.
-        """
+        """Ask the sprite for its hit shape as ``(radius, width, height)``, scaled by size."""
         return self.sprite._hit_dims(max(self.sprite._size, 0) / 100)
 
     def _moment(self, is_circle, radius, width, height):
