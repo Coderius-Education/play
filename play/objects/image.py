@@ -8,6 +8,8 @@ from play.utils import scale_to_percent as _scale_to_percent
 
 
 class Image(Sprite):
+    _scaled_by_size = True
+
     def __init__(
         self, image, x=0, y=0, angle=0, size=100, transparency=100, anchor=None, layer=0
     ):

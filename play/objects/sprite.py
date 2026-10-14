@@ -248,6 +248,8 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
             self._image = pygame.Surface((0, 0), pygame.SRCALPHA)
         else:
             self._render()
+            if not self._scaled_by_size and self.physics is not None:
+                self.physics._resize_shape()
         self._should_recompute = False
 
     def _render(self):
@@ -607,17 +609,17 @@ You might want to look in your code where you're setting transparency and make s
     # of sprite, not of the sign of the radius: a circle built at a negative
     # size has to be a circle again when it grows back.
     _circular_hit_shape = False
-    _scaled_by_size = True
+    _scaled_by_size = False
 
     def _hit_dims(self, size_factor):
-        """Return ``(radius, width, height)`` for the hit shape, scaled by *size_factor*."""
+        """Return ``(radius, width, height)``; *size_factor* applies if size scales the drawing."""
         width, height = self._unscaled_size()
         if not self._scaled_by_size:
             size_factor = 1
         return 0.0, float(width * size_factor), float(height * size_factor)
 
     def _unscaled_size(self):
-        """Return the ``(width, height)`` of the sprite before size and angle apply."""
+        """Return the ``(width, height)`` the hit shape starts from: the drawn rect by default."""
         return self.rect.size
 
     @property

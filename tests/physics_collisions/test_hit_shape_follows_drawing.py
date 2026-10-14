@@ -1,9 +1,11 @@
 """The pymunk shape used for touching and clicks matches what is drawn (#240)."""
 
+import pygame
 import pymunk
 import pytest
 
 import play
+from play.objects.sprite import Sprite
 from play.physics import physics_space
 
 IMAGE = "tests/objects_attributes/yellow.jpg"
@@ -128,3 +130,24 @@ def test_a_resized_widget_is_hit_where_it_is_drawn(widget, sizes):
         sprite._should_recompute = True
         sprite.update()
     _assert_hit_shape_matches_drawing(sprite)
+
+
+class _Flag(Sprite):
+    def __init__(self):
+        self.rect = pygame.Rect(0, 0, 40, 20)
+        super().__init__()
+        self.update()
+
+    def _render(self):
+        flag = pygame.Surface((40, 20), pygame.SRCALPHA)
+        flag.fill((255, 0, 0))
+        self._finalize_image(flag)
+
+
+@pytest.mark.parametrize("sizes", [[200], [300, 100]], ids=["grown", "grown and back"])
+def test_a_sprite_subclass_is_hit_where_it_is_drawn(sizes):
+    flag = _Flag()
+    for size in sizes:
+        flag.size = size
+        flag.update()
+    _assert_hit_shape_matches_drawing(flag)

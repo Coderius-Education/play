@@ -26,7 +26,6 @@ class Tooltip(Sprite):
     # A pure visual overlay: its automatic body is a sensor, so it never
     # blocks or shoves other sprites, also after stop_physics().
     _sensor_by_default = True
-    _scaled_by_size = False
 
     def __init__(
         self,

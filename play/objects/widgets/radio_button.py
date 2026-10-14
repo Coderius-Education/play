@@ -78,6 +78,8 @@ class RadioGroup:
 
 
 class RadioButton(WidgetMixin, Sprite):
+    _scaled_by_size = True
+
     def __init__(
         self,
         label="",

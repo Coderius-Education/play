@@ -11,6 +11,8 @@ from play.io.logging import play_logger
 
 
 class Text(Sprite):
+    _scaled_by_size = True
+
     def __init__(
         self,
         words="",

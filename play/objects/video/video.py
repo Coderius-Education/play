@@ -97,6 +97,7 @@ class _VideoPlayer:  # pylint: disable=too-few-public-methods
 class Video(Sprite):  # pylint: disable=too-many-public-methods
     """A video that plays on screen, with optional built-in controls."""
 
+    _scaled_by_size = True
     _player = None  # close() can run before __init__ got this far
 
     def __init__(

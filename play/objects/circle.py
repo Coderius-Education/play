@@ -7,6 +7,7 @@ from play.utils import color_name_to_rgb as _color_name_to_rgb
 
 class Circle(Sprite):
     _circular_hit_shape = True
+    _scaled_by_size = True
 
     def __init__(
         self,
