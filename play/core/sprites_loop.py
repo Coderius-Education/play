@@ -31,6 +31,18 @@ def update_sprite_physics(sprite):
     sprite.physics._x_speed, sprite.physics._y_speed = body.velocity
 
 
+async def handle_new_contacts():
+    """After a physics sub-step: sync positions, run contacts that just began or ended."""
+    for sprite in globals_list.sprites_group.sprites():
+        if sprite.physics.can_move:
+            update_sprite_physics(sprite)
+        if sprite.is_hidden:
+            continue
+        await run_any_async_callback(sprite.events.new_touching_callbacks(), [], [])
+        await run_any_async_callback(sprite.events.stopped_callbacks(), [], [])
+        sprite.events.clear_all_stopped()
+
+
 async def run_sprite_callbacks(sprite):
     """Run touching and stopped callbacks for a sprite."""
     await run_any_async_callback(sprite.events.touching_callbacks(), [], [])

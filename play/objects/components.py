@@ -17,6 +17,8 @@ class EventComponent:
     def __init__(self, sprite):
         self._sprite = sprite
         self._touching_callback = {}
+        self._new_touching = {}
+        self._fired_this_frame = set()
         self._stopped_callback = {}
         self._dependent_sprites = set()
         self._is_clicked = False
@@ -37,6 +39,8 @@ class EventComponent:
         :param key: Collision key (e.g. shape collision_id or (CollisionType, WallSide)).
         :param callback: The callback to store."""
         self._touching_callback[key] = callback
+        if key not in self._fired_this_frame:
+            self._new_touching[key] = callback
 
     def clear_touching(self, key):
         """Remove an active touching collision record.
@@ -56,6 +60,8 @@ class EventComponent:
         belong to the old shape, so pymunk will never send the separate that
         would clear them and the callback would run forever."""
         self._touching_callback = {}
+        self._new_touching = {}
+        self._fired_this_frame = set()
 
     def set_stopped(self, key, callback):
         """Record a stopped-touching collision callback.
@@ -63,9 +69,23 @@ class EventComponent:
         :param callback: The callback to store."""
         self._stopped_callback[key] = callback
 
+    def new_touching_callbacks(self):
+        """Return the callbacks of contacts that began since the last call."""
+        callbacks = self._new_touching
+        self._fired_this_frame.update(callbacks)
+        self._new_touching = {}
+        return list(callbacks.values())
+
     def touching_callbacks(self):
-        """Return all active touching collision callbacks."""
-        return list(self._touching_callback.values())
+        """Return the callbacks still touching that have not run this frame."""
+        callbacks = [
+            callback
+            for key, callback in self._touching_callback.items()
+            if key not in self._fired_this_frame
+        ]
+        self._new_touching = {}
+        self._fired_this_frame = set()
+        return callbacks
 
     def stopped_callbacks(self):
         """Return all pending stopped-touching collision callbacks."""

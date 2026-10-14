@@ -16,6 +16,7 @@ This test verifies:
 - the video reaches its end inside the loop and fires ``when_video_ends``
 """
 
+import time
 import pytest
 
 from tests.conftest import (
@@ -115,9 +116,8 @@ def test_video_kiosk(short_clip):
         seen["volume"] = video.volume
 
         # 5. Let the clip play out for real and reach its end.
-        for _ in range(240):
-            if video.finished:
-                break
+        deadline = time.monotonic() + 10
+        while not video.finished and time.monotonic() < deadline:
             await play.animate()
         # The end callback is scheduled as a task on the loop; give it a
         # couple of frames to actually run before reading the result.

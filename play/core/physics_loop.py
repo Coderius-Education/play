@@ -1,6 +1,6 @@
 """This module contains the function that simulates the physics of the game"""
 
-from play.core.sprites_loop import update_sprites
+from play.core.sprites_loop import handle_new_contacts
 from play.globals import globals_list
 from play.physics import physics_space
 
@@ -12,5 +12,4 @@ async def simulate_physics():
     # more steps means more accurate simulation but more processing time
     for _ in range(globals_list.num_sim_steps):
         physics_space.step(1 / (globals_list.frame_rate * globals_list.num_sim_steps))
-        if _ != globals_list.num_sim_steps - 1:
-            await update_sprites(False)
+        await handle_new_contacts()
