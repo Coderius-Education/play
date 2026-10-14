@@ -113,7 +113,7 @@ def _reset_mouse_state():
 
 class TestHandleSpriteClick:
     def setup_method(self):
-        sprites_loop._clicked_sprite_ids.clear()
+        sprites_loop._clicked_sprites.clear()
         _reset_mouse_state()
 
     def teardown_method(self):
@@ -131,7 +131,7 @@ class TestHandleSpriteClick:
 
         handle_sprite_click(sprite)
 
-        assert id(sprite) in sprites_loop._clicked_sprite_ids
+        assert sprite in sprites_loop._clicked_sprites
 
     @patch("play.core.sprites_loop.callback_manager")
     @patch("play.core.sprites_loop.mouse")
@@ -183,7 +183,7 @@ class TestHandleSpriteClick:
 
 class TestHandleSpriteClickReleased:
     def setup_method(self):
-        sprites_loop._clicked_sprite_ids.clear()
+        sprites_loop._clicked_sprites.clear()
         _reset_mouse_state()
 
     def teardown_method(self):
@@ -193,7 +193,7 @@ class TestHandleSpriteClickReleased:
     @patch("play.core.sprites_loop.mouse")
     def test_fires_release_on_same_sprite(self, mock_mouse, mock_cb):
         sprite = MagicMock()
-        sprites_loop._clicked_sprite_ids.add(id(sprite))
+        sprites_loop._clicked_sprites.add(sprite)
         mouse_state.click_release_happened = True
         mock_mouse.is_touching.return_value = True
 
@@ -209,7 +209,7 @@ class TestHandleSpriteClickReleased:
     def test_no_release_on_different_sprite(self, mock_mouse, mock_cb):
         sprite = MagicMock()
         other = MagicMock()
-        sprites_loop._clicked_sprite_ids.add(id(other))
+        sprites_loop._clicked_sprites.add(other)
         mouse_state.click_release_happened = True
         mock_mouse.is_touching.return_value = True
 
@@ -221,7 +221,7 @@ class TestHandleSpriteClickReleased:
     @patch("play.core.sprites_loop.mouse")
     def test_no_release_when_not_touching(self, mock_mouse, mock_cb):
         sprite = MagicMock()
-        sprites_loop._clicked_sprite_ids.add(id(sprite))
+        sprites_loop._clicked_sprites.add(sprite)
         mouse_state.click_release_happened = True
         mock_mouse.is_touching.return_value = False
 
@@ -233,7 +233,7 @@ class TestHandleSpriteClickReleased:
     @patch("play.core.sprites_loop.mouse")
     def test_no_release_when_no_release_happened(self, mock_mouse, mock_cb):
         sprite = MagicMock()
-        sprites_loop._clicked_sprite_ids.add(id(sprite))
+        sprites_loop._clicked_sprites.add(sprite)
         mouse_state.click_release_happened = False
         mock_mouse.is_touching.return_value = True
 
@@ -243,10 +243,10 @@ class TestHandleSpriteClickReleased:
 
 
 class TestClearClickTracking:
-    def test_clears_clicked_sprite_ids(self):
-        sprites_loop._clicked_sprite_ids.add(12345)
+    def test_clears_clicked_sprites(self):
+        sprites_loop._clicked_sprites.add(object())
         clear_click_tracking()
-        assert not sprites_loop._clicked_sprite_ids
+        assert not sprites_loop._clicked_sprites
 
 
 class TestUpdateSprites:

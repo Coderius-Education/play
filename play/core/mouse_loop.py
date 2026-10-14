@@ -20,7 +20,6 @@ class MouseState:
     # Widgets that may claim exclusive ownership of a click. Populated by
     # widgets that draw on top of others (an open Dropdown registers here).
     click_claimants = []
-    # Monotonic id for the current click; see WidgetMixin._claim_click().
     click_id = 0
 
     def clear(self):
@@ -28,7 +27,7 @@ class MouseState:
         self.click_happened = False
         self.click_release_happened = False
         self.click_owner = None
-        self.sprites_above_owner = set()
+        self.sprites_above_owner = frozenset()
 
     def click_hits(self, sprite):
         """Whether *sprite* may respond to this frame's click.
@@ -59,7 +58,7 @@ class MouseState:
             # Registration order says nothing about what is drawn on top, so
             # pick by layer rather than taking the first claimant.
             self.click_owner = max(claiming, key=lambda w: w._layer)
-            self.sprites_above_owner = set()
+            self.sprites_above_owner = frozenset()
             return
         # sprites() is layer-ordered back-to-front, so the last hit is on top.
         # is_touching() excludes hidden sprites; a disabled one would otherwise
@@ -72,14 +71,14 @@ class MouseState:
         ]
         if not widgets:
             self.click_owner = None
-            self.sprites_above_owner = set()
+            self.sprites_above_owner = frozenset()
             return
         self.click_owner = sprites[widgets[-1]]
-        self.sprites_above_owner = {
+        self.sprites_above_owner = frozenset(
             s
             for s in sprites[widgets[-1] + 1 :]
             if not s._is_widget and mouse.is_touching(s)
-        }
+        )
 
 
 mouse_state = MouseState()

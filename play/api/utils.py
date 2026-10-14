@@ -41,22 +41,29 @@ def start_program():
 
     try:
         with _hint_forgotten_awaits():
-            try:
-                _get_loop().run_until_complete(_run_start_then_loop())
-            except RuntimeError:
-                # loop.stop() raced with startup: fine if the program asked to stop.
-                if globals_list.program_state is not ProgramState.STOPPED:
-                    raise
-            # run_until_complete absorbs a stop_program() from the first frame, so
-            # without this check the program would run on after asking to stop.
-            if globals_list.program_state is not ProgramState.STOPPED:
-                _get_loop().run_forever()
+            _run_until_stopped(_run_start_then_loop())
     finally:
         logger = _logging.getLogger("asyncio")
         logger.setLevel(_logging.CRITICAL)
         _close_all_videos()
         if _os.getpid() == globals_list.initial_pid:
             pygame.quit()
+
+
+def _program_has_stopped():
+    """Whether play.stop_program() or an error has stopped the program."""
+    return globals_list.program_state is ProgramState.STOPPED
+
+
+def _run_until_stopped(start):
+    """Run *start*, then frames until the program stops, also when it stops during *start*."""
+    try:
+        _get_loop().run_until_complete(start)
+    except RuntimeError:
+        if not _program_has_stopped():
+            raise
+    if not _program_has_stopped():
+        _get_loop().run_forever()
 
 
 def stop_program():

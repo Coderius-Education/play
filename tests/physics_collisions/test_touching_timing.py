@@ -164,7 +164,10 @@ def test_when_touching_runs_at_the_moment_of_contact(sim_steps):
         assert y < -170
 
 
-def test_a_sprite_hidden_in_the_same_sub_step_gets_no_when_touching():
+@pytest.mark.parametrize("taken_away_by", ["hide", "remove"])
+def test_a_sprite_taken_away_in_the_same_sub_step_gets_no_when_touching(
+    taken_away_by,
+):
     trigger = play.new_box(x=-100, y=-100, width=60, height=20)
     floor = play.new_box(x=100, y=-100, width=60, height=20)
     ball = play.new_box(x=-100, y=0, width=20, height=20)
@@ -173,19 +176,22 @@ def test_a_sprite_hidden_in_the_same_sub_step_gets_no_when_touching():
     floor.start_physics(can_move=False)
     ball.start_physics(y_speed=-300, obeys_gravity=False)
     coin.start_physics(y_speed=-300, obeys_gravity=False)
-    calls_while_hidden = []
+    calls_after = []
 
     @ball.when_touching(trigger)
-    def hide_the_coin():
-        coin.hide()
+    def take_the_coin_away():
+        if taken_away_by == "hide":
+            coin.hide()
+        else:
+            coin.remove()
 
     @coin.when_touching(floor)
     def landed():
-        calls_while_hidden.append(coin.is_hidden)
+        calls_after.append(coin.is_hidden or not coin.alive())
 
     _run_frames([])
 
-    assert True not in calls_while_hidden
+    assert True not in calls_after
 
 
 def test_a_contact_left_pending_while_hidden_does_not_run_after_show():

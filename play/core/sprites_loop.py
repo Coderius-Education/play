@@ -10,7 +10,7 @@ from play.globals import globals_list
 from play.io.mouse import mouse
 
 # Track which sprite was clicked for when_click_released events
-_clicked_sprite_ids = set()
+_clicked_sprites = set()
 
 
 def update_sprite_physics(sprite):
@@ -67,7 +67,7 @@ def handle_sprite_click(sprite):
     and fires when_clicked callbacks.
     """
     if mouse.is_touching(sprite) and mouse_state.click_hits(sprite):
-        _clicked_sprite_ids.add(id(sprite))
+        _clicked_sprites.add(sprite)
         sprite.events.is_clicked = True
         callback_manager.run_callbacks(
             CallbackType.WHEN_CLICKED_SPRITE, callback_discriminator=id(sprite)
@@ -83,7 +83,7 @@ def handle_sprite_click_released(sprite):
     if (
         mouse_state.click_release_happened
         and mouse.is_touching(sprite)
-        and id(sprite) in _clicked_sprite_ids
+        and sprite in _clicked_sprites
     ):
         callback_manager.run_callbacks(
             CallbackType.WHEN_CLICK_RELEASED_SPRITE,
@@ -93,7 +93,7 @@ def handle_sprite_click_released(sprite):
 
 def clear_click_tracking():
     """Clear the clicked sprite tracking after a release event."""
-    _clicked_sprite_ids.clear()
+    _clicked_sprites.clear()
 
 
 async def update_sprites():
@@ -111,9 +111,6 @@ async def update_sprites():
         if sprite.is_hidden:
             continue
 
-        # Objects with their own controls (like videos) get first refusal on
-        # a click. When they use it, the click is not also reported as a
-        # click on the object itself.
         if sprite._handle_frame_events():
             continue
         handle_sprite_click(sprite)
