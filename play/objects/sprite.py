@@ -432,13 +432,7 @@ You might want to look in your code where you're setting transparency and make s
 
     def _can_touch(self):
         """Whether the sprite takes part in touching: shown, not removed, not empty."""
-        bb = self.physics._pymunk_shape.bb
-        return (
-            not self._is_hidden
-            and self.alive()
-            and bb.right > bb.left
-            and bb.top > bb.bottom
-        )
+        return not self._is_hidden and self.alive() and self.physics._has_area
 
     def distance_to(self, x, y=None):
         """Calculate the distance to a point or sprite.

@@ -168,11 +168,15 @@ def test_a_slider_with_its_value_shown_is_hit_on_its_track():
     assert slider.is_touching((95, 0))
 
 
-@pytest.mark.parametrize("width, passes_through", [(0, True), (20, False)])
-def test_only_a_sprite_with_area_blocks_and_touches(width, passes_through):
+@pytest.mark.parametrize(
+    "built_width, width, passes_through",
+    [(50, 0, True), (50, 20, False), (0, 0, True)],
+    ids=["shrunk to nothing", "grown back", "built without area"],
+)
+def test_only_a_sprite_with_area_blocks_and_touches(built_width, width, passes_through):
     ball = play.new_circle(radius=10)
     ball.start_physics(x_speed=200, obeys_gravity=False)
-    wall = play.new_box(x=100, width=50, height=200)
+    wall = play.new_box(x=100, width=built_width, height=200)
     wall.start_physics(can_move=False, obeys_gravity=False)
     wall.width = 0
     wall.width = width
@@ -207,3 +211,71 @@ def test_an_image_given_a_new_file_is_hit_where_it_is_drawn(tmp_path):
     image = play.new_image(image=IMAGE)
     image.image_filename = str(bigger)
     _assert_hit_shape_matches_drawing(image)
+
+
+def _run_frames(frames, each_frame=None):
+    counted = [0]
+
+    @play.repeat_forever
+    def step():
+        counted[0] += 1
+        if each_frame:
+            each_frame(counted[0])
+        if counted[0] == frames:
+            play.stop_program()
+
+    play.start_program()
+    return counted[0]
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda: play.new_box(size=0),
+        lambda: play.new_box(size=-5),
+        lambda: play.new_box(width=0),
+        lambda: play.new_circle(radius=0),
+    ],
+    ids=["box at size 0", "box at size -5", "box of width 0", "circle of radius 0"],
+)
+def test_a_sprite_without_area_can_move_under_physics(make):
+    sprite = make()
+    sprite.start_physics()
+
+    assert _run_frames(30) == 30
+
+
+@pytest.mark.parametrize("built_without_area", [False, True])
+def test_a_sprite_without_area_stays_on_screen_and_comes_back(built_without_area):
+    box = play.new_box(
+        y=-200, width=40, height=40, size=0 if built_without_area else 100
+    )
+    box.start_physics()
+    floor = screen.bottom
+
+    def shrink_then_grow(frame):
+        if frame == 30:
+            box.size = 0
+        if frame == 120:
+            box.size = 100
+
+    assert _run_frames(180, shrink_then_grow) == 180
+    assert box.y > floor
+
+
+def test_a_turned_line_without_area_neither_touches_nor_blocks():
+    line = play.new_box(y=-100, width=0, height=200, angle=45)
+    line.start_physics(can_move=False)
+    ball = play.new_circle(y=0, radius=10)
+    ball.start_physics(y_speed=-300, obeys_gravity=False)
+    touching = []
+    ball.when_touching(line)(lambda: touching.append("when_touching"))
+
+    def watch(_frame):
+        if ball.is_touching(line):
+            touching.append("is_touching")
+
+    _run_frames(60, watch)
+
+    assert touching == []
+    assert ball.y < -150

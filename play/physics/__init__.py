@@ -58,6 +58,7 @@ class Physics:
         self._friction = friction
         self._sensor = sensor
         self._is_paused = False
+        self._has_area = True
 
         self._make_pymunk()
 
@@ -82,14 +83,24 @@ class Physics:
             return _pymunk.moment_for_circle(mass, 0, radius, (0, 0))
         return _pymunk.moment_for_box(mass, (width, height))
 
+    def _collision_dims(self, is_circle):
+        """Return the shape's ``(radius, width, height)``; one without area is kept at 1x1."""
+        radius, width, height = self._hit_dims()
+        self._has_area = radius > 0 if is_circle else width > 0 and height > 0
+        if self._has_area:
+            return radius, width, height
+        return 0.5, 1.0, 1.0
+
+    def _collision_filter(self):
+        """Return the filter for the shape: without area it collides with walls only."""
+        return _COLLIDES if self._has_area else _COLLIDES_WITH_WALLS_ONLY
+
     def _make_pymunk(self):
         """Build the body and shape once, at construction. Later changes to the
         sprite's size or physics settings are applied in place by
         :meth:`_resize_shape` and :meth:`_retype_body`."""
-        radius, width, height = self._hit_dims()
         is_circle = self.sprite._circular_hit_shape
-        if is_circle:
-            radius = max(radius, 0)  # a negative size means "nothing", not a hole
+        radius, width, height = self._collision_dims(is_circle)
         mass = self._mass if self.can_move else 0
 
         self._pymunk_body = _pymunk.Body(
@@ -113,7 +124,7 @@ class Physics:
                 self._pymunk_body, (width, height)
             )
 
-        self._pymunk_shape.filter = _shape_filter(is_circle, radius, width, height)
+        self._pymunk_shape.filter = self._collision_filter()
         self._pymunk_shape.elasticity = pygame.math.clamp(self.bounciness, 0, 0.9999)
         self._pymunk_shape.friction = self._friction
         self._pymunk_shape.sensor = self._sensor
@@ -134,23 +145,19 @@ class Physics:
         does not push it away as a moving one would; that is exactly what a
         rebuilt shape did too.
         """
-        radius, width, height = self._hit_dims()
         shape = self._pymunk_shape
         is_circle = isinstance(shape, _pymunk.Circle)
+        radius, width, height = self._collision_dims(is_circle)
         if is_circle:
-            radius = max(radius, 0)  # a negative size means "nothing", not a hole
             shape.unsafe_set_radius(radius)
         else:
             shape.unsafe_set_vertices(_box_vertices(width, height))
-        shape.filter = _shape_filter(is_circle, radius, width, height)
+        shape.filter = self._collision_filter()
         shape.cache_bb()
         if not self._is_paused:
             physics_space.reindex_shape(shape)
-        moment = self._moment(is_circle, radius, width, height)
-        # pymunk refuses a zero moment on a dynamic body in a space, so a
-        # sprite shrunk to nothing keeps the moment it had.
-        if self._pymunk_body.body_type == _pymunk.Body.DYNAMIC and moment > 0:
-            self._pymunk_body.moment = moment
+        if self._pymunk_body.body_type == _pymunk.Body.DYNAMIC:
+            self._pymunk_body.moment = self._moment(is_circle, radius, width, height)
 
     def _retype_body(self):
         """Give the body the type its settings call for, in place.
@@ -337,14 +344,15 @@ Try a value like 10, which is the mass play uses when you don't give one."""
         )
 
 
-_COLLIDES = _pymunk.ShapeFilter()
-_COLLIDES_WITH_NOTHING = _pymunk.ShapeFilter(categories=0)
-
-
-def _shape_filter(is_circle, radius, width, height):
-    """Return the filter for a hit shape: one without area collides with nothing."""
-    has_area = radius > 0 if is_circle else width > 0 and height > 0
-    return _COLLIDES if has_area else _COLLIDES_WITH_NOTHING
+_WALL_CATEGORY = 0b01
+_NO_AREA_CATEGORY = 0b10
+WALL_FILTER = _pymunk.ShapeFilter(categories=_WALL_CATEGORY)
+_COLLIDES = _pymunk.ShapeFilter(
+    mask=_pymunk.ShapeFilter.ALL_MASKS() ^ _NO_AREA_CATEGORY
+)
+_COLLIDES_WITH_WALLS_ONLY = _pymunk.ShapeFilter(
+    categories=_NO_AREA_CATEGORY, mask=_WALL_CATEGORY
+)
 
 
 def _box_vertices(width, height):

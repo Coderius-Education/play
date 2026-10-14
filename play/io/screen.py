@@ -6,7 +6,7 @@ import pymunk as _pymunk
 from play.callback import run_callback, CallbackType, callback_manager
 from play.callback.collision_callbacks import WallSide
 from play.globals import globals_list
-from play.physics import physics_space
+from play.physics import physics_space, WALL_FILTER
 from play.utils.async_helpers import make_async
 
 
@@ -173,6 +173,7 @@ def create_wall(a, b, wall_side):
     if _walls_body.space is None:
         physics_space.add(_walls_body)
     segment = _pymunk.Segment(_walls_body, a, b, 0.0)
+    segment.filter = WALL_FILTER
     segment.elasticity = 1.0
     segment.friction = 0.0
     segment.wall_side = wall_side
