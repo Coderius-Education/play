@@ -39,8 +39,7 @@ class EventComponent:
         :param key: Collision key (e.g. shape collision_id or (CollisionType, WallSide)).
         :param callback: The callback to store."""
         self._touching_callback[key] = callback
-        if key not in self._fired_this_frame:
-            self._new_touching[key] = callback
+        self._new_touching[key] = callback
 
     def clear_touching(self, key):
         """Remove an active touching collision record.
