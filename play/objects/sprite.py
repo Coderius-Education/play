@@ -790,29 +790,24 @@ You might want to look in your code where you're setting transparency and make s
         When self's pymunk shape changes, other sprites' collision registrations
         become stale and need to be refreshed.
         """
-        sprite_callback_types = [
-            CallbackType.WHEN_TOUCHING,
-            CallbackType.WHEN_STOPPED_TOUCHING,
-        ]
         for dependent in list(self.events._dependent_sprites):
-            dep_id = id(dependent)
-            dep_saved = {
-                callback_type: list(
-                    callback_manager.get_callback(callback_type, dep_id) or []
-                )
-                for callback_type in sprite_callback_types
-            }
-            has_refs = any(s is self for cbs in dep_saved.values() for _, s in cbs)
-            if not has_refs:
+            if not dependent._has_callbacks_on(self):
                 continue
-            for callback_type in sprite_callback_types:
-                callback_manager.remove_callbacks(callback_type, dep_id)
-            dependent.events.clear_all_touching()
+            saved_callbacks = dependent._save_and_clear_callbacks()
             collision_registry.forget(dependent.physics._pymunk_shape)
-            for cb, sprite in dep_saved[CallbackType.WHEN_TOUCHING]:
-                dependent.when_touching(sprite)(cb)
-            for cb, sprite in dep_saved[CallbackType.WHEN_STOPPED_TOUCHING]:
-                dependent.when_stopped_touching(sprite)(cb)
+            dependent._reregister_own_callbacks(saved_callbacks)
+
+    def _has_callbacks_on(self, other):
+        """Whether this sprite has a when_touching or when_stopped_touching on *other*."""
+        return any(
+            sprite is other
+            for callback_type in (
+                CallbackType.WHEN_TOUCHING,
+                CallbackType.WHEN_STOPPED_TOUCHING,
+            )
+            for _, sprite in callback_manager.get_callback(callback_type, id(self))
+            or []
+        )
 
     def start_physics(
         self,
