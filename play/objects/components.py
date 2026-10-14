@@ -34,12 +34,13 @@ class EventComponent:
         """Set whether the sprite is currently clicked."""
         self._is_clicked = value
 
-    def set_touching(self, key, callback):
+    def set_touching(self, key, callback, other=None):
         """Record an active touching collision.
         :param key: Collision key (e.g. shape collision_id or (CollisionType, WallSide)).
-        :param callback: The callback to store."""
-        self._touching_callback[key] = callback
-        self._new_touching[key] = callback
+        :param callback: The callback to store.
+        :param other: The sprite being touched, or None for a wall."""
+        self._touching_callback[key] = (callback, other)
+        self._new_touching[key] = (callback, other)
 
     def clear_touching(self, key):
         """Remove an active touching collision record.
@@ -50,7 +51,9 @@ class EventComponent:
         """Retrieve an active touching collision callback.
         :param key: Collision key to look up.
         :param default: Value to return if key is absent."""
-        return self._touching_callback.get(key, default)
+        if key not in self._touching_callback:
+            return default
+        return self._touching_callback[key][0]
 
     def clear_all_touching(self):
         """Drop every active touching collision.
@@ -70,21 +73,29 @@ class EventComponent:
 
     def new_touching_callbacks(self):
         """Return the callbacks of contacts that began since the last call."""
-        callbacks = self._new_touching
-        self._fired_this_frame.update(callbacks)
+        contacts = self._new_touching
+        self._fired_this_frame.update(contacts)
         self._new_touching = {}
-        return list(callbacks.values())
+        return [
+            callback
+            for callback, other in contacts.values()
+            if self._can_touch_with(other)
+        ]
 
     def touching_callbacks(self):
         """Return the callbacks still touching that have not run this frame."""
         callbacks = [
             callback
-            for key, callback in self._touching_callback.items()
-            if key not in self._fired_this_frame
+            for key, (callback, other) in self._touching_callback.items()
+            if key not in self._fired_this_frame and self._can_touch_with(other)
         ]
         self._new_touching = {}
         self._fired_this_frame = set()
         return callbacks
+
+    def _can_touch_with(self, other):
+        """Whether this sprite and *other* (None for a wall) can both still touch."""
+        return self._sprite._can_touch() and (other is None or other._can_touch())
 
     def stopped_callbacks(self):
         """Return all pending stopped-touching collision callbacks."""

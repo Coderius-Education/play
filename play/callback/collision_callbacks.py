@@ -97,7 +97,9 @@ class CollisionCallbackRegistry:
         if callback is None:
             callback = self._callback(True, shape_b, shape_a)
         if callback is not None:
-            sprite_a.events.set_touching(shape_b.collision_type, callback)
+            sprite_a.events.set_touching(
+                shape_b.collision_type, callback, shape_b._play_sprite
+            )
         return True
 
     def _handle_end_collision_shape(self, shape_a: Shape, shape_b: Shape):

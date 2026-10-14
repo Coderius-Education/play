@@ -36,8 +36,6 @@ async def handle_new_contacts():
     for sprite in globals_list.sprites_group.sprites():
         if sprite.physics.can_move:
             update_sprite_physics(sprite)
-        if sprite.is_hidden:
-            continue
         await run_any_async_callback(sprite.events.new_touching_callbacks(), [], [])
         await run_any_async_callback(sprite.events.stopped_callbacks(), [], [])
         sprite.events.clear_all_stopped()
@@ -103,8 +101,7 @@ async def update_sprites(do_events: bool = True):
 
         if sprite.is_hidden:
             if do_events:
-                await run_any_async_callback(sprite.events.stopped_callbacks(), [], [])
-                sprite.events.clear_all_stopped()
+                await run_sprite_callbacks(sprite)
             continue
 
         await run_sprite_callbacks(sprite)
