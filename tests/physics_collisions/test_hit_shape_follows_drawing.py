@@ -29,36 +29,36 @@ def _space_has_shape_at(point):
     return bool(physics_space.point_query(point, 0, pymunk.ShapeFilter()))
 
 
-def test_text_given_words_later():
+def test_text_given_words_later_is_hit_where_it_is_drawn():
     text = play.new_text(words="")
     text.words = "Hello world"
     _assert_hit_shape_matches_drawing(text)
 
 
-def test_text_resized():
+def test_a_resized_text_is_hit_where_it_is_drawn():
     text = play.new_text(words="Hello")
     text.size = 300
     _assert_hit_shape_matches_drawing(text)
 
 
-def test_text_with_a_new_font_size():
+def test_text_with_a_new_font_size_is_hit_where_it_is_drawn():
     text = play.new_text(words="Hello")
     text.font_size = 120
     _assert_hit_shape_matches_drawing(text)
 
 
-def test_image_resized():
+def test_a_resized_image_is_hit_where_it_is_drawn():
     image = play.new_image(image=IMAGE)
     image.size = 300
     _assert_hit_shape_matches_drawing(image)
 
 
-def test_text_created_at_an_angle():
+def test_text_created_at_an_angle_is_hit_where_it_is_drawn():
     text = play.new_text(words="HELLO WORLD", angle=90)
     _assert_hit_shape_matches_drawing(text)
 
 
-def test_a_static_box_turned_later():
+def test_a_static_box_turned_later_blocks_where_it_is_drawn():
     bar = play.new_box(width=200, height=20)
     bar.start_physics(can_move=False, obeys_gravity=False)
     bar.angle = 90
@@ -66,7 +66,7 @@ def test_a_static_box_turned_later():
     assert not _space_has_shape_at((80, 0))
 
 
-def test_a_static_circle_given_a_bigger_radius():
+def test_a_static_circle_given_a_bigger_radius_blocks_where_it_is_drawn():
     circle = play.new_circle(radius=20)
     circle.start_physics(can_move=False, obeys_gravity=False)
     circle.radius = 100

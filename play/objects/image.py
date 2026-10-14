@@ -41,6 +41,8 @@ class Image(Sprite):
         return self._source_image.get_size()
 
     def clone(self):
+        """Create a copy of the image.
+        :return: A copy of the image."""
         return self.__class__(
             image=self._image_filename or self._source_image,
             **self._common_properties(),
