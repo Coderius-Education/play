@@ -215,3 +215,58 @@ def test_a_contact_left_pending_while_hidden_does_not_run_after_show():
     asyncio.run(handle_new_contacts())
 
     assert calls == []
+
+
+def _offsets_from_bodies():
+    return [
+        (sprite.x - sprite.physics._pymunk_body.position.x)
+        + (sprite.y - sprite.physics._pymunk_body.position.y)
+        for sprite in play.globals.globals_list.sprites_group.sprites()
+        if sprite.physics.can_move
+    ]
+
+
+@pytest.mark.parametrize("left_first", [True, False])
+def test_callbacks_see_every_sprite_where_its_body_is(left_first):
+    play.set_physics_simulation_steps(10)
+    floor = play.new_box(y=-200, width=700, height=20)
+    floor.start_physics(can_move=False)
+    resting = play.new_box(y=-180, width=20, height=20)
+    resting.start_physics(bounciness=0)
+    if left_first:
+        left, right = play.new_circle(x=-60, radius=15), play.new_circle(
+            x=60, radius=15
+        )
+    else:
+        right, left = play.new_circle(x=60, radius=15), play.new_circle(
+            x=-60, radius=15
+        )
+    left.start_physics(x_speed=900, obeys_gravity=False)
+    right.start_physics(x_speed=-900, obeys_gravity=False)
+    offsets = []
+    left.when_touching(right)(lambda: offsets.extend(_offsets_from_bodies()))
+    resting.when_touching(floor)(lambda: offsets.extend(_offsets_from_bodies()))
+
+    _run_frames([])
+
+    assert offsets
+    assert max(abs(offset) for offset in offsets) < 1e-9
+
+
+@pytest.mark.parametrize("sim_steps", [1, 10])
+def test_sprites_are_synced_once_per_frame_when_nothing_touches(sim_steps, monkeypatch):
+    play.set_physics_simulation_steps(sim_steps)
+    for x in (-200, 0, 200):
+        play.new_circle(x=x, radius=10).start_physics(y_speed=50, obeys_gravity=False)
+    syncs = []
+    original = play.core.sprites_loop.update_sprite_physics
+
+    def counting_sync(sprite):
+        syncs.append(sprite)
+        original(sprite)
+
+    monkeypatch.setattr(play.core.sprites_loop, "update_sprite_physics", counting_sync)
+
+    _run_frames([])
+
+    assert len(syncs) == 3 * FRAMES

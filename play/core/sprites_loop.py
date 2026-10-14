@@ -5,6 +5,7 @@ import math as _math
 from play.core.mouse_loop import mouse_state
 from play.callback import callback_manager, CallbackType
 from play.callback.callback_helpers import run_any_async_callback
+from play.callback.collision_callbacks import collision_registry
 from play.globals import globals_list
 from play.io.mouse import mouse
 
@@ -31,14 +32,25 @@ def update_sprite_physics(sprite):
     sprite.physics._x_speed, sprite.physics._y_speed = body.velocity
 
 
-async def handle_new_contacts():
-    """After a physics sub-step: sync positions, run contacts that just began or ended."""
-    for sprite in globals_list.sprites_group.sprites():
+def _sync_moving_sprites(sprites):
+    """Bring every moving sprite up to date with its physics body."""
+    for sprite in sprites:
         if sprite.physics.can_move:
             update_sprite_physics(sprite)
-        await run_any_async_callback(sprite.events.new_touching_callbacks(), [], [])
-        await run_any_async_callback(sprite.events.stopped_callbacks(), [], [])
-        sprite.events.clear_all_stopped()
+
+
+async def handle_new_contacts():
+    """After a physics sub-step: run the contacts that just began or ended."""
+    changed = collision_registry.take_changed_sprites()
+    if not changed:
+        return
+    sprites = globals_list.sprites_group.sprites()
+    _sync_moving_sprites(sprites)
+    for sprite in sprites:
+        if sprite in changed:
+            await run_any_async_callback(sprite.events.new_touching_callbacks(), [], [])
+            await run_any_async_callback(sprite.events.stopped_callbacks(), [], [])
+            sprite.events.clear_all_stopped()
 
 
 async def run_sprite_callbacks(sprite):
@@ -88,10 +100,9 @@ async def update_sprites(do_events: bool = True):
     """Update all sprites in the game loop.
     :param do_events: If True, run events for sprites. If False, only update positions.
     """
-    for sprite in globals_list.sprites_group.sprites():
-        if sprite.physics.can_move:
-            update_sprite_physics(sprite)
-
+    sprites = globals_list.sprites_group.sprites()
+    _sync_moving_sprites(sprites)
+    for sprite in sprites:
         sprite.events.is_clicked = False
 
         # Videos keep playing (and keep their sound in step) even while hidden,

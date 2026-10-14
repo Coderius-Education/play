@@ -26,8 +26,6 @@ from tests.conftest import (
     post_mouse_up,
 )
 
-max_frames = 700
-
 
 @pytest.fixture
 def short_clip(tmp_path):
@@ -130,7 +128,8 @@ def test_video_kiosk(short_clip):
     # Safety net so a broken assertion can't hang the suite.
     @play.when_program_starts
     async def safety_timeout():
-        for _ in range(max_frames):
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline:
             await play.animate()
         play.stop_program()
 

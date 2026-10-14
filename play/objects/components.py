@@ -41,6 +41,7 @@ class EventComponent:
         :param other: The sprite being touched, or None for a wall."""
         self._touching_callback[key] = (callback, other)
         self._new_touching[key] = (callback, other)
+        collision_registry.mark_changed(self._sprite)
 
     def clear_touching(self, key):
         """Remove an active touching collision record.
@@ -70,6 +71,7 @@ class EventComponent:
         :param key: Collision key.
         :param callback: The callback to store."""
         self._stopped_callback[key] = callback
+        collision_registry.mark_changed(self._sprite)
 
     def new_touching_callbacks(self):
         """Return the callbacks of contacts that began since the last call."""

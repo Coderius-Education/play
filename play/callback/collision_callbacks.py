@@ -45,6 +45,16 @@ class CollisionCallbackRegistry:
         instead of reassigning ``callbacks`` from outside.
         """
         self.callbacks = {True: {}, False: {}}
+        self._changed_sprites = set()
+
+    def mark_changed(self, sprite):
+        """Note that a contact of *sprite* began or ended."""
+        self._changed_sprites.add(sprite)
+
+    def take_changed_sprites(self):
+        """Return, and forget, the sprites whose contacts began or ended since the last call."""
+        changed, self._changed_sprites = self._changed_sprites, set()
+        return changed
 
     def _callback(self, begin, shape, other_shape):
         """The callback registered for *shape* against *other_shape*, or None."""
