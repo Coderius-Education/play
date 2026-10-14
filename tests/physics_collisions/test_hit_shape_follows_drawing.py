@@ -5,6 +5,7 @@ import pymunk
 import pytest
 
 import play
+from play.io.screen import screen
 from play.objects.sprite import Sprite
 from play.physics import physics_space
 
@@ -16,6 +17,12 @@ def _assert_hit_shape_matches_drawing(sprite):
     bb = sprite.physics._pymunk_shape.bb
     hit = (bb.right - bb.left, bb.top - bb.bottom)
     assert hit == pytest.approx(sprite.rect.size, abs=2)
+    drawn_centre = (
+        sprite.rect.centerx - screen.width / 2,
+        screen.height / 2 - sprite.rect.centery,
+    )
+    hit_centre = ((bb.left + bb.right) / 2, (bb.bottom + bb.top) / 2)
+    assert hit_centre == pytest.approx(drawn_centre, abs=2)
 
 
 def _space_has_shape_at(point):
@@ -144,10 +151,18 @@ class _Flag(Sprite):
         self._finalize_image(flag)
 
 
-@pytest.mark.parametrize("sizes", [[200], [300, 100]], ids=["grown", "grown and back"])
-def test_a_sprite_subclass_is_hit_where_it_is_drawn(sizes):
+def test_a_sprite_subclass_is_hit_where_it_is_drawn_after_resizing():
     flag = _Flag()
-    for size in sizes:
+    for size in (300, 100):
         flag.size = size
         flag.update()
     _assert_hit_shape_matches_drawing(flag)
+
+
+def test_a_slider_with_its_value_shown_is_hit_on_its_track():
+    slider = play.new_slider(width=200, show_value=True, font_size=40)
+    slider.update()
+    bb = slider.physics._pymunk_shape.bb
+    assert (bb.left, bb.right) == pytest.approx((-100, 100), abs=1)
+    assert not slider.is_touching((-110, 0))
+    assert slider.is_touching((95, 0))

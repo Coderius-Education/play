@@ -197,6 +197,10 @@ class Slider(WidgetMixin, Sprite):
         self.image = pygame.transform.rotate(draw_image, angle_deg)
         self.rect = self.image.get_rect(center=self.rect.center)
 
+    def _unscaled_size(self):
+        """Return the size of the track and thumb, the part the slider is dragged by."""
+        return self._width, self._height + 2 * self._thumb_radius
+
     def _quantize(self, raw):
         """Snap *raw* to the nearest step, measured from min_value.
 
