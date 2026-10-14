@@ -5,8 +5,9 @@ This module contains helper functions for running callback functions.
 import inspect
 import traceback
 
+from play.globals import globals_list, ProgramState
 from play.io.logging import play_logger
-from play.loop import get_loop as _get_loop
+from play.loop import get_loop as _get_loop, stop_loop as _stop_loop
 
 
 def run_callback(callback, required_args, optional_args, *args, **kwargs):
@@ -65,7 +66,7 @@ async def run_async_callback(callback, required_args, optional_args, *args, **kw
 
 
 def _task_exception_handler(task):
-    """Log and print exceptions from fire-and-forget callback tasks.
+    """Stop the program on the first error in a fire-and-forget callback task.
 
     Prints the full traceback to stderr so students see errors immediately,
     even if logging is not configured.
@@ -73,9 +74,11 @@ def _task_exception_handler(task):
     if task.cancelled():
         return
     exc = task.exception()
-    if exc is not None:
-        traceback.print_exception(type(exc), exc, exc.__traceback__)
-        play_logger.critical("Error in callback task: %s", exc)
+    if exc is None or globals_list.program_state is ProgramState.STOPPED:
+        return
+    _stop_loop()
+    traceback.print_exception(type(exc), exc, exc.__traceback__)
+    play_logger.critical("Error in callback task: %s", exc)
 
 
 def fire_async_callback(callback, required_args, optional_args, *args, **kwargs):
