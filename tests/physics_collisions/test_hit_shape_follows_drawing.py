@@ -166,3 +166,27 @@ def test_a_slider_with_its_value_shown_is_hit_on_its_track():
     assert (bb.left, bb.right) == pytest.approx((-100, 100), abs=1)
     assert not slider.is_touching((-110, 0))
     assert slider.is_touching((95, 0))
+
+
+@pytest.mark.parametrize("width, passes_through", [(0, True), (20, False)])
+def test_only_a_sprite_with_area_blocks_and_touches(width, passes_through):
+    ball = play.new_circle(radius=10)
+    ball.start_physics(x_speed=200, obeys_gravity=False)
+    wall = play.new_box(x=100, width=50, height=200)
+    wall.start_physics(can_move=False, obeys_gravity=False)
+    wall.width = 0
+    wall.width = width
+    hits = []
+    ball.when_touching(wall)(lambda: hits.append(1))
+    frames = [0]
+
+    @play.repeat_forever
+    def stop_later():
+        frames[0] += 1
+        if frames[0] == 60:
+            play.stop_program()
+
+    play.start_program()
+
+    assert (ball.x > 150) is passes_through
+    assert bool(hits) is not passes_through

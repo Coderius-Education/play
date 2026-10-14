@@ -113,6 +113,7 @@ class Physics:
                 self._pymunk_body, (width, height)
             )
 
+        self._pymunk_shape.filter = _shape_filter(is_circle, radius, width, height)
         self._pymunk_shape.elasticity = pygame.math.clamp(self.bounciness, 0, 0.9999)
         self._pymunk_shape.friction = self._friction
         self._pymunk_shape.sensor = self._sensor
@@ -141,6 +142,7 @@ class Physics:
             shape.unsafe_set_radius(radius)
         else:
             shape.unsafe_set_vertices(_box_vertices(width, height))
+        shape.filter = _shape_filter(is_circle, radius, width, height)
         shape.cache_bb()
         if not self._is_paused:
             physics_space.reindex_shape(shape)
@@ -333,6 +335,16 @@ def _check_mass(mass, can_move):
             f"""The mass of a sprite has to be a number above 0, but it was set to {mass!r}.
 Try a value like 10, which is the mass play uses when you don't give one."""
         )
+
+
+_COLLIDES = _pymunk.ShapeFilter()
+_COLLIDES_WITH_NOTHING = _pymunk.ShapeFilter(categories=0)
+
+
+def _shape_filter(is_circle, radius, width, height):
+    """Return the filter for a hit shape: one without area collides with nothing."""
+    has_area = radius > 0 if is_circle else width > 0 and height > 0
+    return _COLLIDES if has_area else _COLLIDES_WITH_NOTHING
 
 
 def _box_vertices(width, height):
