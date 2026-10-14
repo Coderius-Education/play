@@ -5,7 +5,7 @@ This module contains helper functions for running callback functions.
 import inspect
 import traceback
 
-from play.globals import globals_list, ProgramState
+from play.globals import globals_list
 from play.io.logging import play_logger
 from play.loop import get_loop as _get_loop, stop_loop as _stop_loop
 
@@ -65,20 +65,26 @@ async def run_async_callback(callback, required_args, optional_args, *args, **kw
     await callback(*callback_args, **kwargs)
 
 
-def _task_exception_handler(task):
-    """Stop the program on the first error in a fire-and-forget callback task.
+def _show_first_error(exc):
+    """Stop the program on an error in a callback task; print only the first.
 
     Prints the full traceback to stderr so students see errors immediately,
     even if logging is not configured.
     """
-    if task.cancelled():
+    if globals_list.error_shown:
         return
-    exc = task.exception()
-    if exc is None or globals_list.program_state is ProgramState.STOPPED:
-        return
+    globals_list.error_shown = True
     _stop_loop()
     traceback.print_exception(type(exc), exc, exc.__traceback__)
     play_logger.critical("Error in callback task: %s", exc)
+
+
+async def _stop_on_error(callback, args, kwargs):
+    """Run a callback task, showing its error as soon as it is raised."""
+    try:
+        await callback(*args, **kwargs)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        _show_first_error(exc)
 
 
 def fire_async_callback(callback, required_args, optional_args, *args, **kwargs):
@@ -90,8 +96,7 @@ def fire_async_callback(callback, required_args, optional_args, *args, **kwargs)
     _, callback_args = _resolve_callback_args(
         callback, required_args, optional_args, *args
     )
-    task = _get_loop().create_task(callback(*callback_args, **kwargs))
-    task.add_done_callback(_task_exception_handler)
+    _get_loop().create_task(_stop_on_error(callback, callback_args, kwargs))
 
 
 async def run_any_async_callback(callbacks, *args, **kwargs):

@@ -41,6 +41,7 @@ class Globals:
     controllers: list = field(default_factory=list)
 
     program_state: ProgramState = ProgramState.NOT_STARTED
+    error_shown: bool = False
     should_auto_start: bool = False
     initial_pid: int = field(default_factory=_os.getpid)
     start_program_fn: object = None  # set by play.api.utils to avoid cyclic import
@@ -64,6 +65,7 @@ class Globals:
         self.height = 600
         self.num_sim_steps = 10
         self.program_state = ProgramState.NOT_STARTED
+        self.error_shown = False
         self.should_auto_start = False
         self.focused_text_input = None
 

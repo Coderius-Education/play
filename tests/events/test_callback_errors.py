@@ -224,3 +224,15 @@ def test_an_error_in_an_event_callback_stops_the_game(event, is_async):
     trigger()
 
     assert _count_frames_until_stopped() < 10
+
+
+def test_an_error_right_after_stop_program_is_still_shown(capsys):
+    @play.when_program_starts
+    async def finish():
+        await play.animate()
+        play.stop_program()
+        raise ValueError("typo after stop_program")
+
+    play.start_program()
+
+    assert "typo after stop_program" in capsys.readouterr().err
