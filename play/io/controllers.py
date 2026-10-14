@@ -162,9 +162,9 @@ class _Controllers:
         return instance_id if index is None else index
 
     def get_count(self) -> int:
-        """Get the number of controllers.
+        """Get the number of controllers; an unplugged one keeps its index and reads as untouched.
         :return: The number of controllers."""
-        return len(self.get_all_controllers())
+        return len(self._controllers)
 
     def get_controller(self, index) -> _ControllerType:
         """Get the controller at the specified index.
@@ -173,13 +173,9 @@ class _Controllers:
         return self._controllers[index]
 
     def get_all_controllers(self) -> list[_ControllerType]:
-        """Get all controllers.
+        """Get all controllers, in index order.
         :return: A list of all controllers."""
-        return [
-            controller
-            for controller in self._controllers
-            if not isinstance(controller, _DisconnectedController)
-        ]
+        return list(self._controllers)
 
     def get_num_axes(self, index) -> int:
         """Get the number of axes on the controller at the specified index.

@@ -104,6 +104,9 @@ class _FakeJoystick:
     def get_instance_id(self):
         return self.instance_id
 
+    def get_axis(self, _axis):
+        return 0.75
+
 
 @pytest.fixture
 def fake_joysticks(monkeypatch):
@@ -153,7 +156,7 @@ def test_an_unplugged_controller_reads_as_untouched(fake_joysticks):
 
     _run([[_joy(pygame.JOYDEVICEREMOVED, instance_id=5)]])
 
-    assert controllers.get_count() == 0
+    assert controllers.get_count() == 1
     assert controllers.get_axis(0, 1) == 0.0
     assert controllers.get_button(0, 0) is False
     assert controllers.get_hat(0, 0) == (0, 0)
@@ -173,3 +176,26 @@ def test_a_controller_gone_before_it_opens_is_skipped(monkeypatch):
 
     assert controllers.get_count() == 0
     assert len(frames) > 3
+
+
+def test_every_index_below_the_count_is_a_controller_also_after_an_unplug(
+    fake_joysticks,
+):
+    for instance_id in (5, 6):
+        fake_joysticks.next_instance_id = instance_id
+        controllers._connect(instance_id - 5)
+
+    _run([[_joy(pygame.JOYDEVICEREMOVED, instance_id=5)]])
+
+    axes = [controllers.get_axis(index, 0) for index in range(controllers.get_count())]
+    assert axes == [0.0, 0.75]
+    assert controllers.get_all_controllers()[1] is controllers.get_controller(1)
+
+
+def test_a_controller_announced_again_at_start_up_is_counted_once(fake_joysticks):
+    fake_joysticks.next_instance_id = 5
+    controllers._connect(0)
+
+    _run([[_joy(pygame.JOYDEVICEADDED, device_index=0)]])
+
+    assert controllers.get_count() == 1
