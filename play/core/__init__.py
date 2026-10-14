@@ -21,7 +21,7 @@ from play.io.mouse import mouse
 from play.core.physics_loop import simulate_physics
 from play.core.sprites_loop import update_sprites as _update_sprites
 from play.callback import callback_manager, CallbackType
-from play.globals import globals_list
+from play.globals import globals_list, ProgramState
 from play.io.screen import screen, rebuild_walls as _rebuild_walls
 from play.loop import get_loop as _get_loop, stop_loop as _stop_loop
 from play.io.keypress import keyboard_state
@@ -71,6 +71,8 @@ def _handle_pygame_events():
 @listen_to_failure()
 async def game_loop():
     """The main game loop."""
+    if globals_list.program_state is ProgramState.STOPPED:
+        return
     keyboard_state.clear()
     mouse_state.clear()
     controller_state.clear()

@@ -236,3 +236,28 @@ def test_an_error_right_after_stop_program_is_still_shown(capsys):
     play.start_program()
 
     assert "typo after stop_program" in capsys.readouterr().err
+
+
+def test_after_an_error_no_frame_runs_and_no_second_error_is_shown(capsys, caplog):
+    failed = []
+    frames_after_the_error = []
+
+    @play.when_key_pressed("space")
+    def first():
+        failed.append(True)
+        raise ValueError("first error")
+
+    @play.repeat_forever
+    def second():
+        if failed:
+            frames_after_the_error.append(1)
+            raise ValueError("second error")
+
+    _press_space_after_a_few_frames()
+    with caplog.at_level(logging.CRITICAL, logger="play"):
+        _count_frames_until_stopped()
+
+    shown = capsys.readouterr().err + caplog.text
+    assert "first error" in shown
+    assert "second error" not in shown
+    assert frames_after_the_error == []
