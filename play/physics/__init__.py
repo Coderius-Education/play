@@ -72,10 +72,9 @@ class Physics:
     def _hit_dims(self):
         """Ask the sprite for its hit-shape as ``(radius, width, height)``.
 
-        Box, Circle and Video scale their logical size by ``size``; other
-        sprites fall back to the current rect.
+        Every sprite scales its unscaled, unrotated size by ``size``.
         """
-        return self.sprite._hit_dims((self.sprite._size or 100) / 100)
+        return self.sprite._hit_dims(max(self.sprite._size, 0) / 100)
 
     def _moment(self, is_circle, radius, width, height):
         mass = self._mass if self.can_move else 0

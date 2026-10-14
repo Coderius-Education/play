@@ -290,6 +290,10 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def _move_body(self):
         """Move the pymunk body and its shape to ``(x, y)`` right away."""
         self.physics._pymunk_body.position = self._x, self._y
+        self._reindex_body()
+
+    def _reindex_body(self):
+        """Let pymunk see a moved or turned body before the next physics step."""
         self.physics._pymunk_shape.cache_bb()
         if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:
             physics_space.reindex_static()
@@ -344,6 +348,7 @@ You might want to look in your code where you're setting transparency and make s
         # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._angle = _angle
         self.physics._pymunk_body.angle = _math.radians(_angle)
+        self._reindex_body()
 
     @property
     def size(self):
@@ -424,8 +429,14 @@ You might want to look in your code where you're setting transparency and make s
         return point_touching_sprite(sprite_or_point, self)
 
     def _can_touch(self):
-        """Whether the sprite takes part in touching: not hidden or removed."""
-        return not self._is_hidden and self.alive()
+        """Whether the sprite takes part in touching: shown, not removed, not empty."""
+        bb = self.physics._pymunk_shape.bb
+        return (
+            not self._is_hidden
+            and self.alive()
+            and bb.right > bb.left
+            and bb.top > bb.bottom
+        )
 
     def distance_to(self, x, y=None):
         """Calculate the distance to a point or sprite.
@@ -597,14 +608,18 @@ You might want to look in your code where you're setting transparency and make s
     # size has to be a circle again when it grows back.
     _circular_hit_shape = False
 
-    def _hit_dims(self, size_factor):  # pylint: disable=unused-argument
+    def _hit_dims(self, size_factor):
         """Return ``(radius, width, height)`` for the pymunk hit-shape.
 
         The physics layer calls this when building or resizing the collision
-        shape. The default uses the current rendered rect; subclasses whose
-        logical size differs from the rect (Box, Circle) override this. A
-        sprite with ``_circular_hit_shape`` gets a circle of that radius."""
-        return 0.0, float(self.width), float(self.height)
+        shape. Box and Circle override it; a sprite with
+        ``_circular_hit_shape`` gets a circle of that radius."""
+        width, height = self._unscaled_size()
+        return 0.0, float(width * size_factor), float(height * size_factor)
+
+    def _unscaled_size(self):
+        """Return the ``(width, height)`` of the sprite before size and angle apply."""
+        return self.rect.size
 
     @property
     def width(self):
