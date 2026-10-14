@@ -784,25 +784,16 @@ You might want to look in your code where you're setting transparency and make s
             self.when_stopped_touching_wall(callback, wall=wall_side)
 
     def _reregister_dependent_callbacks(self):
-        """Redo the collision registrations of sprites with callbacks on this one."""
+        """Register the callbacks other sprites have on this one again, on its new shape."""
         for dependent in list(self.events._dependent_sprites):
-            if not dependent._has_callbacks_on(self):
-                continue
-            saved_callbacks = dependent._save_and_clear_callbacks()
-            collision_registry.forget(dependent.physics._pymunk_shape)
-            dependent._reregister_own_callbacks(saved_callbacks)
-
-    def _has_callbacks_on(self, other):
-        """Whether this sprite has a when_touching or when_stopped_touching on *other*."""
-        return any(
-            sprite is other
-            for callback_type in (
-                CallbackType.WHEN_TOUCHING,
-                CallbackType.WHEN_STOPPED_TOUCHING,
-            )
-            for _, sprite in callback_manager.get_callback(callback_type, id(self))
-            or []
-        )
+            for callback_type, register in (
+                (CallbackType.WHEN_TOUCHING, dependent.when_touching),
+                (CallbackType.WHEN_STOPPED_TOUCHING, dependent.when_stopped_touching),
+            ):
+                for callback in callback_manager.take_callbacks_on(
+                    callback_type, id(dependent), self
+                ):
+                    register(self)(callback)
 
     def start_physics(
         self,

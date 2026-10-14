@@ -84,6 +84,18 @@ class CallbackManager:
         if callback_discriminator in self.callbacks[callback_type]:
             self.callbacks[callback_type][callback_discriminator] = []
 
+    def take_callbacks_on(self, callback_type, callback_discriminator, target):
+        """Remove and return the callbacks of a ``(callback, target)`` bucket aimed at *target*.
+        :param callback_type: The type of callback.
+        :param callback_discriminator: The discriminator of the bucket.
+        :param target: The target whose callbacks to take.
+        :return: The callbacks, without their target.
+        """
+        bucket = self.callbacks.get(callback_type, {}).get(callback_discriminator, [])
+        taken = [callback for callback, aimed_at in bucket if aimed_at is target]
+        bucket[:] = [entry for entry in bucket if entry[1] is not target]
+        return taken
+
     def get_callbacks(self, callback_type) -> dict:
         """
         Get the callbacks of a certain type.

@@ -236,6 +236,37 @@ def test_other_sprite_start_physics_preserves_dependent_callbacks():
     play.stop_program()
 
 
+@pytest.mark.parametrize("event", ["touching", "stopped touching"])
+def test_a_third_sprites_callback_survives_another_sprite_starting_physics(event):
+    import play
+
+    ball = play.new_circle(radius=10)
+    target = play.new_box(x=200, width=20, height=20)
+    goal = play.new_box(x=-200, width=20, height=20)
+    ball.start_physics(x_speed=-300, obeys_gravity=False)
+    goal.start_physics(can_move=False)
+    hits = []
+
+    ball.when_touching(target)(lambda: hits.append("ball on target"))
+    if event == "touching":
+        goal.when_touching(ball)(lambda: hits.append("goal"))
+    else:
+        goal.when_stopped_touching(ball)(lambda: hits.append("goal"))
+
+    target.start_physics(can_move=False)
+    frames = [0]
+
+    @play.repeat_forever
+    def stop_later():
+        frames[0] += 1
+        if frames[0] == 90:
+            play.stop_program()
+
+    play.start_program()
+
+    assert "goal" in hits
+
+
 def test_collision_type_stable_across_make_pymunk():
     """collision_type must survive _make_pymunk() calls on the same physics object.
 
