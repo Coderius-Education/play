@@ -39,10 +39,12 @@ def color_name_to_rgb(
     #FF0000
     #f00
 
-    are all valid and will produce an RGB value.
+    Are all valid and will produce an RGB value.
+
+    Raises ValueError if the name is not understood.
     """
-    if isinstance(name, tuple):
-        return name
+    if isinstance(name, (tuple, list)):
+        return tuple(name)
 
     stripped = name.strip()
     # Expand shorthand hex: #F00 -> #FF0000

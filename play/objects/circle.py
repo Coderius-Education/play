@@ -93,6 +93,7 @@ class Circle(Sprite):
     def color(self, _color):
         """Set the color of the circle.
         :param _color: The color of the circle."""
+        _color_name_to_rgb(_color)
         self._color = _color
 
     def _info_size(self):
@@ -125,6 +126,7 @@ class Circle(Sprite):
     def border_color(self, _border_color):
         """Set the color of the circle's border.
         :param _border_color: The color of the circle's border."""
+        _color_name_to_rgb(_border_color)
         self._border_color = _border_color
 
     ##### border_width #####

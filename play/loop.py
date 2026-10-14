@@ -3,6 +3,7 @@
 import os
 import asyncio
 import traceback
+from play.globals import globals_list, ProgramState
 from play.io.logging import play_logger
 
 _loop = None  # pylint: disable=invalid-name
@@ -32,7 +33,7 @@ def _handle_exception(the_loop, context):
     else:
         play_logger.critical(message)
 
-    the_loop.stop()
+    stop_loop(the_loop)
 
 
 def get_loop():
@@ -51,3 +52,9 @@ def get_loop():
         _creator_pid = pid
 
     return _loop
+
+
+def stop_loop(loop=None):
+    """Stop the event loop and mark the program as stopped."""
+    globals_list.program_state = ProgramState.STOPPED
+    (loop if loop is not None else get_loop()).stop()

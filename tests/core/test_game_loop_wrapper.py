@@ -113,5 +113,22 @@ def test_listen_to_failure_logs_exception(caplog):
     assert any("log me" in record.message for record in caplog.records)
 
 
+def test_listen_to_failure_marks_the_program_as_stopped():
+    from play.core.game_loop_wrapper import listen_to_failure
+    from play.globals import globals_list, ProgramState
+    from play.loop import get_loop
+
+    globals_list.program_state = ProgramState.RUNNING
+
+    @listen_to_failure()
+    async def fail():
+        raise RuntimeError("boom")
+
+    with pytest.raises(RuntimeError):
+        get_loop().run_until_complete(fail())
+
+    assert globals_list.program_state is ProgramState.STOPPED
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

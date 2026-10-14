@@ -99,13 +99,16 @@ async def handle_controller():
     # @controller.when_axis_moved
     ############################################################
     if controller_state.axes_moved:
-        for axes_events in controller_state.axes_moved.values():
+        for controller_id, axes_events in controller_state.axes_moved.items():
             for axis_event in axes_events:
                 await callback_manager.run_callbacks_with_filter(
                     CallbackType.WHEN_CONTROLLER_AXIS_MOVED,  # callback type
                     [axis_event["axis"]],  # activated states
                     axis_event["value"],  # value
                     required_args=["axis", "value"],
-                    property_filter={"axis": axis_event["axis"]},
+                    property_filter={
+                        "axis": axis_event["axis"],
+                        "controller": controller_id,
+                    },
                 )
         controller_state.axes_moved.clear()
