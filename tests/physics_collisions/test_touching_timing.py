@@ -1,16 +1,4 @@
-"""When when_touching and when_stopped_touching run, with physics in sub-steps (#230).
-
-pymunk reports contacts per sub-step; students think per frame. The rules:
-
-- a contact that begins runs when_touching once, in the sub-step where it begins,
-  even if the same two sprites already touched earlier in that frame;
-- a contact that lasts runs when_touching once more in every frame that ends
-  with it still there;
-- every end of a contact runs when_stopped_touching once.
-
-The grid below checks these rules frame by frame, for several kinds of
-contact and several numbers of sub-steps.
-"""
+"""When when_touching and when_stopped_touching run, with physics in sub-steps (#230)."""
 
 import asyncio
 
