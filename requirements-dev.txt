@@ -2,8 +2,8 @@
 # .github/workflows/pull_request.yaml so a local run matches CI exactly.
 # Test and lint tools live here, not in requirements.txt: setup.py installs
 # everything in requirements.txt for every student who installs play.
-black==26.10.0
-pylint==4.1.2
+black==26.10.1
+pylint==4.1.3
 pytest==9.1.1
 pytest-cov>=7.1.0
 pytest-timeout>=2.4.0
