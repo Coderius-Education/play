@@ -325,10 +325,7 @@ def test_while_button_pressed_chord_registers_with_a_frozenset():
 
 
 def test_while_button_pressed_chord_fires_while_all_its_buttons_are_held():
-    """Test that a chord (list[int]) while_button_pressed callback fires while
-    all of its buttons are held, also with another button held as well, and
-    not while only part of it is held.
-    """
+    """A chord fires while all its buttons are held, extra ones included, not part of it."""
     import asyncio
     import pygame
     from play.io.controllers import controllers
@@ -365,7 +362,6 @@ def test_while_button_pressed_chord_fires_while_all_its_buttons_are_held():
     fired_buttons.clear()
     controller_state.clear()
 
-    # --- Superset: buttons 1, 2, and 3 held — chord still fires ---
     e3 = pygame.event.Event(pygame.JOYBUTTONDOWN, {"instance_id": 0, "button": 3})
     handle_controller_events(e3)
 
@@ -376,7 +372,6 @@ def test_while_button_pressed_chord_fires_while_all_its_buttons_are_held():
     fired_buttons.clear()
     controller_state.clear()
 
-    # --- Subset: button 1 released — chord should NOT fire ---
     e1 = pygame.event.Event(pygame.JOYBUTTONUP, {"instance_id": 0, "button": 1})
     handle_controller_events(e1)
     controller_state.clear()

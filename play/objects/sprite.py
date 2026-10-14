@@ -255,9 +255,8 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
     @property
     def is_clicked(self):
-        """Get whether the sprite is clicked. True only in the frame of the click;
-        play.mouse.is_clicked stays True while the button is held.
-        :return: Whether the sprite is clicked."""
+        """Whether the sprite was clicked in this frame; play.mouse.is_clicked stays True while held.
+        :return: Whether the sprite was clicked in this frame."""
         return self.events.is_clicked
 
     @property
