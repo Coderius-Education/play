@@ -78,6 +78,46 @@ def when_button(index: int, released: bool, *buttons: list[int | list[int]] | No
     return decorator
 
 
+class _DisconnectedController:
+    """Holds an unplugged controller's place: every input reads as untouched."""
+
+    def get_instance_id(self):
+        """Return None: an unplugged controller has no SDL instance id."""
+        return None
+
+    def get_numaxes(self):
+        """Return 0."""
+        return 0
+
+    def get_axis(self, _axis):
+        """Return 0.0, a stick at rest."""
+        return 0.0
+
+    def get_numbuttons(self):
+        """Return 0."""
+        return 0
+
+    def get_button(self, _button):
+        """Return False, a button not pressed."""
+        return False
+
+    def get_numhats(self):
+        """Return 0."""
+        return 0
+
+    def get_hat(self, _hat):
+        """Return (0, 0), a hat at rest."""
+        return (0, 0)
+
+    def get_numballs(self):
+        """Return 0."""
+        return 0
+
+    def get_ball(self, _ball):
+        """Return (0, 0), a ball that did not move."""
+        return (0, 0)
+
+
 class _Controllers:
     def __init__(self):
         self._controllers = []
@@ -90,21 +130,26 @@ class _Controllers:
         controller.init()
         if self._find(controller.get_instance_id()) is not None:
             return
-        if None in self._controllers:
-            self._controllers[self._controllers.index(None)] = controller
+        free = [
+            index
+            for index, slot in enumerate(self._controllers)
+            if isinstance(slot, _DisconnectedController)
+        ]
+        if free:
+            self._controllers[free[0]] = controller
         else:
             self._controllers.append(controller)
 
     def _disconnect(self, instance_id):
-        """Free the slot of a removed controller, so a replugged one gets it back."""
+        """Hold a removed controller's slot, so a replugged one gets it back."""
         index = self._find(instance_id)
         if index is not None:
-            self._controllers[index] = None
+            self._controllers[index] = _DisconnectedController()
 
     def _find(self, instance_id):
         """Return the index of the controller with an SDL instance id, or None."""
         for index, controller in enumerate(self._controllers):
-            if controller is not None and controller.get_instance_id() == instance_id:
+            if controller.get_instance_id() == instance_id:
                 return index
         return None
 
@@ -128,7 +173,9 @@ class _Controllers:
         """Get all controllers.
         :return: A list of all controllers."""
         return [
-            controller for controller in self._controllers if controller is not None
+            controller
+            for controller in self._controllers
+            if not isinstance(controller, _DisconnectedController)
         ]
 
     def get_num_axes(self, index) -> int:

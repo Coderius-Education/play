@@ -145,3 +145,16 @@ def test_a_replugged_controller_keeps_its_index(fake_joysticks):
 
     assert controllers.get_count() == 1
     assert pressed == [0]
+
+
+def test_an_unplugged_controller_reads_as_untouched(fake_joysticks):
+    fake_joysticks.next_instance_id = 5
+    controllers._connect(0)
+
+    _run([[_joy(pygame.JOYDEVICEREMOVED, instance_id=5)]])
+
+    assert controllers.get_count() == 0
+    assert controllers.get_axis(0, 1) == 0.0
+    assert controllers.get_button(0, 0) is False
+    assert controllers.get_hat(0, 0) == (0, 0)
+    assert controllers.get_num_axes(0) == 0
