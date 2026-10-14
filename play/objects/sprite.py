@@ -772,16 +772,16 @@ You might want to look in your code where you're setting transparency and make s
 
     def _reregister_own_callbacks(self, saved_callbacks):
         """Re-register this sprite's own callbacks after physics recreation."""
-        for callback, sprite in saved_callbacks[CallbackType.WHEN_TOUCHING]:
-            self.when_touching(sprite)(callback)
-        for callback, wall_side in saved_callbacks[CallbackType.WHEN_TOUCHING_WALL]:
-            self.when_touching_wall(callback, wall=wall_side)
-        for callback, sprite in saved_callbacks[CallbackType.WHEN_STOPPED_TOUCHING]:
-            self.when_stopped_touching(sprite)(callback)
-        for callback, wall_side in saved_callbacks[
+        for wrapper, sprite in saved_callbacks[CallbackType.WHEN_TOUCHING]:
+            self.when_touching(sprite)(wrapper.callback)
+        for wrapper, wall_side in saved_callbacks[CallbackType.WHEN_TOUCHING_WALL]:
+            self.when_touching_wall(wrapper.callback, wall=wall_side)
+        for wrapper, sprite in saved_callbacks[CallbackType.WHEN_STOPPED_TOUCHING]:
+            self.when_stopped_touching(sprite)(wrapper.callback)
+        for wrapper, wall_side in saved_callbacks[
             CallbackType.WHEN_STOPPED_TOUCHING_WALL
         ]:
-            self.when_stopped_touching_wall(callback, wall=wall_side)
+            self.when_stopped_touching_wall(wrapper.callback, wall=wall_side)
 
     def _reregister_dependent_callbacks(self):
         """Register the callbacks other sprites have on this one again, on its new shape."""
@@ -790,10 +790,10 @@ You might want to look in your code where you're setting transparency and make s
                 (CallbackType.WHEN_TOUCHING, dependent.when_touching),
                 (CallbackType.WHEN_STOPPED_TOUCHING, dependent.when_stopped_touching),
             ):
-                for callback in callback_manager.take_callbacks_on(
+                for wrapper in callback_manager.take_callbacks_on(
                     callback_type, id(dependent), self
                 ):
-                    register(self)(callback)
+                    register(self)(wrapper.callback)
 
     def start_physics(
         self,

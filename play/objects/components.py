@@ -167,6 +167,7 @@ class EventComponent:
             async def wrapper():
                 await run_async_callback(async_callback, [], [])
 
+            wrapper.callback = func
             for target in sprites_to_check:
                 target.events._dependent_sprites.add(self._sprite)
                 callback_manager.add_callback(
@@ -197,6 +198,7 @@ class EventComponent:
             async def wrapper():
                 await run_async_callback(async_callback, [], [])
 
+            wrapper.callback = func
             for target in sprites_to_check:
                 target.events._dependent_sprites.add(self._sprite)
                 callback_manager.add_callback(
@@ -233,6 +235,7 @@ class EventComponent:
                 return wrapper
 
             wrapper = make_wrapper(wall_side)
+            wrapper.callback = func
 
             collision_registry.register(
                 self._sprite,

@@ -267,6 +267,38 @@ def test_a_third_sprites_callback_survives_another_sprite_starting_physics(event
     assert "goal" in hits
 
 
+@pytest.mark.parametrize("restarted", ["ball", "paddle", "ball, wall callback"])
+def test_callbacks_still_run_after_many_restarts_of_physics(restarted):
+    import play
+
+    ball = play.new_circle(x=300, radius=10)
+    hits = []
+    if restarted == "ball, wall callback":
+        paddle = play.new_box(y=250, width=20, height=20)
+        ball.when_touching_wall(lambda: hits.append("hit"))
+    else:
+        paddle = play.new_box(x=-300, width=20, height=200)
+        ball.when_touching(paddle)(lambda: hits.append("hit"))
+
+    for _ in range(1500):
+        if restarted == "paddle":
+            paddle.start_physics(can_move=False)
+        else:
+            ball.start_physics(x_speed=-600, obeys_gravity=False)
+    ball.start_physics(x_speed=-600, obeys_gravity=False)
+    frames = [0]
+
+    @play.repeat_forever
+    def stop_later():
+        frames[0] += 1
+        if frames[0] == 90:
+            play.stop_program()
+
+    play.start_program()
+
+    assert hits
+
+
 def test_collision_type_stable_across_make_pymunk():
     """collision_type must survive _make_pymunk() calls on the same physics object.
 
