@@ -41,7 +41,6 @@ def test_ball_movement():
 
     play.start_program()
 
-    # One bounce in 200 frames; it used to count once per physics sub-step.
     if not (num_collisions_decorator[0] == 1 and method_check_inside_decorator[0] == 1):
         pytest.fail(
             f"expected one collision by the method and the decorator, but found {num_collisions_decorator[0]}, {method_check_inside_decorator[0]}"

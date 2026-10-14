@@ -255,7 +255,7 @@ class TestUpdateSprites:
     @patch("play.core.sprites_loop.handle_sprite_click_released")
     @patch("play.core.sprites_loop.handle_sprite_click")
     @patch("play.core.sprites_loop.run_sprite_callbacks", new_callable=AsyncMock)
-    def test_click_handlers_called_when_do_events_true(
+    def test_click_handlers_called_for_a_shown_sprite(
         self, mock_callbacks, mock_click, mock_click_released, mock_globals, mock_state
     ):
         sprite = MagicMock()
@@ -266,30 +266,10 @@ class TestUpdateSprites:
         mock_globals.sprites_group.sprites.return_value = [sprite]
         mock_state.click_release_happened = False
 
-        asyncio.run(sprites_loop.update_sprites(do_events=True))
+        asyncio.run(sprites_loop.update_sprites())
 
         mock_click.assert_called_once_with(sprite)
         mock_click_released.assert_called_once_with(sprite)
-
-    @patch("play.core.sprites_loop.mouse_state")
-    @patch("play.core.sprites_loop.globals_list")
-    @patch("play.core.sprites_loop.handle_sprite_click_released")
-    @patch("play.core.sprites_loop.handle_sprite_click")
-    @patch("play.core.sprites_loop.run_sprite_callbacks", new_callable=AsyncMock)
-    def test_click_handlers_not_called_when_do_events_false(
-        self, mock_callbacks, mock_click, mock_click_released, mock_globals, mock_state
-    ):
-        sprite = MagicMock()
-        sprite.physics = MagicMock()
-        sprite.physics.can_move = False
-        sprite.is_hidden = False
-        mock_globals.sprites_group.sprites.return_value = [sprite]
-        mock_state.click_release_happened = False
-
-        asyncio.run(sprites_loop.update_sprites(do_events=False))
-
-        mock_click.assert_not_called()
-        mock_click_released.assert_not_called()
 
 
 if __name__ == "__main__":

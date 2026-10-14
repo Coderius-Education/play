@@ -96,10 +96,8 @@ def clear_click_tracking():
     _clicked_sprite_ids.clear()
 
 
-async def update_sprites(do_events: bool = True):
-    """Update all sprites in the game loop.
-    :param do_events: If True, run events for sprites. If False, only update positions.
-    """
+async def update_sprites():
+    """Update all sprites in the game loop."""
     sprites = globals_list.sprites_group.sprites()
     _sync_moving_sprites(sprites)
     for sprite in sprites:
@@ -107,26 +105,21 @@ async def update_sprites(do_events: bool = True):
 
         # Videos keep playing (and keep their sound in step) even while hidden,
         # so they are ticked before the is_hidden check below.
-        if do_events:
-            sprite._tick()
-
-        if sprite.is_hidden:
-            if do_events:
-                await run_sprite_callbacks(sprite)
-            continue
+        sprite._tick()
 
         await run_sprite_callbacks(sprite)
+        if sprite.is_hidden:
+            continue
 
-        if do_events:
-            # Objects with their own controls (like videos) get first refusal on
-            # a click. When they use it, the click is not also reported as a
-            # click on the object itself.
-            if sprite._handle_frame_events():
-                continue
-            handle_sprite_click(sprite)
-            handle_sprite_click_released(sprite)
+        # Objects with their own controls (like videos) get first refusal on
+        # a click. When they use it, the click is not also reported as a
+        # click on the object itself.
+        if sprite._handle_frame_events():
+            continue
+        handle_sprite_click(sprite)
+        handle_sprite_click_released(sprite)
 
-    if do_events and mouse_state.click_release_happened:
+    if mouse_state.click_release_happened:
         clear_click_tracking()
 
     globals_list.sprites_group.update()
