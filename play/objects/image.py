@@ -38,6 +38,12 @@ class Image(Sprite):
         """Return the size of the source image."""
         return self._source_image.get_size()
 
+    def clone(self):
+        return self.__class__(
+            image=self._image_filename or self._source_image,
+            **self._common_properties(),
+        )
+
     # The custom image property is removed to use the parent Sprite's property.
     # This ensures that the image managed by the Pygame sprite group is the
     # one generated in the update method.

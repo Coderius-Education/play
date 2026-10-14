@@ -240,8 +240,10 @@ def remove_wall(index):
     """Remove a wall from the physics space.
     :param index: The index of the wall to remove. 0: top, 1: bottom, 2: left, 3: right.
     """
-    physics_space.remove(globals_list.walls[index])
-    globals_list.walls.pop(index)
+    side = _wall_edges()[index][2]
+    for wall in [wall for wall in globals_list.walls if wall.wall_side == side]:
+        physics_space.remove(wall)
+        globals_list.walls.remove(wall)
 
 
 create_walls()

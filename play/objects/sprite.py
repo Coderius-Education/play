@@ -255,7 +255,8 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
     @property
     def is_clicked(self):
-        """Get whether the sprite is clicked.
+        """Get whether the sprite is clicked. True only in the frame of the click;
+        play.mouse.is_clicked stays True while the button is held.
         :return: Whether the sprite is clicked."""
         return self.events.is_clicked
 
@@ -267,7 +268,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
     @x.setter
     def x(self, _x):
-        """Set the x-coordinate of the sprite.
+        """Set the x-coordinate of the sprite. A physics sprite keeps its speed.
         :param _x: The x-coordinate of the sprite."""
         # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._x = _x
@@ -281,7 +282,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
     @y.setter
     def y(self, _y):
-        """Set the y-coordinate of the sprite.
+        """Set the y-coordinate of the sprite. A physics sprite keeps its speed.
         :param _y: The y-coordinate of the sprite."""
         # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._y = _y

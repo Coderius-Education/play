@@ -96,6 +96,14 @@ def handle_mouse_events(event):
     if event.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP):
         if getattr(event, "button", None) in _WHEEL_BUTTONS:
             return
+    if event.type in (
+        pygame.MOUSEMOTION,
+        pygame.MOUSEBUTTONDOWN,
+        pygame.MOUSEBUTTONUP,
+    ):
+        mouse.x, mouse.y = (event.pos[0] - screen.width / 2.0), (
+            screen.height / 2.0 - event.pos[1]
+        )
     if event.type == pygame.MOUSEBUTTONDOWN:
         mouse_state.click_happened = True
         mouse._is_clicked = True
@@ -103,10 +111,6 @@ def handle_mouse_events(event):
     if event.type == pygame.MOUSEBUTTONUP:
         mouse_state.click_release_happened = True
         mouse._is_clicked = False
-    if event.type == pygame.MOUSEMOTION:
-        mouse.x, mouse.y = (event.pos[0] - screen.width / 2.0), (
-            screen.height / 2.0 - event.pos[1]
-        )
 
 
 async def handle_mouse_loop():

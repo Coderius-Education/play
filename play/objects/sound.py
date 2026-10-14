@@ -4,6 +4,16 @@ import pygame
 from play.io.logging import play_logger as logger
 
 
+def _init_mixer():
+    """Start the mixer; on a machine without an audio device, warn and return False."""
+    try:
+        pygame.mixer.init()
+    except pygame.error as error:
+        logger.warning("Sounds will be silent: no audio device was found (%s)", error)
+        return False
+    return True
+
+
 class Sound:
     """A sound or music file that can be played, paused and stopped."""
 
@@ -14,14 +24,14 @@ class Sound:
         :param volume: The initial volume (0.0 to 1.0).
         :param loops: Number of times to loop the sound (-1 for infinite, 0 for no loop).
         """
-        pygame.mixer.init()
         self.sound = None
         self.channel = None
         self.file_path = file_name
         self._volume = volume
         self.loops = loops
         self.is_paused = False
-        self.load(file_name)
+        if _init_mixer():
+            self.load(file_name)
 
     def load(self, file_name):
         """Load a sound file."""

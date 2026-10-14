@@ -30,7 +30,7 @@ class Text(Sprite):
         self._font_size = font_size
 
         self._load_font(font, font_size)
-        self._words = words
+        self._words = str(words)
         self._color = color
 
         self._x = 0 if anchor else x

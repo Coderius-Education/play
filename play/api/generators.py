@@ -24,7 +24,7 @@ from play.objects import (
 
 
 def new_text(
-    words: str = "",
+    words: str | int | float = "",
     x: int = 0,
     y: int = 0,
     font: str = "default",
@@ -50,8 +50,8 @@ def new_text(
     :param layer: Render layer — higher layers draw on top (default 0).
     :return: A new text object.
     """
-    if not isinstance(words, str):
-        raise TypeError("words for a text object must be a string")
+    if not isinstance(words, (str, int, float)):
+        raise TypeError("words for a text object must be a string or a number")
 
     return _Text(
         words=words,
