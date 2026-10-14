@@ -30,6 +30,7 @@ class Dropdown(WidgetMixin, Box):
     # While open, the sprite is hoisted this many layers up so the option list
     # draws above overlapping sprites instead of taking clicks while hidden.
     _OPEN_LAYER_BOOST = 1000
+    _scaled_by_size = False
 
     def __init__(
         self,
@@ -221,7 +222,7 @@ class Dropdown(WidgetMixin, Box):
     def _render(self):
         """Draw the closed button plus the open option list (if open)."""
         n_extra = len(self._options) if self._dropdown_open else 0
-        w, row_h = self._drawn_size()
+        w, row_h = self._unscaled_size()
         total_h = row_h * (1 + n_extra)
         bw = self._border_width
 

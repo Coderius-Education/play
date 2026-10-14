@@ -119,12 +119,7 @@ class RadioButton(WidgetMixin, Sprite):
         self._hovered = False  # cached hover state (never True while disabled)
         self._image = None
         self._init_widget()
-        # Seed the rect with the real widget size so the pymunk hit-shape is
-        # built correctly (a 0x0 rect yields a degenerate point shape that makes
-        # clicks miss or bleed between stacked radios).
-        label_w = self._radio_font.size(label)[0] if label else 0
-        w = size_px + (10 + label_w if label else 0)
-        self.rect = pygame.Rect(0, 0, w, size_px)
+        self.rect = pygame.Rect((0, 0), self._unscaled_size())
 
         if group is not None:
             group._register(self)
@@ -160,12 +155,15 @@ class RadioButton(WidgetMixin, Sprite):
             self._should_recompute = True
         super().update()
 
+    def _unscaled_size(self):
+        """Return the size of the radio circle and label before size and angle apply."""
+        label_w = self._radio_font.size(self._label_text)[0] if self._label_text else 0
+        return self._size_px + (10 + label_w if self._label_text else 0), self._size_px
+
     def _render(self):
         """Draw radio circle and label."""
         r = self._size_px // 2
-        label_w = self._radio_font.size(self._label_text)[0] if self._label_text else 0
-        w = self._size_px + (10 + label_w if self._label_text else 0)
-        h = self._size_px
+        w, h = self._unscaled_size()
         draw_image = pygame.Surface((w, h), pygame.SRCALPHA)
 
         cx, cy = r, r
@@ -233,11 +231,6 @@ class RadioButton(WidgetMixin, Sprite):
     @label.setter
     def label(self, v):
         self._label_text = v
-        # Resize the hit-shape to match the new label width (the shape is built
-        # from self.rect, which otherwise stays frozen at the old label size).
-        label_w = self._radio_font.size(v)[0] if v else 0
-        w = self._size_px + (10 + label_w if v else 0)
-        self.rect = pygame.Rect(self.rect.x, self.rect.y, w, self._size_px)
         self.physics._resize_shape()
         self._should_recompute = True
 

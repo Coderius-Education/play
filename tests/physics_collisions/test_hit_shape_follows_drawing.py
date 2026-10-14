@@ -103,3 +103,28 @@ def test_a_negative_size_draws_a_widget_as_nothing(widget, attribute):
     sprite._should_recompute = True
     sprite.update()
     assert 0 in sprite.image.get_size()
+
+
+def _shown_tooltip():
+    tooltip = play.new_tooltip("hello", target=play.new_button("Go"))
+    tooltip.show()
+    return tooltip
+
+
+SIZED_WIDGETS = {
+    **WIDGETS,
+    "slider": play.new_slider,
+    "radio button": lambda: play.new_radio_button("pick me"),
+    "tooltip": _shown_tooltip,
+}
+
+
+@pytest.mark.parametrize("sizes", [[200], [300, 100]], ids=["grown", "grown and back"])
+@pytest.mark.parametrize("widget", SIZED_WIDGETS)
+def test_a_resized_widget_is_hit_where_it_is_drawn(widget, sizes):
+    sprite = SIZED_WIDGETS[widget]()
+    for size in sizes:
+        sprite.size = size
+        sprite._should_recompute = True
+        sprite.update()
+    _assert_hit_shape_matches_drawing(sprite)

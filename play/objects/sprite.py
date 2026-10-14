@@ -608,10 +608,13 @@ You might want to look in your code where you're setting transparency and make s
     # of sprite, not of the sign of the radius: a circle built at a negative
     # size has to be a circle again when it grows back.
     _circular_hit_shape = False
+    _scaled_by_size = True
 
     def _hit_dims(self, size_factor):
         """Return ``(radius, width, height)`` for the hit shape, scaled by *size_factor*."""
         width, height = self._unscaled_size()
+        if not self._scaled_by_size:
+            size_factor = 1
         return 0.0, float(width * size_factor), float(height * size_factor)
 
     def _unscaled_size(self):

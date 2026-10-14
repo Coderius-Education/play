@@ -18,6 +18,8 @@ from play.core.mouse_loop import mouse_state
 
 
 class Slider(WidgetMixin, Sprite):
+    _scaled_by_size = False
+
     def __init__(
         self,
         min_value=0,
