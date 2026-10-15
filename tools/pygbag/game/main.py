@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["numpy", "pymunk"]
+# dependencies = ["numpy", "pygame-ce", "pymunk"]
 # ///
 """A short play game that tells the page whether it ran: CI builds it with pygbag."""
 
