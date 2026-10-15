@@ -276,3 +276,27 @@ def test_two_errors_in_the_same_frame_show_one_traceback(capsys):
     _count_frames_until_stopped()
 
     assert capsys.readouterr().err.count("Traceback") == 1
+
+
+def test_a_repeat_forever_error_and_an_async_error_in_the_same_frame_show_one(
+    capsys, caplog
+):
+    frame = [0]
+
+    @play.repeat_forever
+    def first():
+        frame[0] += 1
+        if frame[0] == 4:
+            raise ValueError("first error")
+
+    @play.repeat_forever
+    async def second():
+        await play.timer(0.000001)
+        if frame[0] >= 4:
+            raise ValueError("second error")
+
+    play.start_program()
+
+    shown = capsys.readouterr().err + caplog.text
+    assert "first error" in shown
+    assert "second error" not in shown

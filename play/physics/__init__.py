@@ -14,7 +14,9 @@ _NO_AREA_CATEGORY = 0b1
 _COLLIDES = _pymunk.ShapeFilter(
     mask=_pymunk.ShapeFilter.ALL_MASKS() ^ _NO_AREA_CATEGORY
 )
-_COLLIDES_WITH_WALLS_ONLY = _pymunk.ShapeFilter(categories=_NO_AREA_CATEGORY)
+_COLLIDES_WITH_WALLS_ONLY = _pymunk.ShapeFilter(
+    categories=_NO_AREA_CATEGORY, mask=_COLLIDES.mask
+)
 
 
 class Physics:

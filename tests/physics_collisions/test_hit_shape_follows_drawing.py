@@ -285,3 +285,15 @@ def test_a_turned_line_without_area_neither_touches_nor_blocks():
 
     assert touching == []
     assert ball.y < -150
+
+
+def test_two_sprites_without_area_pass_through_each_other():
+    left = play.new_box(x=-30, width=20, height=20, size=0)
+    right = play.new_box(x=30, width=20, height=20, size=0)
+    left.start_physics(x_speed=100, obeys_gravity=False)
+    right.start_physics(x_speed=-100, obeys_gravity=False)
+
+    _run_frames(60)
+
+    assert left.x > 30
+    assert right.x < -30

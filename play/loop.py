@@ -25,6 +25,7 @@ def _handle_exception(the_loop, context):
         return
 
     if exception:
+        globals_list.error_shown = True
         tb_lines = traceback.format_exception(
             type(exception), exception, exception.__traceback__
         )

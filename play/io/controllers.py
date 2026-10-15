@@ -109,11 +109,9 @@ class _DisconnectedController:  # pylint: disable=missing-function-docstring
         return (0, 0)
 
     def get_name(self):
-        """Return "", an unplugged controller has no name."""
         return ""
 
     def get_guid(self):
-        """Return "", an unplugged controller has no GUID."""
         return ""
 
     def get_id(self):
@@ -123,7 +121,6 @@ class _DisconnectedController:  # pylint: disable=missing-function-docstring
         return False
 
     def get_power_level(self):
-        """Return "unknown"."""
         return "unknown"
 
     def init(self):
