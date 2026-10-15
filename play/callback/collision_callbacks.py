@@ -4,7 +4,7 @@ from enum import Enum
 
 from pymunk import Shape, Arbiter
 
-from play.physics import on_every_collision, physics_space
+from play.physics import on_every_collision
 
 
 class WallSide(Enum):

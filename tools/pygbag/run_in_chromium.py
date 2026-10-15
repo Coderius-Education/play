@@ -12,6 +12,21 @@ from playwright.sync_api import sync_playwright
 
 TIMEOUT_MS = 180_000
 
+TERMINAL_TEXT = """() => {
+    const lines = [];
+    for (const name of Object.getOwnPropertyNames(window)) {
+        let value;
+        try { value = window[name]; } catch (error) { continue; }
+        const buffer = value && value.buffer && value.buffer.active;
+        if (!buffer || typeof buffer.getLine !== "function") continue;
+        for (let row = 0; row < buffer.length; row++) {
+            const line = buffer.getLine(row);
+            if (line) lines.push(line.translateToString(true));
+        }
+    }
+    return lines.length ? lines.join("\\n") : document.body.innerText;
+}"""
+
 
 def serve(directory):
     """Serve *directory* on a free local port and return the server."""
@@ -40,12 +55,12 @@ def main(directory):
             title = page.title()
         except Exception as error:  # pylint: disable=broad-exception-caught
             title = f"no verdict: {error}"
-        terminal = page.inner_text("body")
+        terminal = page.evaluate(TERMINAL_TEXT)
         browser.close()
     server.shutdown()
 
     print("\n".join(log))
-    print("--- page text ---")
+    print("--- terminal ---")
     print(terminal)
     print("--- verdict ---")
     print(title)
