@@ -163,6 +163,7 @@ class Screen:
 screen = Screen()
 
 _walls_body = _pymunk.Body(body_type=_pymunk.Body.STATIC)
+_WALL_RADIUS = 10
 
 
 def create_wall(a, b, wall_side):
@@ -172,7 +173,7 @@ def create_wall(a, b, wall_side):
     :param wall_side: The side of the screen this wall represents (WallSide enum)."""
     if _walls_body.space is None:
         physics_space.add(_walls_body)
-    segment = _pymunk.Segment(_walls_body, a, b, 0.0)
+    segment = _pymunk.Segment(_walls_body, a, b, _WALL_RADIUS)
     segment.elasticity = 1.0
     segment.friction = 0.0
     segment.wall_side = wall_side
@@ -183,8 +184,9 @@ def create_wall(a, b, wall_side):
 
 
 def _wall_edges():
-    """The four screen edges as ``(a, b, wall_side)``, in wall-index order."""
-    left, right, top, bottom = screen.left, screen.right, screen.top, screen.bottom
+    """The four walls as ``(a, b, wall_side)``, in wall-index order, their inner face on the screen edge."""
+    left, right = screen.left - _WALL_RADIUS, screen.right + _WALL_RADIUS
+    top, bottom = screen.top + _WALL_RADIUS, screen.bottom - _WALL_RADIUS
     return [
         ((left, top), (right, top), WallSide.TOP),
         ((left, bottom), (right, bottom), WallSide.BOTTOM),

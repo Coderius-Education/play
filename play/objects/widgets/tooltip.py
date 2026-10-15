@@ -140,6 +140,7 @@ class Tooltip(Sprite):
         draw_image.blit(label, (p, p))
 
         draw_image.set_alpha(round(self._transparency * 255 / 100))
+        self._unrotated_size = (w, h)
 
         pos = convert_pos(self._x, self._y)
         centre_x = pos[0] + w // 2

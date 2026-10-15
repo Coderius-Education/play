@@ -256,10 +256,10 @@ def test_rebuilt_walls_are_the_same_segments_moved():
     assert globals_list.walls == before
     assert [wall.collision_type for wall in globals_list.walls] == types
     top, bottom, left, right = globals_list.walls
-    assert (top.a, top.b) == ((-512, 384), (512, 384))
-    assert (bottom.a, bottom.b) == ((-512, -384), (512, -384))
-    assert (left.a, left.b) == ((-512, -384), (-512, 384))
-    assert (right.a, right.b) == ((512, -384), (512, 384))
+    assert (top.bb.bottom, bottom.bb.top) == (384, -384)
+    assert (left.bb.right, right.bb.left) == (-512, 512)
+    for wall in (left, right):
+        assert wall.bb.bottom < -384 and wall.bb.top > 384
 
 
 def test_the_space_sees_the_moved_walls():

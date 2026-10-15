@@ -297,3 +297,76 @@ def test_two_sprites_without_area_pass_through_each_other():
 
     assert left.x > 30
     assert right.x < -30
+
+
+@pytest.mark.parametrize(
+    "make",
+    [lambda: play.new_box(size=0), lambda: play.new_circle(radius=0)],
+    ids=["box at size 0", "circle of radius 0"],
+)
+@pytest.mark.parametrize("speed", [600, 3000])
+def test_a_fast_sprite_without_area_stays_on_screen(make, speed):
+    sprite = make()
+    sprite.start_physics(x_speed=speed / 2, y_speed=-speed, obeys_gravity=False)
+
+    _run_frames(120)
+
+    assert screen.left <= sprite.x <= screen.right
+    assert screen.bottom <= sprite.y <= screen.top
+
+
+def _wall_callbacks_of(box, each_frame=None, frames=120):
+    log = []
+    box.when_touching_wall(lambda: log.append("touching"))
+    box.when_stopped_touching_wall(lambda: log.append("stopped"))
+    _run_frames(frames, each_frame)
+    return log
+
+
+def test_a_sprite_without_area_bouncing_off_a_wall_gets_no_wall_callbacks():
+    box = play.new_box(y=-250, width=20, height=20, size=0)
+    box.start_physics(y_speed=-200, obeys_gravity=False)
+
+    assert _wall_callbacks_of(box) == []
+
+
+def test_a_sprite_shrinking_to_nothing_on_the_floor_stops_touching_it():
+    box = play.new_box(y=-250, width=20, height=20)
+    box.start_physics(bounciness=0)
+
+    def shrink(frame):
+        if frame == 60:
+            box.size = 0
+
+    log = _wall_callbacks_of(box, shrink)
+
+    assert log[-1] == "stopped"
+    assert log.count("stopped") == 1
+
+
+def test_a_sprite_growing_back_on_the_floor_stops_touching_it_when_it_leaves():
+    box = play.new_box(y=-250, width=20, height=20, size=0)
+    box.start_physics(bounciness=0)
+
+    def grow_then_jump(frame):
+        if frame == 60:
+            box.size = 100
+        if frame == 90:
+            box.physics.y_speed = 300
+
+    log = _wall_callbacks_of(box, grow_then_jump)
+
+    assert "touching" in log
+    assert log.count("stopped") == 1
+
+
+@pytest.mark.parametrize(
+    "make",
+    [_Flag, _shown_tooltip, play.new_slider],
+    ids=["sprite subclass", "tooltip", "slider"],
+)
+def test_a_turned_sprite_not_scaled_by_size_is_hit_where_it_is_drawn(make):
+    sprite = make()
+    sprite.angle = 90
+    sprite.update()
+    _assert_hit_shape_matches_drawing(sprite)

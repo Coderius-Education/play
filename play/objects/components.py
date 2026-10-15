@@ -20,6 +20,7 @@ class EventComponent:
         self._new_touching = {}
         self._fired_this_frame = set()
         self._stopped_callback = {}
+        self._walls_touched_with_area = set()
         self._dependent_sprites = set()
         self._is_clicked = False
 
@@ -65,6 +66,22 @@ class EventComponent:
         self._touching_callback = {}
         self._new_touching = {}
         self._fired_this_frame = set()
+        self._walls_touched_with_area = set()
+
+    def wall_contact_began(self, wall):
+        """Note that a contact with a wall began.
+        :param wall: The wall's pymunk shape."""
+        if self._sprite.physics._has_area:
+            self._walls_touched_with_area.add(wall)
+
+    def wall_contact_ended(self, wall):
+        """Forget a contact with a wall that ended.
+        :param wall: The wall's pymunk shape.
+        :return: Whether the sprite had an area when the contact began or has one now.
+        """
+        had_area = wall in self._walls_touched_with_area
+        self._walls_touched_with_area.discard(wall)
+        return had_area or self._sprite.physics._has_area
 
     def set_stopped(self, key, callback):
         """Record a stopped-touching collision callback.

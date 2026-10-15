@@ -15,6 +15,7 @@ a plain or async callback, the game loop or an event (#239).
 """
 
 import logging
+import time
 
 import pygame
 import pytest
@@ -294,6 +295,40 @@ def test_a_repeat_forever_error_and_an_async_error_in_the_same_frame_show_one(
         await play.timer(0.000001)
         if frame[0] >= 4:
             raise ValueError("second error")
+
+    play.start_program()
+
+    shown = capsys.readouterr().err + caplog.text
+    assert "first error" in shown
+    assert "second error" not in shown
+
+
+def test_an_error_in_the_game_loop_after_an_async_error_shows_no_second_one(
+    capsys, caplog
+):
+    a = play.new_box(x=0, width=40, height=40)
+    b = play.new_box(x=10, width=40, height=40)
+    touched = []
+
+    @a.when_touching(b)
+    async def touch():
+        touched.append(True)
+        await play.timer(0.2)
+        raise ValueError("second error")
+
+    @play.when_program_starts
+    async def slow_frame():
+        while not touched:
+            await play.timer(0.001)
+        await play.timer(0.01)
+        time.sleep(0.4)  # both timers come due in one pass of the event loop
+
+    @play.when_program_starts
+    async def first():
+        while not touched:
+            await play.timer(0.001)
+        await play.timer(0.1)
+        raise ValueError("first error")
 
     play.start_program()
 

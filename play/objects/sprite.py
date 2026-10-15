@@ -584,6 +584,7 @@ You might want to look in your code where you're setting transparency and make s
     def _place_image(self, draw_image):
         """Apply transparency, rotate and centre *draw_image* on ``(x, y)``."""
         draw_image.set_alpha(round(self._transparency * 255 / 100))
+        self._unrotated_size = draw_image.get_size()
         rect = draw_image.get_rect()
         pos = convert_pos(self.x, self.y)
         rect.x = pos[0] - rect.width // 2
@@ -604,6 +605,7 @@ You might want to look in your code where you're setting transparency and make s
     # size has to be a circle again when it grows back.
     _circular_hit_shape = False
     _scaled_by_size = False
+    _unrotated_size = None
 
     def _hit_dims(self, size_factor):
         """Return ``(radius, width, height)``; *size_factor* applies if size scales the drawing."""
@@ -613,8 +615,10 @@ You might want to look in your code where you're setting transparency and make s
         return 0.0, float(width * size_factor), float(height * size_factor)
 
     def _unscaled_size(self):
-        """Return the ``(width, height)`` the hit shape starts from: the drawn rect by default."""
-        return self.rect.size
+        """Return the ``(width, height)`` the hit shape starts from: the drawing before it is turned."""
+        if self._unrotated_size is None:
+            return self.rect.size
+        return self._unrotated_size
 
     @property
     def width(self):

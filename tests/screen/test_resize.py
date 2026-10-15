@@ -118,12 +118,11 @@ def test_screen_resize_very_tall():
 
 
 def _wall_edges():
-    """Where the four walls are, as (min x, max x, min y, max y)."""
+    """Where the inner faces of the four walls are, as (min x, max x, min y, max y)."""
     from play.globals import globals_list
 
-    xs = [p.x for w in globals_list.walls for p in (w.a, w.b)]
-    ys = [p.y for w in globals_list.walls for p in (w.a, w.b)]
-    return min(xs), max(xs), min(ys), max(ys)
+    top, bottom, left, right = globals_list.walls
+    return left.bb.right, right.bb.left, bottom.bb.top, top.bb.bottom
 
 
 def test_resize_moves_the_walls_to_the_new_edges():
