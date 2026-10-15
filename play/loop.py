@@ -54,11 +54,12 @@ def get_loop():
 
     pid = os.getpid()
     if _loop is None or _creator_pid != pid:
-        _loop = (
-            asyncio.get_event_loop() if RUNS_IN_BROWSER else asyncio.new_event_loop()
-        )
-        asyncio.set_event_loop(_loop)
-        _loop.set_debug(False)
+        if RUNS_IN_BROWSER:
+            _loop = asyncio.get_event_loop()
+        else:
+            _loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(_loop)
+            _loop.set_debug(False)
         _loop.set_exception_handler(_handle_exception)
         _creator_pid = pid
 
