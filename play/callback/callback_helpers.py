@@ -8,6 +8,7 @@ import traceback
 from play.globals import globals_list
 from play.io.logging import play_logger
 from play.loop import get_loop as _get_loop, stop_loop as _stop_loop
+from play.utils.async_helpers import make_async
 
 
 def run_callback(callback, required_args, optional_args, *args, **kwargs):
@@ -16,6 +17,16 @@ def run_callback(callback, required_args, optional_args, *args, **kwargs):
     This is a convenience alias for :func:`fire_async_callback`.
     """
     fire_async_callback(callback, required_args, optional_args, *args, **kwargs)
+
+
+def _positional_parameters(func):
+    """Return the names of the positional parameters of *func*, leaving out a bound self."""
+    return [
+        parameter.name
+        for parameter in inspect.signature(func).parameters.values()
+        if parameter.kind
+        in (parameter.POSITIONAL_ONLY, parameter.POSITIONAL_OR_KEYWORD)
+    ]
 
 
 def _resolve_callback_args(callback, required_args, optional_args, *args):
@@ -29,7 +40,7 @@ def _resolve_callback_args(callback, required_args, optional_args, *args):
     actual_cb = callback
     if hasattr(callback, "original_function"):
         actual_cb = callback.original_function
-    actual_args = inspect.getfullargspec(actual_cb).args
+    actual_args = _positional_parameters(actual_cb)
     if (
         len(required_args)
         <= len(actual_args)
@@ -81,6 +92,37 @@ async def _stop_on_error(callback, args, kwargs):
         await callback(*args, **kwargs)
     except Exception as exc:  # pylint: disable=broad-exception-caught
         _show_first_error(exc)
+
+
+def contact_callback(func, *args, optional_args=()):
+    """Wrap a callback for a contact that begins or ends.
+    :param func: The function to run. A plain function runs straight away; an async
+        one runs as a task of its own, so its awaits do not hold up the game, and is
+        skipped while its previous run has not finished.
+    :param args: The arguments to offer to func.
+    :param optional_args: The names of the arguments func may leave out.
+    :return: An async function without arguments that runs or starts func."""
+    async_func = make_async(func)
+
+    async def run():
+        await run_async_callback(async_func, [], list(optional_args), *args)
+
+    if not inspect.iscoroutinefunction(func):
+        return run
+
+    async def run_then_allow_again():
+        try:
+            await run()
+        finally:
+            start.is_running = False
+
+    async def start():
+        if not start.is_running:
+            start.is_running = True
+            _get_loop().create_task(_stop_on_error(run_then_allow_again, (), {}))
+
+    start.is_running = False
+    return start
 
 
 def fire_async_callback(callback, required_args, optional_args, *args, **kwargs):

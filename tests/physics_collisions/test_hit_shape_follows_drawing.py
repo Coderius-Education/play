@@ -362,8 +362,8 @@ def test_a_sprite_growing_back_on_the_floor_stops_touching_it_when_it_leaves():
 
 @pytest.mark.parametrize(
     "make",
-    [_Flag, _shown_tooltip, play.new_slider],
-    ids=["sprite subclass", "tooltip", "slider"],
+    [_Flag, _shown_tooltip, play.new_slider, WIDGETS["dropdown"]],
+    ids=["sprite subclass", "tooltip", "slider", "dropdown"],
 )
 def test_a_turned_sprite_not_scaled_by_size_is_hit_where_it_is_drawn(make):
     sprite = make()

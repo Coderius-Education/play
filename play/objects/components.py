@@ -8,7 +8,7 @@ from play.callback.collision_callbacks import (
 )
 from play.globals import globals_list
 from play.utils.async_helpers import make_async
-from play.callback.callback_helpers import run_async_callback
+from play.callback.callback_helpers import contact_callback, run_async_callback
 
 
 class EventComponent:
@@ -177,7 +177,7 @@ class EventComponent:
                     target,
                     self._sprite.physics._pymunk_shape,
                     target.physics._pymunk_shape,
-                    async_callback,
+                    contact_callback(func),
                     CollisionType.SPRITE,
                 )
 
@@ -207,7 +207,7 @@ class EventComponent:
                     target,
                     self._sprite.physics._pymunk_shape,
                     target.physics._pymunk_shape,
-                    async_callback,
+                    contact_callback(func),
                     CollisionType.SPRITE,
                     begin=False,
                 )
@@ -233,8 +233,6 @@ class EventComponent:
         :param wall: Wall filter (None, WallSide, or list of WallSide).
         :param begin: True for begin-contact, False for separate.
         :param callback_type: The CallbackType to use for callback_manager."""
-        async_callback = make_async(func)
-
         if wall is None:
             walls_to_register = globals_list.walls
         elif isinstance(wall, WallSide):
@@ -245,13 +243,7 @@ class EventComponent:
         for wall_segment in walls_to_register:
             wall_side = wall_segment.wall_side
 
-            def make_wrapper(ws):
-                async def wrapper():
-                    await run_async_callback(async_callback, [], ["wall"], ws)
-
-                return wrapper
-
-            wrapper = make_wrapper(wall_side)
+            wrapper = contact_callback(func, wall_side, optional_args=["wall"])
             wrapper.callback = func
 
             collision_registry.register(
