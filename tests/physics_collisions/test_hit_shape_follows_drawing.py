@@ -9,7 +9,12 @@ from play.io.screen import screen
 from play.objects.sprite import Sprite
 from play.physics import physics_space
 
-IMAGE = "tests/objects_attributes/yellow.jpg"
+
+@pytest.fixture
+def image_file(tmp_path):
+    path = tmp_path / "small.png"
+    pygame.image.save(pygame.Surface((40, 30)), str(path))
+    return str(path)
 
 
 def _assert_hit_shape_matches_drawing(sprite):
@@ -47,8 +52,8 @@ def test_text_with_a_new_font_size_is_hit_where_it_is_drawn():
     _assert_hit_shape_matches_drawing(text)
 
 
-def test_a_resized_image_is_hit_where_it_is_drawn():
-    image = play.new_image(image=IMAGE)
+def test_a_resized_image_is_hit_where_it_is_drawn(image_file):
+    image = play.new_image(image=image_file)
     image.size = 300
     _assert_hit_shape_matches_drawing(image)
 
@@ -91,6 +96,7 @@ def test_a_negative_dimension_draws_and_touches_nothing(make, attribute):
     sprite = make()
     setattr(sprite, attribute, -3)
     sprite.update()
+    assert 0 in sprite.image.get_size()
     assert not sprite.is_touching((0, 0))
 
 
@@ -109,7 +115,6 @@ WIDGETS = {
 def test_a_negative_size_draws_a_widget_as_nothing(widget, attribute):
     sprite = WIDGETS[widget]()
     setattr(sprite, attribute, -5)
-    sprite._should_recompute = True
     sprite.update()
     assert 0 in sprite.image.get_size()
 
@@ -134,7 +139,6 @@ def test_a_resized_widget_is_hit_where_it_is_drawn(widget, sizes):
     sprite = SIZED_WIDGETS[widget]()
     for size in sizes:
         sprite.size = size
-        sprite._should_recompute = True
         sprite.update()
     _assert_hit_shape_matches_drawing(sprite)
 
@@ -205,10 +209,10 @@ def test_text_with_a_new_font_is_hit_where_it_is_drawn():
     _assert_hit_shape_matches_drawing(text)
 
 
-def test_an_image_given_a_new_file_is_hit_where_it_is_drawn(tmp_path):
+def test_an_image_given_a_new_file_is_hit_where_it_is_drawn(tmp_path, image_file):
     bigger = tmp_path / "bigger.png"
     pygame.image.save(pygame.Surface((300, 120)), str(bigger))
-    image = play.new_image(image=IMAGE)
+    image = play.new_image(image=image_file)
     image.image_filename = str(bigger)
     _assert_hit_shape_matches_drawing(image)
 
@@ -246,11 +250,13 @@ def test_a_sprite_without_area_can_move_under_physics(make):
 
 
 @pytest.mark.parametrize("built_without_area", [False, True])
-def test_a_sprite_without_area_stays_on_screen_and_comes_back(built_without_area):
+def test_a_sprite_without_area_stays_on_screen_and_lands_back_on_the_floor(
+    built_without_area,
+):
     box = play.new_box(
         y=-200, width=40, height=40, size=0 if built_without_area else 100
     )
-    box.start_physics()
+    box.start_physics(bounciness=0)
     floor = screen.bottom
 
     def shrink_then_grow(frame):
@@ -260,7 +266,7 @@ def test_a_sprite_without_area_stays_on_screen_and_comes_back(built_without_area
             box.size = 100
 
     assert _run_frames(180, shrink_then_grow) == 180
-    assert box.y > floor
+    assert box.y == pytest.approx(floor + 20, abs=2)
 
 
 def test_a_turned_line_without_area_neither_touches_nor_blocks():

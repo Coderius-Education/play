@@ -311,7 +311,6 @@ def test_text_clone():
 
 
 def test_text_invalid_words_type():
-    """Test that words that are neither a string nor a number raise TypeError."""
     import play
 
     with pytest.raises(TypeError, match="must be a string or a number"):

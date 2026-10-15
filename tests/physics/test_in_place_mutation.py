@@ -110,7 +110,7 @@ def test_a_negative_size_does_not_trip_pymunk():
 
     circle.size = -10
 
-    assert not circle.physics._has_area
+    assert not circle.is_touching((0, 0))
     assert circle.physics._pymunk_body.moment > 0
     physics_space.step(1 / 60)
 

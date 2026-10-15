@@ -161,11 +161,13 @@ def test_a_resting_contact_fires_once_per_frame_regardless_of_sim_steps(sim_step
 
     for calls in (touching_floor, touching_wall):
         late = [frame for frame in calls if frame >= 20]
-        assert late and len(late) == len(set(late)), (sim_steps, calls)
+        assert late == list(range(20, 40)), (sim_steps, calls)
 
 
 @pytest.mark.parametrize("sim_steps", SIM_STEPS)
-def test_sprites_are_drawn_once_per_frame_regardless_of_sim_steps(sim_steps):
+def test_sprites_are_drawn_once_per_frame_regardless_of_sim_steps(
+    sim_steps, monkeypatch
+):
     from play.globals import globals_list
 
     play.set_physics_simulation_steps(sim_steps)
@@ -178,7 +180,7 @@ def test_sprites_are_drawn_once_per_frame_regardless_of_sim_steps(sim_steps):
         draws[0] += 1
         return real_draw(*args, **kwargs)
 
-    globals_list.sprites_group.draw = draw
+    monkeypatch.setattr(globals_list.sprites_group, "draw", draw)
 
     @play.repeat_forever
     def count():

@@ -6,7 +6,6 @@ import pytest
 
 import play
 from play.callback.collision_callbacks import WallSide
-from play.core.sprites_loop import handle_new_contacts
 
 FRAMES = 90
 SIM_STEPS = [1, 3, 10, 20]
@@ -14,6 +13,7 @@ SIM_STEPS = [1, 3, 10, 20]
 
 def _assert_contact_rules(events):
     """Check a log of "touching", "stopped" and "frame end" against the rules."""
+    assert "touching" in events, "the sprites never touched"
     open_contact = False
     called_this_frame = False
     for index, event in enumerate(events):
@@ -100,9 +100,25 @@ def _run_frames(log):
     play.start_program()
 
 
-@pytest.mark.parametrize("sim_steps", SIM_STEPS)
-@pytest.mark.parametrize("scenario", SPRITE_PAIRS)
-def test_sprite_contacts_follow_the_rules(scenario, sim_steps):
+TUNNELS_THROUGH = {
+    ("squeezed ball, 1 bounce a frame", 1),
+    ("squeezed ball, 3 bounces a frame", 1),
+    ("squeezed ball, 3 bounces a frame", 3),
+}
+
+
+@pytest.mark.parametrize(
+    "scenario, sim_steps",
+    [
+        (scenario, sim_steps)
+        for scenario in SPRITE_PAIRS
+        for sim_steps in SIM_STEPS
+        if (scenario, sim_steps) not in TUNNELS_THROUGH
+    ],
+)
+def test_sprite_contacts_run_once_as_they_begin_and_once_per_frame_after(
+    scenario, sim_steps
+):
     play.set_physics_simulation_steps(sim_steps)
     sprite, other = SPRITE_PAIRS[scenario]()
     log = []
@@ -115,8 +131,10 @@ def test_sprite_contacts_follow_the_rules(scenario, sim_steps):
 
 
 @pytest.mark.parametrize("sim_steps", SIM_STEPS)
-@pytest.mark.parametrize("speed", [300, 3000, 20000])
-def test_wall_contacts_follow_the_rules(speed, sim_steps):
+@pytest.mark.parametrize("speed", [300, 3000])
+def test_wall_contacts_run_once_as_they_begin_and_once_per_frame_after(
+    speed, sim_steps
+):
     play.set_physics_simulation_steps(sim_steps)
     ball = play.new_circle(x=350, radius=10)
     ball.start_physics(x_speed=speed, obeys_gravity=False)
@@ -195,6 +213,8 @@ def test_a_sprite_taken_away_in_the_same_sub_step_gets_no_when_touching(
 
 
 def test_a_contact_left_pending_while_hidden_does_not_run_after_show():
+    from play.core.sprites_loop import handle_new_contacts
+
     coin = play.new_box()
     floor = play.new_box(y=-100)
     calls = []

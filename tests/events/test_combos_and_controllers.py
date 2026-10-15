@@ -84,13 +84,18 @@ def test_a_held_key_combination_does_not_fire_again_for_an_extra_key():
     assert fired == ["pressed"]
 
 
-def test_a_held_key_combination_keeps_firing_with_another_key_held_too():
+def test_a_held_key_combination_fires_every_frame_with_another_key_held_too():
+    held_frames = 6
     frames = []
     play.while_key_pressed(["a", "s"])(lambda: frames.append(1))
 
-    _run([[_down(pygame.K_a), _down(pygame.K_s), _down(pygame.K_d)]] + [[]] * 5)
+    _run(
+        [[_down(pygame.K_a), _down(pygame.K_s), _down(pygame.K_d)]]
+        + [[]] * (held_frames - 1)
+        + [[_up(pygame.K_a)]]
+    )
 
-    assert len(frames) >= 5
+    assert len(frames) == held_frames
 
 
 def _joy(event_type, **attributes):
@@ -106,13 +111,18 @@ def test_when_any_axis_moved_fires():
     assert moved == [(1, 1)]
 
 
-def test_an_axis_callback_ignores_other_controllers():
+def test_an_axis_callback_hears_its_own_controller_only():
     moved = []
     controllers.when_axis_moved(0, 1)(lambda axis, value: moved.append(value))
 
-    _run([[_joy(pygame.JOYAXISMOTION, instance_id=1, axis=1, value=1.0)]])
+    _run(
+        [
+            [_joy(pygame.JOYAXISMOTION, instance_id=1, axis=1, value=1.0)],
+            [_joy(pygame.JOYAXISMOTION, instance_id=0, axis=1, value=-1.0)],
+        ]
+    )
 
-    assert moved == []
+    assert moved == [-1]
 
 
 class _FakeJoystick:
@@ -141,7 +151,7 @@ def fake_joysticks(monkeypatch):
     return _FakeJoystick
 
 
-def test_a_controller_plugged_in_after_the_game_starts_works(fake_joysticks):
+def test_a_controller_plugged_in_after_the_game_starts_gets_index_0(fake_joysticks):
     fake_joysticks.next_instance_id = 5
     pressed = []
     controllers.when_button_pressed(0, 0)(lambda button: pressed.append(button))

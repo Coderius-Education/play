@@ -304,8 +304,6 @@ def test_controllers_while_any_button_pressed_decorator():
 
 
 def test_while_button_pressed_chord_registers_with_a_frozenset():
-    """Test that while_button_pressed with a list of buttons registers using
-    frozenset(button) as the discriminator key."""
     from play.io.controllers import controllers
     from play.callback import callback_manager, CallbackType
 

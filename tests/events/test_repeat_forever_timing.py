@@ -5,73 +5,47 @@ import play
 FRAMES = 60
 
 
-def _run_frames(frames=FRAMES):
-    count = [0]
+def _frames_in_which(register_body):
+    """Run FRAMES frames and return the frame numbers the body recorded."""
+    frame = [0]
+    recorded = []
 
     @play.repeat_forever
-    def stop_after_frames():
-        count[0] += 1
-        if count[0] == frames:
+    def count_frames():
+        frame[0] += 1
+        if frame[0] == FRAMES:
             play.stop_program()
 
+    register_body(lambda: recorded.append(frame[0]))
     play.start_program()
+    return recorded
 
 
-def test_an_async_repeat_forever_runs_every_frame():
-    runs = [0]
+def test_an_async_repeat_forever_runs_in_every_frame():
+    def register(record):
+        @play.repeat_forever
+        async def body():
+            record()
 
-    @play.repeat_forever
-    async def count():
-        runs[0] += 1
-
-    _run_frames()
-
-    assert runs[0] >= FRAMES - 1
+    assert _frames_in_which(register) == list(range(1, FRAMES))
 
 
-def test_an_async_repeat_forever_that_waits_a_frame_still_runs_every_frame():
-    runs = [0]
-
-    @play.repeat_forever
-    async def count():
-        await play.animate()
-        runs[0] += 1
-
-    _run_frames()
-
-    assert runs[0] >= FRAMES - 2
-
-
-def test_an_async_repeat_forever_moves_a_sprite_as_fast_as_a_plain_one():
-    sync_box = play.new_box(y=100)
-    async_box = play.new_box(y=-100)
-
-    @play.repeat_forever
-    def move_sync():
-        sync_box.x += 1
-
-    @play.repeat_forever
-    async def move_async():
-        async_box.x += 1
-
-    _run_frames()
-
-    assert abs(async_box.x - sync_box.x) <= 1
-
-
-def test_an_async_repeat_forever_never_runs_twice_at_once():
-    active = [0]
-    overlaps = [0]
-
-    @play.repeat_forever
-    async def slow():
-        active[0] += 1
-        if active[0] > 1:
-            overlaps[0] += 1
-        for _ in range(3):
+def test_an_async_repeat_forever_that_waits_a_frame_still_runs_in_every_frame():
+    def register(record):
+        @play.repeat_forever
+        async def body():
             await play.animate()
-        active[0] -= 1
+            record()
 
-    _run_frames()
+    assert _frames_in_which(register) == list(range(2, FRAMES))
 
-    assert overlaps[0] == 0
+
+def test_an_async_repeat_forever_that_waits_three_frames_starts_every_third_frame():
+    def register(record):
+        @play.repeat_forever
+        async def body():
+            record()
+            for _ in range(3):
+                await play.animate()
+
+    assert _frames_in_which(register) == list(range(1, FRAMES, 3))
