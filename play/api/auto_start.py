@@ -1,10 +1,16 @@
 """Auto-start logic for running the game loop when the user forgets start_program()."""
 
+import dis as _dis
 import sys as _sys
 
 from play.callback import callback_manager
 from play.globals import globals_list, ProgramState
 from play.utils import run_once as _run_once
+
+
+def _returns_normally(frame):
+    """Whether a frame's 'return' event comes from a return instruction, not from a pause or a crash."""
+    return _dis.opname[frame.f_code.co_code[frame.f_lasti]].startswith("RETURN")
 
 
 def _make_main_return_trace(existing_trace, existing_f_trace):
@@ -13,11 +19,18 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
     Fires start_program() when the frame returns, then restores the previous
     global trace. Wraps any existing frame trace so debuggers/coverage survive.
     """
+    raised_at = [None]
 
     def _on_main_return(_frame, event, _arg):
+        if event == "exception":
+            raised_at[0] = _frame.f_lasti
         if event == "return":
+            ended = _returns_normally(_frame)
+            if not ended and _frame.f_lasti != raised_at[0]:
+                return None
             if (
-                globals_list.should_auto_start
+                ended
+                and globals_list.should_auto_start
                 and globals_list.program_state is ProgramState.NOT_STARTED
             ):
                 try:
@@ -30,15 +43,6 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
             if existing_f_trace is not None:
                 existing_f_trace(_frame, event, _arg)
             return None  # CPython ignores the return value on 'return' events
-        if event == "exception":
-            # An unhandled exception is propagating through __main__ — don't
-            # auto-start since the script has crashed.  Clean up the trace and
-            # pass the event to any existing tracer.
-            if existing_trace is None:
-                _sys.settrace(None)
-            if existing_f_trace is not None:
-                return existing_f_trace(_frame, event, _arg)
-            return None
         # Return value of existing_f_trace is intentionally discarded: we
         # always keep _on_main_return as the local trace so we can detect
         # the 'return' event.  In practice, coverage tools (e.g. pytest-cov)

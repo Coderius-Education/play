@@ -6,7 +6,7 @@ The goal of coderius-play is to help starting programmers to become more capable
 pip install coderius-play
 ```
 
-coderius-play runs on Python 3.11 to 3.15, on Windows, macOS and Linux.
+coderius-play runs on Python 3.11 to 3.15 and is tested on Windows and Linux.
 
 ### Raspberry Pi
 On a Raspberry Pi with 64-bit Raspberry Pi OS (Bookworm or Trixie), install it
@@ -15,6 +15,9 @@ in a virtual environment with the Python that comes with the system:
 python3 -m venv ~/play-env
 ~/play-env/bin/pip install coderius-play
 ```
+To use it from Thonny, open *Run → Configure interpreter…*, choose
+*Alternative Python 3 interpreter or virtual environment* and select
+`~/play-env/bin/python3`.
 
 ### In the browser
 With [pygbag](https://pypi.org/project/pygbag/) a play game runs in the
@@ -32,7 +35,8 @@ play.start_program()
 ```
 Then run `pygbag my_game_folder` and open http://localhost:8000. In the
 browser `play.start_program()` returns straight away and the page keeps the
-game running. Videos are not available there.
+game running. Videos are not available there. This needs a coderius-play
+release newer than 3.4.0.
 
 ## Usage
 Please visit [the documentation](https://play.coderius.nl/).

@@ -35,7 +35,9 @@ def start_program():
     globals_list.should_auto_start = False
 
     if _play_loop.RUNS_IN_BROWSER:
-        _get_loop().create_task(_run_in_browser())
+        _get_loop().create_task(
+            _run_in_browser(), name=_play_loop.TASK_NAME_PREFIX + "start_program"
+        )
         return
 
     try:
@@ -52,16 +54,17 @@ async def _start_then_loop():
     callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
     # The yield lets each callback set up before the first frame renders.
     await _asyncio.sleep(0)
-    _get_loop().create_task(_game_loop())
+    _play_loop.create_task(_game_loop())
 
 
 async def _run_in_browser():
-    """Run the program on the page's event loop, then clean up once it has stopped."""
+    """Run the program on the page's event loop, then stop its sounds once it has stopped."""
     with _hint_forgotten_awaits():
         await _start_then_loop()
         while not _program_has_stopped():
             await _asyncio.sleep(0)
-    _clean_up()
+    if pygame.mixer.get_init():
+        pygame.mixer.stop()
 
 
 def _clean_up():

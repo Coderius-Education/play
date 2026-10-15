@@ -1,6 +1,9 @@
 """In the browser, under pygbag, the page owns the event loop and keeps it running."""
 
+import ast
 import asyncio
+import logging
+import types
 
 import pygame
 import pytest
@@ -22,10 +25,16 @@ def in_the_browser(monkeypatch):
 def _run_page(page_loop, script):
     async def page():
         script()
-        while len(asyncio.all_tasks()) > 1:
-            await asyncio.sleep(0)
+        await _until_only_the_page_is_left()
 
     page_loop.run_until_complete(page())
+
+
+async def _until_only_the_page_is_left(steps=1000):
+    for _ in range(steps):
+        if len(asyncio.all_tasks()) == 1:
+            return
+        await asyncio.sleep(0)
 
 
 def test_start_program_returns_at_once_and_the_page_loop_runs_the_frames(
@@ -74,3 +83,119 @@ def test_an_error_stops_the_program_in_the_browser(in_the_browser, capsys):
     assert frames == [1]
     assert globals_list.error_shown
     assert capsys.readouterr().err.count("ValueError: typo in the browser") == 1
+
+
+def test_stopping_in_the_browser_ends_the_programs_other_callbacks(in_the_browser):
+    ticks = []
+
+    @play.when_program_starts
+    async def walk():
+        while True:
+            ticks.append(1)
+            await play.animate()
+
+    play.repeat_forever(_stop_after(5))
+
+    _run_page(in_the_browser, play.start_program)
+
+    assert 0 < len(ticks) <= 6
+
+
+def _stop_after(frames):
+    counted = []
+
+    def count():
+        counted.append(1)
+        if len(counted) == frames:
+            play.stop_program()
+
+    return count
+
+
+def test_an_error_in_a_page_task_leaves_the_program_running(in_the_browser):
+    async def pages_own_task():
+        raise OSError("the page's own task failed")
+
+    def script():
+        play.start_program()
+        asyncio.get_running_loop().create_task(pages_own_task())
+
+    play.repeat_forever(_stop_after(20))
+
+    _run_page(in_the_browser, script)
+
+    assert not globals_list.error_shown
+
+
+def test_an_error_in_a_plain_callback_stops_the_program_in_the_browser(
+    in_the_browser, caplog
+):
+    frames = []
+
+    @play.repeat_forever
+    def broken():
+        frames.append(1)
+        raise ValueError("typo in a plain callback")
+
+    _run_page(in_the_browser, play.start_program)
+
+    assert frames == [1]
+    assert globals_list.error_shown
+    assert caplog.text.count("ValueError: typo in a plain callback") == 1
+
+
+def test_sounds_stop_once_the_program_has_stopped_in_the_browser(
+    in_the_browser, monkeypatch
+):
+    states_when_stopped = []
+    monkeypatch.setattr(pygame.mixer, "get_init", lambda: (22050, -16, 2))
+    monkeypatch.setattr(
+        pygame.mixer,
+        "stop",
+        lambda: states_when_stopped.append(globals_list.program_state),
+    )
+    play.repeat_forever(_stop_after(3))
+
+    _run_page(in_the_browser, play.start_program)
+
+    assert states_when_stopped == [play.globals.ProgramState.STOPPED]
+
+
+def test_a_forgotten_await_gets_a_hint_in_the_browser(in_the_browser, caplog):
+    @play.repeat_forever
+    async def blink():
+        play.timer(0.5)
+
+    play.repeat_forever(_stop_after(10))
+
+    with caplog.at_level(logging.WARNING, logger="play"):
+        _run_page(in_the_browser, play.start_program)
+
+    assert any("forgot" in record.getMessage() for record in caplog.records)
+
+
+def test_a_top_level_await_does_not_start_the_program_early(in_the_browser):
+    script = compile(
+        "play.repeat_forever(stop_after(3))\n"
+        "await asyncio.sleep(0)\n"
+        "play.start_program()\n",
+        "main.py",
+        "exec",
+        flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT,
+    )
+    main = {
+        "__name__": "__main__",
+        "asyncio": asyncio,
+        "play": play,
+        "stop_after": _stop_after,
+    }
+    play.api.auto_start._schedule_auto_start.has_run = False
+
+    async def page():
+        await types.FunctionType(script, main)()
+        await _until_only_the_page_is_left()
+
+    in_the_browser.run_until_complete(page())
+
+    assert globals_list.program_state is play.globals.ProgramState.STOPPED
+    assert not globals_list.error_shown

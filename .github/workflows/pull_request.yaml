@@ -52,7 +52,7 @@ jobs:
     - name: Install the Python that Raspberry Pi OS ships
       run: |
         apt-get update
-        apt-get install -y --no-install-recommends python3 python3-venv git ca-certificates
+        apt-get install -y --no-install-recommends python3 python3-venv git ca-certificates fontconfig fonts-dejavu-core
         python3 --version
 
     - uses: actions/checkout@v5

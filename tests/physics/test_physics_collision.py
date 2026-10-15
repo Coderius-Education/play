@@ -109,3 +109,13 @@ def test_sensor_setter_survives_remake():
 def test_sleep_disabled_on_space():
     """The physics space should not have body sleeping enabled."""
     assert physics_space.sleep_time_threshold == float("inf")
+
+
+def test_a_begin_handler_that_raises_on_pymunk_6_still_lets_the_shapes_collide(capsys):
+    from play.physics import _keep_colliding
+
+    def begin(*_):
+        raise RuntimeError("bug in a begin handler")
+
+    assert _keep_colliding(begin)(None, None, None) is True
+    assert "RuntimeError: bug in a begin handler" in capsys.readouterr().err

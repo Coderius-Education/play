@@ -150,3 +150,17 @@ def test_sprites_made_in_a_list_comprehension_are_all_made(run_script):
         "    os._exit(0)\n",
     )
     assert printed == ["made", "4"]
+
+
+def test_an_exception_the_script_catches_still_lets_the_game_start(run_script):
+    printed = run_script(
+        "@play.when_program_starts\n"
+        "def start():\n"
+        "    print('started')\n"
+        "    os._exit(0)\n"
+        "try:\n"
+        "    int('x')\n"
+        "except ValueError:\n"
+        "    print('caught')\n",
+    )
+    assert printed == ["caught", "started"]

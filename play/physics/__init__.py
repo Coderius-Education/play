@@ -3,6 +3,7 @@
 import atexit as _atexit
 import math as _math
 import numbers as _numbers
+import traceback as _traceback
 from dataclasses import dataclass
 
 import pygame
@@ -373,13 +374,26 @@ physics_space.idle_speed_threshold = 0
 physics_space.gravity = globals_list.gravity.horizontal, globals_list.gravity.vertical
 
 
+def _keep_colliding(begin):
+    """Wrap a pymunk 6 begin handler so the shapes still collide when it raises."""
+
+    def begin_and_collide(arbiter, space, data):
+        try:
+            begin(arbiter, space, data)
+        except Exception:  # pylint: disable=broad-exception-caught
+            _traceback.print_exc()
+        return True
+
+    return begin_and_collide
+
+
 def on_every_collision(begin, separate):
     """Call *begin* when any two shapes start touching and *separate* when they stop.
     :param begin: Called with ``(arbiter, space, data)``; it returns True.
     :param separate: Called with ``(arbiter, space, data)``."""
     if _pymunk.version.startswith("6."):
         handler = physics_space.add_default_collision_handler()
-        handler.begin = begin
+        handler.begin = _keep_colliding(begin)
         handler.separate = separate
     else:
         physics_space.on_collision(begin=begin, separate=separate)

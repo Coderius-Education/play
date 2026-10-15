@@ -7,7 +7,7 @@ import traceback
 
 from play.globals import globals_list
 from play.io.logging import play_logger
-from play.loop import get_loop as _get_loop, stop_loop as _stop_loop
+from play.loop import create_task as _create_task, stop_loop as _stop_loop
 from play.utils.async_helpers import make_async
 
 
@@ -119,7 +119,7 @@ def contact_callback(func, *args, optional_args=()):
     async def start():
         if not start.is_running:
             start.is_running = True
-            _get_loop().create_task(_stop_on_error(run_then_allow_again, (), {}))
+            _create_task(_stop_on_error(run_then_allow_again, (), {}))
 
     start.is_running = False
     return start
@@ -134,7 +134,7 @@ def fire_async_callback(callback, required_args, optional_args, *args, **kwargs)
     _, callback_args = _resolve_callback_args(
         callback, required_args, optional_args, *args
     )
-    _get_loop().create_task(_stop_on_error(callback, callback_args, kwargs))
+    _create_task(_stop_on_error(callback, callback_args, kwargs))
 
 
 async def run_any_async_callback(callbacks, *args, **kwargs):

@@ -15,12 +15,20 @@ _DESTROYED_PENDING = "Task was destroyed but it is pending!"
 
 RUNS_IN_BROWSER = sys.platform == "emscripten"
 
+TASK_NAME_PREFIX = "play: "
+
+_tasks = set()
+
 
 def _handle_exception(the_loop, context):
     exception = context.get("exception")
     task = context.get("future")
     task_name = task.get_name() if task else "unknown"
     message = context.get("message", "Unhandled exception in async task")
+
+    if RUNS_IN_BROWSER and not task_name.startswith(TASK_NAME_PREFIX):
+        the_loop.default_exception_handler(context)
+        return
 
     if not exception and message.startswith(_DESTROYED_PENDING):
         # Expected once the loop has stopped, and nothing the user can act on.
@@ -62,12 +70,27 @@ def get_loop():
             _loop.set_debug(False)
         _loop.set_exception_handler(_handle_exception)
         _creator_pid = pid
+        _tasks.clear()
 
     return _loop
 
 
+def create_task(coro):
+    """Start a coroutine as one of play's tasks.
+    :param coro: The coroutine to run.
+    :return: The task."""
+    task = get_loop().create_task(coro, name=TASK_NAME_PREFIX + coro.__qualname__)
+    if RUNS_IN_BROWSER:
+        _tasks.add(task)
+        task.add_done_callback(_tasks.discard)
+    return task
+
+
 def stop_loop(loop=None):
-    """Mark the program as stopped and stop the event loop, unless it is the page's."""
+    """Mark the program as stopped and stop the event loop; in the browser, cancel play's tasks."""
     globals_list.program_state = ProgramState.STOPPED
-    if not RUNS_IN_BROWSER:
+    if RUNS_IN_BROWSER:
+        for task in list(_tasks):
+            task.cancel()
+    else:
         (loop if loop is not None else get_loop()).stop()
