@@ -4,7 +4,7 @@ from enum import Enum
 
 from pymunk import Shape, Arbiter
 
-from play.physics import physics_space
+from play.physics import on_every_collision, physics_space
 
 
 class WallSide(Enum):
@@ -34,9 +34,7 @@ class CollisionCallbackRegistry:
     def __init__(self):
         self.callbacks = {}
         self.reset()
-        physics_space.on_collision(
-            begin=self._handle_collision, separate=self._handle_end_collision
-        )
+        on_every_collision(self._handle_collision, self._handle_end_collision)
 
     def reset(self):
         """Clear every registered callback.

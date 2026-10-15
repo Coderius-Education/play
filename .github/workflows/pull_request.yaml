@@ -75,9 +75,15 @@ jobs:
       with:
         python-version: "3.12"
 
-    - name: Install pygbag and Playwright
+    - name: Run the tests with the pymunk and numpy that pygbag provides
       run: |
         python -m pip install --upgrade pip
+        grep -v -e pymunk -e numpy requirements.txt > "$RUNNER_TEMP/requirements-pygbag.txt"
+        pip install -r requirements-dev.txt -r "$RUNNER_TEMP/requirements-pygbag.txt" pymunk==6.4.0 numpy==2.0.2
+        pytest ./tests -n auto --runslow
+
+    - name: Install pygbag and Playwright
+      run: |
         pip install pygbag==0.9.3 playwright==1.56.0
         python -m playwright install --with-deps chromium
 

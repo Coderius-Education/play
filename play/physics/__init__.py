@@ -373,6 +373,18 @@ physics_space.idle_speed_threshold = 0
 physics_space.gravity = globals_list.gravity.horizontal, globals_list.gravity.vertical
 
 
+def on_every_collision(begin, separate):
+    """Call *begin* when any two shapes start touching and *separate* when they stop.
+    :param begin: Called with ``(arbiter, space, data)``; it returns True.
+    :param separate: Called with ``(arbiter, space, data)``."""
+    if _pymunk.version.startswith("6."):
+        handler = physics_space.add_default_collision_handler()
+        handler.begin = begin
+        handler.separate = separate
+    else:
+        physics_space.on_collision(begin=begin, separate=separate)
+
+
 @_atexit.register
 def _empty_physics_space():
     """Empty the space at exit, while pymunk can still detach what is in it."""

@@ -297,7 +297,7 @@ def _install_collision_error_recorder():
     if _RECORDER_INSTALLED:
         return
     from play.callback.collision_callbacks import collision_registry
-    from play.physics import physics_space
+    from play.physics import on_every_collision
 
     def _wrap(func):
         def wrapper(*args, **kwargs):
@@ -311,7 +311,7 @@ def _install_collision_error_recorder():
 
     begin = _wrap(collision_registry._handle_collision)
     separate = _wrap(collision_registry._handle_end_collision)
-    physics_space.on_collision(begin=begin, separate=separate)
+    on_every_collision(begin, separate)
     _RECORDER_INSTALLED.append(True)
 
 
