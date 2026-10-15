@@ -19,10 +19,10 @@ python3 -m venv ~/play-env
 ### In the browser
 With [pygbag](https://pypi.org/project/pygbag/) a play game runs in the
 browser. Name the file `main.py`, put it in a folder of its own and list
-coderius-play at the top:
+coderius-play and pygame-ce at the top, so pygbag loads them:
 ```python
 # /// script
-# dependencies = ["coderius-play"]
+# dependencies = ["coderius-play", "pygame-ce"]
 # ///
 import play
 

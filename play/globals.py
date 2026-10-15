@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Optional
 
-import pygame.sprite
+import pygame
 
 if TYPE_CHECKING:
     from play.objects.widgets.text_input import TextInput

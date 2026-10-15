@@ -3,7 +3,7 @@
 import math as _math
 import warnings as _warnings
 
-import pygame.sprite
+import pygame
 import pymunk as _pymunk
 
 from play.api.auto_start import _schedule_auto_start
