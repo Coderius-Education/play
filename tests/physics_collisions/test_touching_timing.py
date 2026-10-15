@@ -12,7 +12,6 @@ SIM_STEPS = [1, 3, 10, 20]
 
 
 def _assert_contact_rules(events):
-    """Check a log of "touching", "stopped" and "frame end" against the rules."""
     assert "touching" in events, "the sprites never touched"
     open_contact = False
     called_this_frame = False

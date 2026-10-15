@@ -90,11 +90,7 @@ def test_scoring_is_independent_of_screen_size(size):
 
 @pytest.mark.parametrize("sim_steps", SIM_STEPS)
 def test_callback_fires_once_per_collision_regardless_of_sim_steps(sim_steps):
-    """An edge-triggered collision must not scale with the sub-step count.
-
-    A collision callback that fired per sub-step would show a count that
-    tracks the setting, so comparing across settings is what exposes it.
-    """
+    """An edge-triggered collision must not scale with the sub-step count."""
     play.set_physics_simulation_steps(sim_steps)
 
     hits = []

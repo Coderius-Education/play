@@ -104,7 +104,6 @@ def test_resizing_a_hidden_sprite_stays_out_of_the_space():
 
 
 def test_a_negative_size_does_not_trip_pymunk():
-    # pymunk refuses a zero moment on a dynamic body in a space.
     circle = play.new_circle(radius=20)
     circle.start_physics(can_move=True, stable=False)
 

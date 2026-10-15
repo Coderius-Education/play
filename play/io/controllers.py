@@ -78,43 +78,34 @@ def when_button(index: int, released: bool, *buttons: list[int | list[int]] | No
     return decorator
 
 
-class _DisconnectedController:
+class _DisconnectedController:  # pylint: disable=missing-function-docstring
     """Holds an unplugged controller's place: every input reads as untouched."""
 
     def get_instance_id(self):
-        """Return None: an unplugged controller has no SDL instance id."""
         return None
 
     def get_numaxes(self):
-        """Return 0."""
         return 0
 
     def get_axis(self, _axis):
-        """Return 0.0, a stick at rest."""
         return 0.0
 
     def get_numbuttons(self):
-        """Return 0."""
         return 0
 
     def get_button(self, _button):
-        """Return False, a button not pressed."""
         return False
 
     def get_numhats(self):
-        """Return 0."""
         return 0
 
     def get_hat(self, _hat):
-        """Return (0, 0), a hat at rest."""
         return (0, 0)
 
     def get_numballs(self):
-        """Return 0."""
         return 0
 
     def get_ball(self, _ball):
-        """Return (0, 0), a ball that did not move."""
         return (0, 0)
 
     def get_name(self):
@@ -126,11 +117,9 @@ class _DisconnectedController:
         return ""
 
     def get_id(self):
-        """Return -1, an unplugged controller has no device index."""
         return -1
 
     def get_init(self):
-        """Return False, an unplugged controller is not initialised."""
         return False
 
     def get_power_level(self):
@@ -138,20 +127,18 @@ class _DisconnectedController:
         return "unknown"
 
     def init(self):
-        """Do nothing: there is no device to open."""
+        return None
 
     def quit(self):
-        """Do nothing: there is no device to close."""
+        return None
 
     def rumble(self, _low_frequency, _high_frequency, _duration):
-        """Return False: there is no device to rumble."""
         return False
 
     def stop_rumble(self):
-        """Do nothing: there is no device to rumble."""
+        return None
 
     def set_led(self, _color):
-        """Return False: there is no device with a light."""
         return False
 
 

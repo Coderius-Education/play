@@ -1,10 +1,4 @@
-"""One click must produce exactly one action, for every interactive widget.
-
-Widgets guard their actions with ``WidgetMixin._claim_click()``, so an action
-runs once per click however often ``update()`` runs. This checks the property
-across all of them at once, so the tenth widget someone adds is covered the day
-it is written rather than the day someone notices the bug.
-"""
+"""One click must produce exactly one action, for every interactive widget."""
 
 import pytest
 

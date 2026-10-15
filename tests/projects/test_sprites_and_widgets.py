@@ -352,7 +352,6 @@ def test_hiding_a_widget_hands_the_playfield_back():
 
 
 def test_a_slider_drag_survives_a_busy_physics_frame():
-    """A drag is state carried across frames, also while physics sprites move."""
     import play
     from play.io.screen import screen
 

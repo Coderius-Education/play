@@ -37,7 +37,6 @@ def pytest_collection_modifyitems(config, items):
 # ---------------------------------------------------------------------------
 
 
-# click_at() runs update() several times, so a widget that acts twice on one click fails.
 UPDATES_PER_CLICK = 10
 
 

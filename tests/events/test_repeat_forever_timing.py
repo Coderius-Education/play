@@ -6,7 +6,6 @@ FRAMES = 60
 
 
 def _frames_in_which(register_body):
-    """Run FRAMES frames and return the frame numbers the body recorded."""
     frame = [0]
     recorded = []
 

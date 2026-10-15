@@ -8,7 +8,6 @@ from play.io.controllers import controllers
 
 
 def _run(steps):
-    """Run the game; each step is a list of events to post, one frame apart."""
 
     @play.when_program_starts
     async def driver():
@@ -126,8 +125,6 @@ def test_an_axis_callback_hears_its_own_controller_only():
 
 
 class _FakeJoystick:
-    """Stands in for a pygame Joystick whose SDL instance id is chosen by the test."""
-
     next_instance_id = 0
 
     def __init__(self, device_index):

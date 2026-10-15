@@ -323,7 +323,6 @@ def test_while_button_pressed_chord_registers_with_a_frozenset():
 
 
 def test_while_button_pressed_chord_fires_while_all_its_buttons_are_held():
-    """A chord fires while all its buttons are held, extra ones included, not part of it."""
     import asyncio
     import pygame
     from play.io.controllers import controllers
