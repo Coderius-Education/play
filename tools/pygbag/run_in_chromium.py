@@ -15,13 +15,16 @@ TIMEOUT_MS = 180_000
 TERMINAL_TEXT = """() => {
     const lines = [];
     for (const name of Object.getOwnPropertyNames(window)) {
-        let value;
-        try { value = window[name]; } catch (error) { continue; }
-        const buffer = value && value.buffer && value.buffer.active;
-        if (!buffer || typeof buffer.getLine !== "function") continue;
-        for (let row = 0; row < buffer.length; row++) {
-            const line = buffer.getLine(row);
-            if (line) lines.push(line.translateToString(true));
+        try {
+            const value = window[name];
+            const buffer = value && value.buffer && value.buffer.active;
+            if (!buffer || typeof buffer.getLine !== "function") continue;
+            for (let row = 0; row < buffer.length; row++) {
+                const line = buffer.getLine(row);
+                if (line) lines.push(line.translateToString(true));
+            }
+        } catch (error) {
+            continue;
         }
     }
     return lines.length ? lines.join("\\n") : document.body.innerText;
