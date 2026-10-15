@@ -1,4 +1,4 @@
-"""In the browser (pygbag, Pyodide) the page owns the event loop and keeps it running."""
+"""In the browser, under pygbag, the page owns the event loop and keeps it running."""
 
 import asyncio
 
