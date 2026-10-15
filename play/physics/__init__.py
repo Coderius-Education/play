@@ -10,6 +10,12 @@ import pymunk as _pymunk
 
 from play.globals import globals_list
 
+_NO_AREA_CATEGORY = 0b1
+_COLLIDES = _pymunk.ShapeFilter(
+    mask=_pymunk.ShapeFilter.ALL_MASKS() ^ _NO_AREA_CATEGORY
+)
+_COLLIDES_WITH_WALLS_ONLY = _pymunk.ShapeFilter(categories=_NO_AREA_CATEGORY)
+
 
 class Physics:
     def __init__(
@@ -342,17 +348,6 @@ def _check_mass(mass, can_move):
             f"""The mass of a sprite has to be a number above 0, but it was set to {mass!r}.
 Try a value like 10, which is the mass play uses when you don't give one."""
         )
-
-
-_WALL_CATEGORY = 0b01
-_NO_AREA_CATEGORY = 0b10
-WALL_FILTER = _pymunk.ShapeFilter(categories=_WALL_CATEGORY)
-_COLLIDES = _pymunk.ShapeFilter(
-    mask=_pymunk.ShapeFilter.ALL_MASKS() ^ _NO_AREA_CATEGORY
-)
-_COLLIDES_WITH_WALLS_ONLY = _pymunk.ShapeFilter(
-    categories=_NO_AREA_CATEGORY, mask=_WALL_CATEGORY
-)
 
 
 def _box_vertices(width, height):

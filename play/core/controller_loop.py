@@ -97,8 +97,6 @@ async def handle_controller():
                 activated_states=buttons,
                 required_args=["button"],
                 property_filter={"controller": controller_id},
-                held_states=controller_state.buttons_pressed.get(controller_id, set())
-                | buttons,
             )
 
     ############################################################
