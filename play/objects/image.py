@@ -8,6 +8,8 @@ from play.utils import scale_to_percent as _scale_to_percent
 
 
 class Image(Sprite):
+    _scaled_by_size = True
+
     def __init__(
         self, image, x=0, y=0, angle=0, size=100, transparency=100, anchor=None, layer=0
     ):
@@ -34,6 +36,18 @@ class Image(Sprite):
         # Always a scaled copy, so set_alpha never touches the source surface.
         self._place_image(_scale_to_percent(self._source_image, self._size))
 
+    def _unscaled_size(self):
+        """Return the size of the source image."""
+        return self._source_image.get_size()
+
+    def clone(self):
+        """Create a copy of the image.
+        :return: A copy of the image."""
+        return self.__class__(
+            image=self._image_filename or self._source_image,
+            **self._common_properties(),
+        )
+
     # The custom image property is removed to use the parent Sprite's property.
     # This ensures that the image managed by the Pygame sprite group is the
     # one generated in the update method.
@@ -51,4 +65,5 @@ class Image(Sprite):
         self._image_filename = image
         self._source_image = pygame.image.load(image)
         self._should_recompute = True
+        self.physics._resize_shape()
         self.update()

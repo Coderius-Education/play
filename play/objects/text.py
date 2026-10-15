@@ -11,6 +11,8 @@ from play.io.logging import play_logger
 
 
 class Text(Sprite):
+    _scaled_by_size = True
+
     def __init__(
         self,
         words="",
@@ -30,7 +32,7 @@ class Text(Sprite):
         self._font_size = font_size
 
         self._load_font(font, font_size)
-        self._words = words
+        self._words = str(words)
         self._color = color
 
         self._x = 0 if anchor else x
@@ -55,6 +57,10 @@ class Text(Sprite):
         )
         self._finalize_image(draw_image)
 
+    def _unscaled_size(self):
+        """Return the size of the rendered words before size and angle apply."""
+        return _render_text(self._pygame_font, self._words, True, (0, 0, 0)).get_size()
+
     def clone(self):
         return self.__class__(
             words=self.words,
@@ -73,6 +79,7 @@ class Text(Sprite):
     def words(self, string):
         """Set the words of the text object."""
         self._words = str(string)
+        self.physics._resize_shape()
 
     @property
     def font(self):
@@ -84,6 +91,7 @@ class Text(Sprite):
         """Set the font of the text object. This will load the font dynamically."""
         self._font = font_name
         self._load_font(font_name, self._font_size)
+        self.physics._resize_shape()
 
     @property
     def font_size(self):
@@ -95,6 +103,7 @@ class Text(Sprite):
         """Set the font size of the text object."""
         self._font_size = size
         self._load_font(self._font, size)
+        self.physics._resize_shape()
 
     @property
     def color(self):

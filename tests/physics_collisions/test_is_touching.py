@@ -41,9 +41,9 @@ def test_ball_movement():
 
     play.start_program()
 
-    if not (num_collisions_decorator[0] == 2 and method_check_inside_decorator[0] == 2):
+    if not (num_collisions_decorator[0] == 1 and method_check_inside_decorator[0] == 1):
         pytest.fail(
-            f"expected two collisions by the method and the decorator, but found {num_collisions_decorator[0]}, {method_check_inside_decorator[0]}"
+            f"expected one collision by the method and the decorator, but found {num_collisions_decorator[0]}, {method_check_inside_decorator[0]}"
         )
 
 

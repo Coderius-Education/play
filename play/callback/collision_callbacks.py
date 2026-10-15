@@ -45,6 +45,16 @@ class CollisionCallbackRegistry:
         instead of reassigning ``callbacks`` from outside.
         """
         self.callbacks = {True: {}, False: {}}
+        self._changed_sprites = set()
+
+    def mark_changed(self, sprite):
+        """Note that a contact of *sprite* began or ended."""
+        self._changed_sprites.add(sprite)
+
+    def take_changed_sprites(self):
+        """Return, and forget, the sprites whose contacts began or ended since the last call."""
+        changed, self._changed_sprites = self._changed_sprites, set()
+        return changed
 
     def _callback(self, begin, shape, other_shape):
         """The callback registered for *shape* against *other_shape*, or None."""
@@ -77,8 +87,11 @@ class CollisionCallbackRegistry:
             else:
                 wall_shape, sprite_shape = shape_b, shape_a
             sprite = sprite_shape._play_sprite
+            if sprite is None:
+                return True
+            sprite.events.wall_contact_began(wall_shape)
             callback = self._callback(True, sprite_shape, wall_shape)
-            if sprite is not None and callback is not None:
+            if callback is not None:
                 sprite.events.set_touching(wall_shape.collision_type, callback)
             return True
 
@@ -97,7 +110,9 @@ class CollisionCallbackRegistry:
         if callback is None:
             callback = self._callback(True, shape_b, shape_a)
         if callback is not None:
-            sprite_a.events.set_touching(shape_b.collision_type, callback)
+            sprite_a.events.set_touching(
+                shape_b.collision_type, callback, shape_b._play_sprite
+            )
         return True
 
     def _handle_end_collision_shape(self, shape_a: Shape, shape_b: Shape):
@@ -120,6 +135,8 @@ class CollisionCallbackRegistry:
 
         if sprite_a.events.get_touching(shape_b.collision_type):
             sprite_a.events.clear_touching(shape_b.collision_type)
+        if is_wall and not sprite_a.events.wall_contact_ended(shape_b):
+            return True
         callback = self._callback(False, shape_a, shape_b)
         if callback is None:
             return False

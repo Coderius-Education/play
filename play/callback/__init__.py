@@ -84,6 +84,18 @@ class CallbackManager:
         if callback_discriminator in self.callbacks[callback_type]:
             self.callbacks[callback_type][callback_discriminator] = []
 
+    def take_callbacks_on(self, callback_type, callback_discriminator, target):
+        """Remove and return the callbacks of a ``(callback, target)`` bucket aimed at *target*.
+        :param callback_type: The type of callback.
+        :param callback_discriminator: The discriminator of the bucket.
+        :param target: The target whose callbacks to take.
+        :return: The callbacks, without their target.
+        """
+        bucket = self.callbacks.get(callback_type, {}).get(callback_discriminator, [])
+        taken = [callback for callback, aimed_at in bucket if aimed_at is target]
+        bucket[:] = [entry for entry in bucket if entry[1] is not target]
+        return taken
+
     def get_callbacks(self, callback_type) -> dict:
         """
         Get the callbacks of a certain type.
@@ -166,6 +178,7 @@ class CallbackManager:
         required_args=None,
         optional_args=None,
         property_filter=None,
+        held_states=None,
     ):
         """
         Run callbacks of a certain type with a specific discriminator.
@@ -174,6 +187,8 @@ class CallbackManager:
         :param required_args: The required arguments for the callback.
         :param optional_args: The optional arguments for the callback.
         :param property_filter: A dictionary of properties to filter the callbacks. For example, {'controller': 0}.
+        :param held_states: The states held this frame; a combination fires when all of
+            it is held and part of it is activated. Defaults to activated_states.
         :return: None
         """
         if required_args is None:
@@ -199,28 +214,40 @@ class CallbackManager:
         if not activated_states or not self.get_callbacks(callback_type):
             return
 
+        if held_states is None:
+            held_states = activated_states
         subscriptions = self.get_callbacks(callback_type)
-        for state in activated_states:
-            for callback in subscriptions.get(state, []):
-                if is_valid_callback(callback):
-                    fire_async_callback(
-                        callback, required_args, optional_args, state, *args
-                    )
-            for callback in subscriptions.get("any", []):
-                if is_valid_callback(callback):
-                    fire_async_callback(
-                        callback, required_args, optional_args, state, *args
-                    )
-        all_hash = hash(frozenset(activated_states))
-        for callback in subscriptions.get(all_hash, []):
+        triggered = [
+            (callback, state)
+            for state in activated_states
+            for callback in [
+                *subscriptions.get(state, []),
+                *subscriptions.get("any", []),
+            ]
+        ]
+        triggered += [
+            (callback, set(combination))
+            for combination in _combinations_to_fire(
+                subscriptions, activated_states, held_states
+            )
+            for callback in subscriptions[combination]
+        ]
+        for callback, state in triggered:
             if is_valid_callback(callback):
                 fire_async_callback(
-                    callback,
-                    required_args,
-                    optional_args,
-                    activated_states,
-                    *args,
+                    callback, required_args, optional_args, state, *args
                 )
+
+
+def _combinations_to_fire(subscriptions, activated_states, held_states):
+    """Return the registered combinations that are held in full and partly activated."""
+    return [
+        combination
+        for combination in subscriptions
+        if isinstance(combination, frozenset)
+        and not combination.isdisjoint(activated_states)
+        and combination.issubset(held_states)
+    ]
 
 
 callback_manager = CallbackManager()

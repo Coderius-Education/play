@@ -311,11 +311,20 @@ def test_text_clone():
 
 
 def test_text_invalid_words_type():
-    """Test that non-string words raise TypeError."""
     import play
 
-    with pytest.raises(TypeError, match="words for a text object must be a string"):
-        play.new_text(words=123)
+    with pytest.raises(TypeError, match="must be a string or a number"):
+        play.new_text(words=["score"])
+
+
+def test_text_words_can_be_a_number_like_the_setter_allows():
+    import play
+
+    score = play.new_text(words=0)
+    assert score.words == "0"
+    assert play.new_text(words=1.5).words == "1.5"
+    score.words = 10
+    assert score.words == "10"
 
 
 def test_text_hide_show():

@@ -16,6 +16,7 @@ This test verifies:
 - the video reaches its end inside the loop and fires ``when_video_ends``
 """
 
+import time
 import pytest
 
 from tests.conftest import (
@@ -24,8 +25,6 @@ from tests.conftest import (
     post_mouse_down,
     post_mouse_up,
 )
-
-max_frames = 700
 
 
 @pytest.fixture
@@ -115,9 +114,8 @@ def test_video_kiosk(short_clip):
         seen["volume"] = video.volume
 
         # 5. Let the clip play out for real and reach its end.
-        for _ in range(240):
-            if video.finished:
-                break
+        deadline = time.monotonic() + 10
+        while not video.finished and time.monotonic() < deadline:
             await play.animate()
         # The end callback is scheduled as a task on the loop; give it a
         # couple of frames to actually run before reading the result.
@@ -130,7 +128,8 @@ def test_video_kiosk(short_clip):
     # Safety net so a broken assertion can't hang the suite.
     @play.when_program_starts
     async def safety_timeout():
-        for _ in range(max_frames):
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline:
             await play.animate()
         play.stop_program()
 

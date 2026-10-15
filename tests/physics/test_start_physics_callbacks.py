@@ -236,6 +236,110 @@ def test_other_sprite_start_physics_preserves_dependent_callbacks():
     play.stop_program()
 
 
+@pytest.mark.parametrize("event", ["touching", "stopped touching"])
+def test_a_third_sprites_callback_survives_another_sprite_starting_physics(event):
+    import play
+
+    ball = play.new_circle(radius=10)
+    target = play.new_box(x=200, width=20, height=20)
+    goal = play.new_box(x=-200, width=20, height=20)
+    ball.start_physics(x_speed=-300, obeys_gravity=False)
+    goal.start_physics(can_move=False)
+    hits = []
+
+    ball.when_touching(target)(lambda: hits.append("ball on target"))
+    if event == "touching":
+        goal.when_touching(ball)(lambda: hits.append("goal"))
+    else:
+        goal.when_stopped_touching(ball)(lambda: hits.append("goal"))
+
+    target.start_physics(can_move=False)
+    frames = [0]
+
+    @play.repeat_forever
+    def stop_later():
+        frames[0] += 1
+        if frames[0] == 90:
+            play.stop_program()
+
+    play.start_program()
+
+    assert "goal" in hits
+
+
+_REGISTER = {
+    "when_touching": lambda ball, paddle, hit: ball.when_touching(paddle)(hit),
+    "when_stopped_touching": lambda ball, paddle, hit: ball.when_stopped_touching(
+        paddle
+    )(hit),
+    "when_touching_wall": lambda ball, paddle, hit: ball.when_touching_wall(hit),
+    "when_stopped_touching_wall": lambda ball, paddle, hit: (
+        ball.when_stopped_touching_wall(hit)
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    "restarted, event",
+    [
+        ("ball", "when_touching"),
+        ("ball", "when_stopped_touching"),
+        ("ball", "when_touching_wall"),
+        ("ball", "when_stopped_touching_wall"),
+        ("paddle", "when_touching"),
+        ("paddle", "when_stopped_touching"),
+    ],
+)
+def test_callbacks_still_run_after_many_restarts_of_physics(restarted, event):
+    import play
+
+    ball = play.new_circle(x=-350 if "wall" in event else 300, radius=10)
+    paddle = play.new_box(x=-300, width=20, height=200)
+    hits = []
+    _REGISTER[event](ball, paddle, lambda: hits.append("hit"))
+
+    for _ in range(1500):
+        if restarted == "paddle":
+            paddle.start_physics(can_move=False)
+        else:
+            ball.start_physics(x_speed=-600, obeys_gravity=False)
+    ball.start_physics(x_speed=-600, obeys_gravity=False)
+    frames = [0]
+
+    @play.repeat_forever
+    def stop_later():
+        frames[0] += 1
+        if frames[0] == 90:
+            play.stop_program()
+
+    play.start_program()
+
+    assert hits
+
+
+def test_when_stopped_touching_on_a_sprite_survives_it_starting_physics_again():
+    import play
+
+    ball = play.new_circle(radius=10)
+    ball.start_physics(x_speed=-300, obeys_gravity=False)
+    target = play.new_box(x=-100, width=20, height=200)
+    target.start_physics(can_move=False)
+    hits = []
+    ball.when_stopped_touching(target)(lambda: hits.append("stopped"))
+    target.start_physics(can_move=False)
+    frames = [0]
+
+    @play.repeat_forever
+    def stop_later():
+        frames[0] += 1
+        if frames[0] == 120:
+            play.stop_program()
+
+    play.start_program()
+
+    assert hits == ["stopped"]
+
+
 def test_collision_type_stable_across_make_pymunk():
     """collision_type must survive _make_pymunk() calls on the same physics object.
 

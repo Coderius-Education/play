@@ -5,11 +5,12 @@ import math as _math
 from play.core.mouse_loop import mouse_state
 from play.callback import callback_manager, CallbackType
 from play.callback.callback_helpers import run_any_async_callback
+from play.callback.collision_callbacks import collision_registry
 from play.globals import globals_list
 from play.io.mouse import mouse
 
 # Track which sprite was clicked for when_click_released events
-_clicked_sprite_id = None  # pylint: disable=invalid-name
+_clicked_sprites = set()
 
 
 def update_sprite_physics(sprite):
@@ -31,6 +32,27 @@ def update_sprite_physics(sprite):
     sprite.physics._x_speed, sprite.physics._y_speed = body.velocity
 
 
+def _sync_moving_sprites(sprites):
+    """Bring every moving sprite up to date with its physics body."""
+    for sprite in sprites:
+        if sprite.physics.can_move:
+            update_sprite_physics(sprite)
+
+
+async def handle_new_contacts():
+    """After a physics sub-step: run the contacts that just began or ended."""
+    changed = collision_registry.take_changed_sprites()
+    if not changed:
+        return
+    sprites = globals_list.sprites_group.sprites()
+    _sync_moving_sprites(sprites)
+    for sprite in sprites:
+        if sprite in changed:
+            await run_any_async_callback(sprite.events.new_touching_callbacks(), [], [])
+            await run_any_async_callback(sprite.events.stopped_callbacks(), [], [])
+            sprite.events.clear_all_stopped()
+
+
 async def run_sprite_callbacks(sprite):
     """Run touching and stopped callbacks for a sprite."""
     await run_any_async_callback(sprite.events.touching_callbacks(), [], [])
@@ -44,13 +66,8 @@ def handle_sprite_click(sprite):
     Tracks which sprite was clicked (for later click-release detection)
     and fires when_clicked callbacks.
     """
-    global _clicked_sprite_id
-
-    touching_and_clicked = mouse.is_touching(sprite) and mouse_state.click_hits(sprite)
-    if touching_and_clicked:
-        _clicked_sprite_id = id(sprite)
-
-    if mouse.is_clicked and touching_and_clicked:
+    if mouse.is_touching(sprite) and mouse_state.click_hits(sprite):
+        _clicked_sprites.add(sprite)
         sprite.events.is_clicked = True
         callback_manager.run_callbacks(
             CallbackType.WHEN_CLICKED_SPRITE, callback_discriminator=id(sprite)
@@ -66,7 +83,7 @@ def handle_sprite_click_released(sprite):
     if (
         mouse_state.click_release_happened
         and mouse.is_touching(sprite)
-        and _clicked_sprite_id == id(sprite)
+        and sprite in _clicked_sprites
     ):
         callback_manager.run_callbacks(
             CallbackType.WHEN_CLICK_RELEASED_SPRITE,
@@ -76,43 +93,30 @@ def handle_sprite_click_released(sprite):
 
 def clear_click_tracking():
     """Clear the clicked sprite tracking after a release event."""
-    global _clicked_sprite_id
-    _clicked_sprite_id = None
+    _clicked_sprites.clear()
 
 
-async def update_sprites(do_events: bool = True):
-    """Update all sprites in the game loop.
-    :param do_events: If True, run events for sprites. If False, only update positions.
-    """
-    for sprite in globals_list.sprites_group.sprites():
-        if sprite.physics.can_move:
-            update_sprite_physics(sprite)
-
+async def update_sprites():
+    """Update all sprites in the game loop."""
+    sprites = globals_list.sprites_group.sprites()
+    _sync_moving_sprites(sprites)
+    for sprite in sprites:
         sprite.events.is_clicked = False
 
         # Videos keep playing (and keep their sound in step) even while hidden,
         # so they are ticked before the is_hidden check below.
-        if do_events:
-            sprite._tick()
-
-        if sprite.is_hidden:
-            if do_events:
-                await run_any_async_callback(sprite.events.stopped_callbacks(), [], [])
-                sprite.events.clear_all_stopped()
-            continue
+        sprite._tick()
 
         await run_sprite_callbacks(sprite)
+        if sprite.is_hidden:
+            continue
 
-        if do_events:
-            # Objects with their own controls (like videos) get first refusal on
-            # a click. When they use it, the click is not also reported as a
-            # click on the object itself.
-            if sprite._handle_frame_events():
-                continue
-            handle_sprite_click(sprite)
-            handle_sprite_click_released(sprite)
+        if sprite._handle_frame_events():
+            continue
+        handle_sprite_click(sprite)
+        handle_sprite_click_released(sprite)
 
-    if do_events and mouse_state.click_release_happened:
+    if mouse_state.click_release_happened:
         clear_click_tracking()
 
     globals_list.sprites_group.update()

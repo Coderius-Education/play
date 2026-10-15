@@ -4,6 +4,7 @@ from collections import defaultdict
 import pygame
 
 from play.callback import callback_manager, CallbackType
+from play.io.controllers import controllers
 
 
 class ControllerState:
@@ -32,25 +33,39 @@ class ControllerState:
 
 controller_state = ControllerState()
 
+_CONTROLLER_EVENTS = (
+    pygame.JOYAXISMOTION,
+    pygame.JOYBUTTONDOWN,
+    pygame.JOYBUTTONUP,
+    pygame.JOYDEVICEREMOVED,
+)
+
 
 def handle_controller_events(event):
     """Handle controller events in the game loop.
     :param event: The event to handle."""
+    if event.type == pygame.JOYDEVICEADDED:
+        controllers._connect(event.device_index)
+        return
+    if event.type not in _CONTROLLER_EVENTS:
+        return
+    index = controllers._index_of(event.instance_id)
     if event.type == pygame.JOYAXISMOTION:
-        controller_state.axes_moved[event.instance_id].append(
+        controller_state.axes_moved[index].append(
             {"axis": event.axis, "value": round(event.value)}
         )
     if event.type == pygame.JOYBUTTONDOWN:
-        controller_state.buttons_pressed[event.instance_id].add(event.button)
-        controller_state.buttons_pressed_this_frame[event.instance_id].add(event.button)
+        controller_state.buttons_pressed[index].add(event.button)
+        controller_state.buttons_pressed_this_frame[index].add(event.button)
     if event.type == pygame.JOYBUTTONUP:
-        controller_state.buttons_released[event.instance_id].add(event.button)
-        controller_state.buttons_pressed[event.instance_id].discard(event.button)
-        if not controller_state.buttons_pressed[event.instance_id]:
-            del controller_state.buttons_pressed[event.instance_id]
+        controller_state.buttons_released[index].add(event.button)
+        controller_state.buttons_pressed[index].discard(event.button)
+        if not controller_state.buttons_pressed[index]:
+            del controller_state.buttons_pressed[index]
     if event.type == pygame.JOYDEVICEREMOVED:
-        controller_state.buttons_pressed.pop(event.instance_id, None)
-        controller_state.buttons_pressed_this_frame.pop(event.instance_id, None)
+        controller_state.buttons_pressed.pop(index, None)
+        controller_state.buttons_pressed_this_frame.pop(index, None)
+        controllers._disconnect(event.instance_id)
 
 
 async def handle_controller():
@@ -68,6 +83,8 @@ async def handle_controller():
                 activated_states=buttons,
                 required_args=["button"],
                 property_filter={"controller": controller_id},
+                held_states=controller_state.buttons_pressed.get(controller_id, set())
+                | buttons,
             )
 
     ############################################################
@@ -106,9 +123,6 @@ async def handle_controller():
                     [axis_event["axis"]],  # activated states
                     axis_event["value"],  # value
                     required_args=["axis", "value"],
-                    property_filter={
-                        "axis": axis_event["axis"],
-                        "controller": controller_id,
-                    },
+                    property_filter={"controller": controller_id},
                 )
         controller_state.axes_moved.clear()

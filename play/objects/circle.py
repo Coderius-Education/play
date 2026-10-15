@@ -7,6 +7,7 @@ from play.utils import color_name_to_rgb as _color_name_to_rgb
 
 class Circle(Sprite):
     _circular_hit_shape = True
+    _scaled_by_size = True
 
     def __init__(
         self,
@@ -51,23 +52,22 @@ class Circle(Sprite):
 
     def _render(self):
         """Draw the circle surface with border, scale, alpha, and rotation."""
-        draw_image = pygame.Surface(
-            (self._radius * 2, self._radius * 2), pygame.SRCALPHA
-        )
+        radius = max(self._radius, 0)
+        draw_image = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
 
         if self._border_width > 0:
             pygame.draw.circle(
                 draw_image,
                 _color_name_to_rgb(self._border_color),
-                (self._radius, self._radius),
-                self._radius,
+                (radius, radius),
+                radius,
             )
 
         pygame.draw.circle(
             draw_image,
             _color_name_to_rgb(self._color),
-            (self._radius, self._radius),
-            max(self._radius - self._border_width, 0),
+            (radius, radius),
+            max(radius - self._border_width, 0),
         )
 
         if self._size <= 0:
@@ -111,9 +111,7 @@ class Circle(Sprite):
         """Set the radius of the circle.
         :param _radius: The radius of the circle."""
         self._radius = _radius
-        # Account for size scaling when updating physics shape
-        size_factor = (self._size or 100) / 100
-        self.physics._pymunk_shape.unsafe_set_radius(self._radius * size_factor)
+        self.physics._resize_shape()
 
     ##### border_color #####
     @property

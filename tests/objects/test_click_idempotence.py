@@ -1,18 +1,4 @@
-"""One click must produce exactly one action, for every interactive widget.
-
-``update()`` runs once per physics sub-step, not once per frame — roughly ten
-times per frame at the default ``num_sim_steps``. A widget action written the
-obvious way (``checked = not checked``) therefore fires ten times per click and
-lands back where it started, and a button calls the student's function ten
-times over.
-
-Each widget guards against this individually today. This checks the property
-across all of them at once, so the tenth widget someone adds is covered the day
-it is written rather than the day someone notices the bug.
-
-Driven through the real game loop with real pygame events: the whole point is
-the per-sub-step cadence, which only exists inside start_program().
-"""
+"""One click must produce exactly one action, for every interactive widget."""
 
 import pytest
 

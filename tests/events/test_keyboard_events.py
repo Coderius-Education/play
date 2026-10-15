@@ -141,10 +141,10 @@ def test_when_key_pressed_list_of_keys():
     # Verify callback was registered
     from play.callback import callback_manager, CallbackType
 
-    # List keys are hashed
-    key_hash = hash(frozenset(["a", "b"]))
     callbacks = list(
-        callback_manager.get_callback([CallbackType.PRESSED_KEYS], key_hash)
+        callback_manager.get_callback(
+            [CallbackType.PRESSED_KEYS], frozenset(["a", "b"])
+        )
     )
     assert len(callbacks) > 0
 
@@ -162,9 +162,10 @@ def test_when_key_released_list_of_keys():
     # Verify callback was registered
     from play.callback import callback_manager, CallbackType
 
-    key_hash = hash(frozenset(["ctrl", "c"]))
     callbacks = list(
-        callback_manager.get_callback([CallbackType.RELEASED_KEYS], key_hash)
+        callback_manager.get_callback(
+            [CallbackType.RELEASED_KEYS], frozenset(["ctrl", "c"])
+        )
     )
     assert len(callbacks) > 0
 

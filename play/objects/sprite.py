@@ -248,6 +248,8 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
             self._image = pygame.Surface((0, 0), pygame.SRCALPHA)
         else:
             self._render()
+            if not self._scaled_by_size and self.physics is not None:
+                self.physics._resize_shape()
         self._should_recompute = False
 
     def _render(self):
@@ -255,8 +257,8 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
     @property
     def is_clicked(self):
-        """Get whether the sprite is clicked.
-        :return: Whether the sprite is clicked."""
+        """Whether the sprite was clicked in this frame; play.mouse.is_clicked stays True while held.
+        :return: Whether the sprite was clicked in this frame."""
         return self.events.is_clicked
 
     @property
@@ -267,7 +269,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
     @x.setter
     def x(self, _x):
-        """Set the x-coordinate of the sprite.
+        """Set the x-coordinate of the sprite. A physics sprite keeps its speed.
         :param _x: The x-coordinate of the sprite."""
         # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._x = _x
@@ -281,7 +283,7 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
 
     @y.setter
     def y(self, _y):
-        """Set the y-coordinate of the sprite.
+        """Set the y-coordinate of the sprite. A physics sprite keeps its speed.
         :param _y: The y-coordinate of the sprite."""
         # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._y = _y
@@ -290,6 +292,10 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
     def _move_body(self):
         """Move the pymunk body and its shape to ``(x, y)`` right away."""
         self.physics._pymunk_body.position = self._x, self._y
+        self._reindex_body()
+
+    def _reindex_body(self):
+        """Let pymunk see a moved or turned body before the next physics step."""
         self.physics._pymunk_shape.cache_bb()
         if self.physics._pymunk_body.body_type == _pymunk.Body.STATIC:
             physics_space.reindex_static()
@@ -344,6 +350,7 @@ You might want to look in your code where you're setting transparency and make s
         # Requires self.physics to be initialized; only safe after Sprite.__init__() completes.
         self._angle = _angle
         self.physics._pymunk_body.angle = _math.radians(_angle)
+        self._reindex_body()
 
     @property
     def size(self):
@@ -424,8 +431,8 @@ You might want to look in your code where you're setting transparency and make s
         return point_touching_sprite(sprite_or_point, self)
 
     def _can_touch(self):
-        """Whether the sprite takes part in touching: not hidden or removed."""
-        return not self._is_hidden and self.alive()
+        """Whether the sprite takes part in touching: shown, not removed, not empty."""
+        return not self._is_hidden and self.alive() and self.physics._has_area
 
     def distance_to(self, x, y=None):
         """Calculate the distance to a point or sprite.
@@ -577,6 +584,7 @@ You might want to look in your code where you're setting transparency and make s
     def _place_image(self, draw_image):
         """Apply transparency, rotate and centre *draw_image* on ``(x, y)``."""
         draw_image.set_alpha(round(self._transparency * 255 / 100))
+        self._unrotated_size = draw_image.get_size()
         rect = draw_image.get_rect()
         pos = convert_pos(self.x, self.y)
         rect.x = pos[0] - rect.width // 2
@@ -596,15 +604,21 @@ You might want to look in your code where you're setting transparency and make s
     # of sprite, not of the sign of the radius: a circle built at a negative
     # size has to be a circle again when it grows back.
     _circular_hit_shape = False
+    _scaled_by_size = False
+    _unrotated_size = None
 
-    def _hit_dims(self, size_factor):  # pylint: disable=unused-argument
-        """Return ``(radius, width, height)`` for the pymunk hit-shape.
+    def _hit_dims(self, size_factor):
+        """Return ``(radius, width, height)``; *size_factor* applies if size scales the drawing."""
+        width, height = self._unscaled_size()
+        if not self._scaled_by_size:
+            size_factor = 1
+        return 0.0, float(width * size_factor), float(height * size_factor)
 
-        The physics layer calls this when building or resizing the collision
-        shape. The default uses the current rendered rect; subclasses whose
-        logical size differs from the rect (Box, Circle) override this. A
-        sprite with ``_circular_hit_shape`` gets a circle of that radius."""
-        return 0.0, float(self.width), float(self.height)
+    def _unscaled_size(self):
+        """Return the ``(width, height)`` the hit shape starts from: the drawing before it is turned."""
+        if self._unrotated_size is None:
+            return self.rect.size
+        return self._unrotated_size
 
     @property
     def width(self):
@@ -758,46 +772,28 @@ You might want to look in your code where you're setting transparency and make s
 
     def _reregister_own_callbacks(self, saved_callbacks):
         """Re-register this sprite's own callbacks after physics recreation."""
-        for callback, sprite in saved_callbacks[CallbackType.WHEN_TOUCHING]:
-            self.when_touching(sprite)(callback)
-        for callback, wall_side in saved_callbacks[CallbackType.WHEN_TOUCHING_WALL]:
-            self.when_touching_wall(callback, wall=wall_side)
-        for callback, sprite in saved_callbacks[CallbackType.WHEN_STOPPED_TOUCHING]:
-            self.when_stopped_touching(sprite)(callback)
-        for callback, wall_side in saved_callbacks[
+        for wrapper, sprite in saved_callbacks[CallbackType.WHEN_TOUCHING]:
+            self.when_touching(sprite)(wrapper.callback)
+        for wrapper, wall_side in saved_callbacks[CallbackType.WHEN_TOUCHING_WALL]:
+            self.when_touching_wall(wrapper.callback, wall=wall_side)
+        for wrapper, sprite in saved_callbacks[CallbackType.WHEN_STOPPED_TOUCHING]:
+            self.when_stopped_touching(sprite)(wrapper.callback)
+        for wrapper, wall_side in saved_callbacks[
             CallbackType.WHEN_STOPPED_TOUCHING_WALL
         ]:
-            self.when_stopped_touching_wall(callback, wall=wall_side)
+            self.when_stopped_touching_wall(wrapper.callback, wall=wall_side)
 
     def _reregister_dependent_callbacks(self):
-        """Re-register callbacks from other sprites that reference self.
-
-        When self's pymunk shape changes, other sprites' collision registrations
-        become stale and need to be refreshed.
-        """
-        sprite_callback_types = [
-            CallbackType.WHEN_TOUCHING,
-            CallbackType.WHEN_STOPPED_TOUCHING,
-        ]
+        """Register the callbacks other sprites have on this one again, on its new shape."""
         for dependent in list(self.events._dependent_sprites):
-            dep_id = id(dependent)
-            dep_saved = {
-                callback_type: list(
-                    callback_manager.get_callback(callback_type, dep_id) or []
-                )
-                for callback_type in sprite_callback_types
-            }
-            has_refs = any(s is self for cbs in dep_saved.values() for _, s in cbs)
-            if not has_refs:
-                continue
-            for callback_type in sprite_callback_types:
-                callback_manager.remove_callbacks(callback_type, dep_id)
-            dependent.events.clear_all_touching()
-            collision_registry.forget(dependent.physics._pymunk_shape)
-            for cb, sprite in dep_saved[CallbackType.WHEN_TOUCHING]:
-                dependent.when_touching(sprite)(cb)
-            for cb, sprite in dep_saved[CallbackType.WHEN_STOPPED_TOUCHING]:
-                dependent.when_stopped_touching(sprite)(cb)
+            for callback_type, register in (
+                (CallbackType.WHEN_TOUCHING, dependent.when_touching),
+                (CallbackType.WHEN_STOPPED_TOUCHING, dependent.when_stopped_touching),
+            ):
+                for wrapper in callback_manager.take_callbacks_on(
+                    callback_type, id(dependent), self
+                ):
+                    register(self)(wrapper.callback)
 
     def start_physics(
         self,

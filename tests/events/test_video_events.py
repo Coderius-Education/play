@@ -50,11 +50,11 @@ def pump():
         loop.run_until_complete(asyncio.sleep(0))
 
 
-def run_frame(do_events=True):
+def run_frame():
     """Run one pass of the sprite loop on play's event loop."""
     import play.loop
 
-    return play.loop.get_loop().run_until_complete(update_sprites(do_events=do_events))
+    return play.loop.get_loop().run_until_complete(update_sprites())
 
 
 def point_on(video, local_x, local_y):

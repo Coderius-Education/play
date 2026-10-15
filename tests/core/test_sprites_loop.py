@@ -113,7 +113,7 @@ def _reset_mouse_state():
 
 class TestHandleSpriteClick:
     def setup_method(self):
-        sprites_loop._clicked_sprite_id = None
+        sprites_loop._clicked_sprites.clear()
         _reset_mouse_state()
 
     def teardown_method(self):
@@ -131,7 +131,7 @@ class TestHandleSpriteClick:
 
         handle_sprite_click(sprite)
 
-        assert sprites_loop._clicked_sprite_id == id(sprite)
+        assert sprite in sprites_loop._clicked_sprites
 
     @patch("play.core.sprites_loop.callback_manager")
     @patch("play.core.sprites_loop.mouse")
@@ -183,7 +183,7 @@ class TestHandleSpriteClick:
 
 class TestHandleSpriteClickReleased:
     def setup_method(self):
-        sprites_loop._clicked_sprite_id = None
+        sprites_loop._clicked_sprites.clear()
         _reset_mouse_state()
 
     def teardown_method(self):
@@ -193,7 +193,7 @@ class TestHandleSpriteClickReleased:
     @patch("play.core.sprites_loop.mouse")
     def test_fires_release_on_same_sprite(self, mock_mouse, mock_cb):
         sprite = MagicMock()
-        sprites_loop._clicked_sprite_id = id(sprite)
+        sprites_loop._clicked_sprites.add(sprite)
         mouse_state.click_release_happened = True
         mock_mouse.is_touching.return_value = True
 
@@ -209,7 +209,7 @@ class TestHandleSpriteClickReleased:
     def test_no_release_on_different_sprite(self, mock_mouse, mock_cb):
         sprite = MagicMock()
         other = MagicMock()
-        sprites_loop._clicked_sprite_id = id(other)
+        sprites_loop._clicked_sprites.add(other)
         mouse_state.click_release_happened = True
         mock_mouse.is_touching.return_value = True
 
@@ -221,7 +221,7 @@ class TestHandleSpriteClickReleased:
     @patch("play.core.sprites_loop.mouse")
     def test_no_release_when_not_touching(self, mock_mouse, mock_cb):
         sprite = MagicMock()
-        sprites_loop._clicked_sprite_id = id(sprite)
+        sprites_loop._clicked_sprites.add(sprite)
         mouse_state.click_release_happened = True
         mock_mouse.is_touching.return_value = False
 
@@ -233,7 +233,7 @@ class TestHandleSpriteClickReleased:
     @patch("play.core.sprites_loop.mouse")
     def test_no_release_when_no_release_happened(self, mock_mouse, mock_cb):
         sprite = MagicMock()
-        sprites_loop._clicked_sprite_id = id(sprite)
+        sprites_loop._clicked_sprites.add(sprite)
         mouse_state.click_release_happened = False
         mock_mouse.is_touching.return_value = True
 
@@ -243,10 +243,10 @@ class TestHandleSpriteClickReleased:
 
 
 class TestClearClickTracking:
-    def test_clears_clicked_sprite_id(self):
-        sprites_loop._clicked_sprite_id = 12345
+    def test_clears_clicked_sprites(self):
+        sprites_loop._clicked_sprites.add(object())
         clear_click_tracking()
-        assert sprites_loop._clicked_sprite_id is None
+        assert not sprites_loop._clicked_sprites
 
 
 class TestUpdateSprites:
@@ -255,7 +255,7 @@ class TestUpdateSprites:
     @patch("play.core.sprites_loop.handle_sprite_click_released")
     @patch("play.core.sprites_loop.handle_sprite_click")
     @patch("play.core.sprites_loop.run_sprite_callbacks", new_callable=AsyncMock)
-    def test_click_handlers_called_when_do_events_true(
+    def test_click_handlers_called_for_a_shown_sprite(
         self, mock_callbacks, mock_click, mock_click_released, mock_globals, mock_state
     ):
         sprite = MagicMock()
@@ -266,30 +266,10 @@ class TestUpdateSprites:
         mock_globals.sprites_group.sprites.return_value = [sprite]
         mock_state.click_release_happened = False
 
-        asyncio.run(sprites_loop.update_sprites(do_events=True))
+        asyncio.run(sprites_loop.update_sprites())
 
         mock_click.assert_called_once_with(sprite)
         mock_click_released.assert_called_once_with(sprite)
-
-    @patch("play.core.sprites_loop.mouse_state")
-    @patch("play.core.sprites_loop.globals_list")
-    @patch("play.core.sprites_loop.handle_sprite_click_released")
-    @patch("play.core.sprites_loop.handle_sprite_click")
-    @patch("play.core.sprites_loop.run_sprite_callbacks", new_callable=AsyncMock)
-    def test_click_handlers_not_called_when_do_events_false(
-        self, mock_callbacks, mock_click, mock_click_released, mock_globals, mock_state
-    ):
-        sprite = MagicMock()
-        sprite.physics = MagicMock()
-        sprite.physics.can_move = False
-        sprite.is_hidden = False
-        mock_globals.sprites_group.sprites.return_value = [sprite]
-        mock_state.click_release_happened = False
-
-        asyncio.run(sprites_loop.update_sprites(do_events=False))
-
-        mock_click.assert_not_called()
-        mock_click_released.assert_not_called()
 
 
 if __name__ == "__main__":

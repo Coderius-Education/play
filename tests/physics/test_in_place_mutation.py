@@ -12,7 +12,7 @@ import pytest
 import play
 from play.callback.collision_callbacks import WallSide
 from play.globals import globals_list
-from play.io.screen import rebuild_walls, remove_wall, screen
+from play.io.screen import _walls_body, rebuild_walls, remove_wall, screen
 from play.physics import physics_space, set_gravity
 
 ANYTHING = pymunk.ShapeFilter()
@@ -104,14 +104,12 @@ def test_resizing_a_hidden_sprite_stays_out_of_the_space():
 
 
 def test_a_negative_size_does_not_trip_pymunk():
-    # pymunk refuses a zero moment on a dynamic body in a space. A circle
-    # shrunk below nothing becomes a point and keeps the moment it had.
     circle = play.new_circle(radius=20)
     circle.start_physics(can_move=True, stable=False)
 
     circle.size = -10
 
-    assert circle.physics._pymunk_shape.radius == 0
+    assert not circle.is_touching((0, 0))
     assert circle.physics._pymunk_body.moment > 0
     physics_space.step(1 / 60)
 
@@ -258,10 +256,10 @@ def test_rebuilt_walls_are_the_same_segments_moved():
     assert globals_list.walls == before
     assert [wall.collision_type for wall in globals_list.walls] == types
     top, bottom, left, right = globals_list.walls
-    assert (top.a, top.b) == ((-512, 384), (512, 384))
-    assert (bottom.a, bottom.b) == ((-512, -384), (512, -384))
-    assert (left.a, left.b) == ((-512, -384), (-512, 384))
-    assert (right.a, right.b) == ((512, -384), (512, 384))
+    assert (top.bb.bottom, bottom.bb.top) == (384, -384)
+    assert (left.bb.right, right.bb.left) == (-512, 512)
+    for wall in (left, right):
+        assert wall.bb.bottom < -384 and wall.bb.top > 384
 
 
 def test_the_space_sees_the_moved_walls():
@@ -278,10 +276,10 @@ def test_segments_that_are_not_one_of_the_four_walls_are_dropped():
     # four. Anything that is not one of the four still has to leave the space,
     # however many there are.
     for _ in range(2):
-        stray = pymunk.Segment(physics_space.static_body, (0, 0), (1, 1), 0)
+        stray = pymunk.Segment(_walls_body, (0, 0), (1, 1), 0)
         physics_space.add(stray)
         globals_list.walls.append(stray)
-    duplicate = pymunk.Segment(physics_space.static_body, (0, 0), (1, 1), 0)
+    duplicate = pymunk.Segment(_walls_body, (0, 0), (1, 1), 0)
     duplicate.wall_side = WallSide.TOP
     physics_space.add(duplicate)
     globals_list.walls.append(duplicate)

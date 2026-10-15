@@ -42,16 +42,7 @@ class WidgetMixin:
         self._last_click_id = -1
 
     def _claim_click(self):
-        """True at most once per click, for edge-triggered actions.
-
-        ``update()`` runs once per physics sub-step rather than once per frame
-        — ``simulate_physics()`` calls ``update_sprites()`` for every step but
-        the last, and ``game_loop`` calls it once more. A toggle written as
-        ``x = not x`` would therefore flip ten times per click and land back
-        where it started. Actions that must happen once per click gate on this;
-        actions that are already idempotent (setting focus, starting a drag)
-        do not need it.
-        """
+        """True at most once per click, however often ``update()`` runs."""
         if not mouse_state.click_happened:
             return False
         if self._last_click_id == mouse_state.click_id:

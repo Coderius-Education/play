@@ -5,10 +5,10 @@ Instead of asserting a specific outcome, these assert that an outcome does not
 of bug an ordinary test cannot see: code which is right at the default settings
 and wrong everywhere else.
 
-The physics sub-step count is the sharpest example. ``update()`` runs once per
-sub-step rather than once per frame, so a widget or callback written as if it
-ran once per frame fires ten times at the default and once at ``num_sim_steps=1``
-— behaviour that silently depends on a setting the user is free to change.
+The physics sub-step count is the sharpest example: anything that ran once per
+sub-step would happen ten times per frame at the default and once at
+``num_sim_steps=1`` — behaviour that silently depends on a setting the user is
+free to change.
 """
 
 import pytest
@@ -90,13 +90,7 @@ def test_scoring_is_independent_of_screen_size(size):
 
 @pytest.mark.parametrize("sim_steps", SIM_STEPS)
 def test_callback_fires_once_per_collision_regardless_of_sim_steps(sim_steps):
-    """An edge-triggered collision must not scale with the sub-step count.
-
-    This is the failure mode the widget notes warn about: work done per
-    ``update()`` happens ``num_sim_steps`` times per frame. A collision
-    callback that fired per sub-step would show a count that tracks the
-    setting, so comparing across settings is what exposes it.
-    """
+    """An edge-triggered collision must not scale with the sub-step count."""
     play.set_physics_simulation_steps(sim_steps)
 
     hits = []
@@ -130,3 +124,66 @@ def test_callback_fires_once_per_collision_regardless_of_sim_steps(sim_steps):
         f"the collision callback ran {len(hits)} times for one collision at "
         f"num_sim_steps={sim_steps}; it should not scale with sub-steps"
     )
+
+
+@pytest.mark.parametrize("sim_steps", SIM_STEPS)
+def test_a_resting_contact_fires_once_per_frame_regardless_of_sim_steps(sim_steps):
+    play.set_physics_simulation_steps(sim_steps)
+    floor = play.new_box(x=-200, y=-100, width=200, height=20)
+    floor.start_physics(can_move=False)
+    on_box = play.new_circle(x=-200, y=-80, radius=10)
+    on_box.start_physics(bounciness=0)
+    on_edge = play.new_circle(x=200, y=play.screen.bottom + 10, radius=10)
+    on_edge.start_physics(bounciness=0)
+    touching_floor = []
+    touching_wall = []
+    frames = [0]
+
+    @on_box.when_touching(floor)
+    def on_floor():
+        touching_floor.append(frames[0])
+
+    @on_edge.when_touching_wall
+    def on_wall():
+        touching_wall.append(frames[0])
+
+    @play.repeat_forever
+    def count():
+        frames[0] += 1
+        if frames[0] == 40:
+            play.stop_program()
+
+    play.start_program()
+
+    for calls in (touching_floor, touching_wall):
+        late = [frame for frame in calls if frame >= 20]
+        assert late == list(range(20, 40)), (sim_steps, calls)
+
+
+@pytest.mark.parametrize("sim_steps", SIM_STEPS)
+def test_sprites_are_drawn_once_per_frame_regardless_of_sim_steps(
+    sim_steps, monkeypatch
+):
+    from play.globals import globals_list
+
+    play.set_physics_simulation_steps(sim_steps)
+    play.new_circle()
+    draws = [0]
+    frames = [0]
+    real_draw = globals_list.sprites_group.draw
+
+    def draw(*args, **kwargs):
+        draws[0] += 1
+        return real_draw(*args, **kwargs)
+
+    monkeypatch.setattr(globals_list.sprites_group, "draw", draw)
+
+    @play.repeat_forever
+    def count():
+        frames[0] += 1
+        if frames[0] == 30:
+            play.stop_program()
+
+    play.start_program()
+
+    assert draws[0] == frames[0]

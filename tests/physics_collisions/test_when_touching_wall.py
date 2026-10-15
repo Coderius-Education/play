@@ -39,5 +39,38 @@ def test_ball_movement():
         )
 
 
+@pytest.mark.parametrize("wall_event", ["touching", "stopped touching"])
+def test_wall_callbacks_survive_another_sprite_starting_physics_later(wall_event):
+    import play
+
+    ball = play.new_circle(radius=10)
+    paddle = play.new_box(x=-300, width=20, height=100)
+    ball.start_physics(x_speed=300, obeys_gravity=False)
+    walls = []
+
+    if wall_event == "touching":
+        ball.when_touching_wall(lambda: walls.append("wall"))
+    else:
+        ball.when_stopped_touching_wall(lambda: walls.append("wall"))
+
+    @ball.when_touching(paddle)
+    def hit():
+        pass
+
+    paddle.start_physics(can_move=False)
+
+    frames = [0]
+
+    @play.repeat_forever
+    def stop_later():
+        frames[0] += 1
+        if frames[0] == 120:
+            play.stop_program()
+
+    play.start_program()
+
+    assert walls
+
+
 if __name__ == "__main__":
     test_ball_movement()

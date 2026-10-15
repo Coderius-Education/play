@@ -30,6 +30,7 @@ class Dropdown(WidgetMixin, Box):
     # While open, the sprite is hoisted this many layers up so the option list
     # draws above overlapping sprites instead of taking clicks while hidden.
     _OPEN_LAYER_BOOST = 1000
+    _scaled_by_size = False
 
     def __init__(
         self,
@@ -119,12 +120,7 @@ class Dropdown(WidgetMixin, Box):
         super().update()
 
     def _handle_click(self):
-        """Route this click: select an option, toggle, or close.
-
-        Claimed so it runs once per click rather than once per physics
-        sub-step: otherwise the open/close toggle flips back to where it
-        started, and selecting an option would immediately reopen the menu.
-        """
+        """Route this click: select an option, toggle, or close."""
         if not self._claim_click():
             return
         ours = mouse_state.click_hits(self)
@@ -226,8 +222,8 @@ class Dropdown(WidgetMixin, Box):
     def _render(self):
         """Draw the closed button plus the open option list (if open)."""
         n_extra = len(self._options) if self._dropdown_open else 0
-        total_h = self._height * (1 + n_extra)
-        w = self._width
+        w, row_h = self._unscaled_size()
+        total_h = row_h * (1 + n_extra)
         bw = self._border_width
 
         draw_image = pygame.Surface((w, total_h), pygame.SRCALPHA)

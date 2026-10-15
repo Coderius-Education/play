@@ -37,12 +37,7 @@ def pytest_collection_modifyitems(config, items):
 # ---------------------------------------------------------------------------
 
 
-# A frame runs update() on every sprite once per physics sub-step, not once:
-# simulate_physics() calls update_sprites() for every step but the last, and
-# game_loop calls it once more. Mirroring that here is what makes a widget
-# whose click action is not idempotent fail in a unit test instead of only in
-# a real game. Kept in step with Globals.num_sim_steps.
-UPDATES_PER_FRAME = 10
+UPDATES_PER_CLICK = 10
 
 
 def click_at(x, y, *widgets, hold=False):
@@ -51,7 +46,7 @@ def click_at(x, y, *widgets, hold=False):
     Mirrors the real event path: moves the mouse, resolves exclusive click
     ownership (an open dropdown menu claims clicks that land on it), runs
     ``update()`` on the given widgets in layer order (lowest first, like the
-    real sprite loop) once per sub-step, then clears the frame's mouse state.
+    real sprite loop) several times, then clears the frame's mouse state.
 
     Pass ``hold=True`` to leave the mouse button pressed after the click
     (e.g. to start a slider drag).
@@ -63,7 +58,7 @@ def click_at(x, y, *widgets, hold=False):
     mouse._is_clicked = True
     mouse_state.click_happened = True
     mouse_state.resolve_click_owner()
-    for _ in range(UPDATES_PER_FRAME):
+    for _ in range(UPDATES_PER_CLICK):
         for widget in sorted(widgets, key=lambda w: w._layer):
             widget.update()
     mouse_state.clear()
@@ -320,30 +315,6 @@ def _install_collision_error_recorder():
     _RECORDER_INSTALLED.append(True)
 
 
-def _drop_pymunk_at_exit():
-    """Stop pymunk's module teardown from segfaulting the interpreter.
-
-    A process that imports play and exits without running a game dies with
-    SIGSEGV during C-level finalisation — after Python is done, which is why
-    faulthandler prints nothing and every test can pass first. It is pymunk's
-    own module cleanup: removing it from sys.modules at exit avoids the
-    teardown path entirely and the process exits 0.
-
-    A game that runs is unaffected, because start_program()'s teardown
-    already tears pygame down in an order that avoids it. A student's script
-    that fails on a top-level line before the game starts does hit it: the
-    traceback is followed by a segfault (#232). This workaround stays here
-    rather than in play/ because a library should not be mutating sys.modules
-    on someone else's behalf; #232 is about fixing that case in play itself.
-    """
-    import atexit
-
-    atexit.register(lambda: _sys.modules.pop("pymunk", None))
-
-
-_drop_pymunk_at_exit()
-
-
 def pytest_sessionfinish(session, exitstatus):
     """Disarm auto-start once the session is over.
 
@@ -360,9 +331,7 @@ def pytest_sessionfinish(session, exitstatus):
 
     Looked up in sys.modules rather than imported: under xdist the tests run
     in workers and this also runs in the controller, which otherwise never
-    imports play. Importing it there is not free — `python -c "import play"`
-    segfaults at interpreter shutdown all on its own — so an unconditional
-    import here turns a clean exit into a 139.
+    imports play.
     """
     auto_start = _sys.modules.get("play.api.auto_start")
     if auto_start is None:
@@ -444,7 +413,7 @@ def clean_play_state(request):
 
     import play.core.sprites_loop
 
-    play.core.sprites_loop._clicked_sprite_id = None
+    play.core.sprites_loop._clicked_sprites.clear()
 
     import play.api.auto_start
 

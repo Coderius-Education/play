@@ -14,6 +14,7 @@ from play.loop import get_loop as _get_loop, stop_loop as _stop_loop
 from play.physics import set_physics_simulation_steps as _set_physics_simulation_steps
 from play.objects.video.video import close_all_videos as _close_all_videos
 from play.utils import color_name_to_rgb as _color_name_to_rgb
+from play.utils.async_helpers import hint_forgotten_awaits as _hint_forgotten_awaits
 
 
 def start_program():
@@ -39,22 +40,30 @@ def start_program():
         _get_loop().create_task(_game_loop())
 
     try:
-        try:
-            _get_loop().run_until_complete(_run_start_then_loop())
-        except RuntimeError:
-            # loop.stop() raced with startup: fine if the program asked to stop.
-            if globals_list.program_state is not ProgramState.STOPPED:
-                raise
-        # run_until_complete absorbs a stop_program() from the first frame, so
-        # without this check the program would run on after asking to stop.
-        if globals_list.program_state is not ProgramState.STOPPED:
-            _get_loop().run_forever()
+        with _hint_forgotten_awaits():
+            _run_until_stopped(_run_start_then_loop())
     finally:
         logger = _logging.getLogger("asyncio")
         logger.setLevel(_logging.CRITICAL)
         _close_all_videos()
         if _os.getpid() == globals_list.initial_pid:
             pygame.quit()
+
+
+def _program_has_stopped():
+    """Whether play.stop_program() or an error has stopped the program."""
+    return globals_list.program_state is ProgramState.STOPPED
+
+
+def _run_until_stopped(start):
+    """Run *start*, then frames until the program stops, also when it stops during *start*."""
+    try:
+        _get_loop().run_until_complete(start)
+    except RuntimeError:
+        if not _program_has_stopped():
+            raise
+    if not _program_has_stopped():
+        _get_loop().run_forever()
 
 
 def stop_program():

@@ -24,7 +24,12 @@ def _handle_exception(the_loop, context):
         play_logger.debug(message)
         return
 
+    if exception and globals_list.error_shown:
+        stop_loop(the_loop)
+        return
+
     if exception:
+        globals_list.error_shown = True
         tb_lines = traceback.format_exception(
             type(exception), exception, exception.__traceback__
         )

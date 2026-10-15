@@ -64,7 +64,7 @@ def when_button(index: int, released: bool, *buttons: list[int | list[int]] | No
                     )
                 continue
             if isinstance(button, list):
-                button = hash(frozenset(button))
+                button = frozenset(button)
             if released:
                 callback_manager.add_callback(
                     CallbackType.WHEN_CONTROLLER_BUTTON_RELEASED, wrapper, button
@@ -78,14 +78,112 @@ def when_button(index: int, released: bool, *buttons: list[int | list[int]] | No
     return decorator
 
 
+class _DisconnectedController:  # pylint: disable=missing-function-docstring
+    """Holds an unplugged controller's place: every input reads as untouched."""
+
+    def get_instance_id(self):
+        return None
+
+    def get_numaxes(self):
+        return 0
+
+    def get_axis(self, _axis):
+        return 0.0
+
+    def get_numbuttons(self):
+        return 0
+
+    def get_button(self, _button):
+        return False
+
+    def get_numhats(self):
+        return 0
+
+    def get_hat(self, _hat):
+        return (0, 0)
+
+    def get_numballs(self):
+        return 0
+
+    def get_ball(self, _ball):
+        return (0, 0)
+
+    def get_name(self):
+        return ""
+
+    def get_guid(self):
+        return ""
+
+    def get_id(self):
+        return -1
+
+    def get_init(self):
+        return False
+
+    def get_power_level(self):
+        return "unknown"
+
+    def init(self):
+        return None
+
+    def quit(self):
+        return None
+
+    def rumble(self, _low_frequency, _high_frequency, _duration):
+        return False
+
+    def stop_rumble(self):
+        return None
+
+    def set_led(self, _color):
+        return False
+
+
 class _Controllers:
     def __init__(self):
-        self._controllers = [_Controller(x) for x in range(_get_controller_count())]
-        for controller in self._controllers:
+        self._controllers = []
+        for device_index in range(_get_controller_count()):
+            self._connect(device_index)
+
+    def _connect(self, device_index):
+        """Open the controller at an SDL device index in the first free slot."""
+        try:
+            controller = _Controller(device_index)
             controller.init()
+        except pygame.error:
+            return
+        if self._find(controller.get_instance_id()) is not None:
+            return
+        free = [
+            index
+            for index, slot in enumerate(self._controllers)
+            if isinstance(slot, _DisconnectedController)
+        ]
+        if free:
+            self._controllers[free[0]] = controller
+        else:
+            self._controllers.append(controller)
+
+    def _disconnect(self, instance_id):
+        """Hold a removed controller's slot, so a replugged one gets it back."""
+        index = self._find(instance_id)
+        if index is not None:
+            self._controllers[index] = _DisconnectedController()
+
+    def _find(self, instance_id):
+        """Return the index of the controller with an SDL instance id, or None."""
+        for index, controller in enumerate(self._controllers):
+            if controller.get_instance_id() == instance_id:
+                return index
+        return None
+
+    def _index_of(self, instance_id):
+        """Return play's index for an SDL instance id; an unknown id is its own index."""
+        index = self._find(instance_id)
+        return instance_id if index is None else index
 
     def get_count(self) -> int:
-        """Get the number of controllers.
+        """Get the number of controllers; an unplugged one keeps its index and reads as untouched.
         :return: The number of controllers."""
         return len(self._controllers)
 
@@ -96,9 +194,9 @@ class _Controllers:
         return self._controllers[index]
 
     def get_all_controllers(self) -> list[_ControllerType]:
-        """Get all controllers.
+        """Get all controllers, in index order.
         :return: A list of all controllers."""
-        return self._controllers
+        return list(self._controllers)
 
     def get_num_axes(self, index) -> int:
         """Get the number of axes on the controller at the specified index.
@@ -233,7 +331,7 @@ class _Controllers:
                     )
                     continue
                 if isinstance(button, list):
-                    button = hash(frozenset(button))
+                    button = frozenset(button)
                 callback_manager.add_callback(
                     CallbackType.WHILE_CONTROLLER_BUTTON_PRESSED, wrapper, button
                 )
@@ -298,7 +396,7 @@ class _Controllers:
             wrapper.controller = index
 
             callback_manager.add_callback(
-                CallbackType.WHEN_CONTROLLER_AXIS_MOVED, wrapper
+                CallbackType.WHEN_CONTROLLER_AXIS_MOVED, wrapper, "any"
             )
             return wrapper
 

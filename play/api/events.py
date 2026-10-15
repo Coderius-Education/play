@@ -63,17 +63,24 @@ def repeat_forever(func):
     """
     if inspect.iscoroutinefunction(func):
 
-        async def _run_and_unlock():
+        async def _run_until_caught_up():
             try:
-                await func()
+                repeat_wrapper.missed_frame = True
+                while repeat_wrapper.missed_frame:
+                    repeat_wrapper.missed_frame = False
+                    await func()
             finally:
-                repeat_wrapper.is_running = False
+                repeat_wrapper.in_progress = False
 
         async def repeat_wrapper():
-            repeat_wrapper.is_running = True
-            fire_async_callback(_run_and_unlock, [], [])
+            if repeat_wrapper.in_progress:
+                repeat_wrapper.missed_frame = True
+                return
+            repeat_wrapper.in_progress = True
+            fire_async_callback(_run_until_caught_up, [], [])
 
-        repeat_wrapper.is_running = False
+        repeat_wrapper.in_progress = False
+        repeat_wrapper.missed_frame = False
     else:
         # Sync callback — run inline so it sees the current frame's state.
         async_callback = make_async(func)

@@ -126,7 +126,7 @@ def test_nan_validation_uses_isnan():
     import asyncio
 
     try:
-        asyncio.run(update_sprites(do_events=False))
+        asyncio.run(update_sprites())
         success = True
     except Exception as e:
         # If it raises, it shouldn't be due to string comparison

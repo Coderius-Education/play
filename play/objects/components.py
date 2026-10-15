@@ -17,7 +17,10 @@ class EventComponent:
     def __init__(self, sprite):
         self._sprite = sprite
         self._touching_callback = {}
+        self._new_touching = {}
+        self._fired_this_frame = set()
         self._stopped_callback = {}
+        self._walls_touched_with_area = set()
         self._dependent_sprites = set()
         self._is_clicked = False
 
@@ -32,11 +35,14 @@ class EventComponent:
         """Set whether the sprite is currently clicked."""
         self._is_clicked = value
 
-    def set_touching(self, key, callback):
+    def set_touching(self, key, callback, other=None):
         """Record an active touching collision.
         :param key: Collision key (e.g. shape collision_id or (CollisionType, WallSide)).
-        :param callback: The callback to store."""
-        self._touching_callback[key] = callback
+        :param callback: The callback to store.
+        :param other: The sprite being touched, or None for a wall."""
+        self._touching_callback[key] = (callback, other)
+        self._new_touching[key] = (callback, other)
+        collision_registry.mark_changed(self._sprite)
 
     def clear_touching(self, key):
         """Remove an active touching collision record.
@@ -47,7 +53,9 @@ class EventComponent:
         """Retrieve an active touching collision callback.
         :param key: Collision key to look up.
         :param default: Value to return if key is absent."""
-        return self._touching_callback.get(key, default)
+        if key not in self._touching_callback:
+            return default
+        return self._touching_callback[key][0]
 
     def clear_all_touching(self):
         """Drop every active touching collision.
@@ -56,16 +64,57 @@ class EventComponent:
         belong to the old shape, so pymunk will never send the separate that
         would clear them and the callback would run forever."""
         self._touching_callback = {}
+        self._new_touching = {}
+        self._fired_this_frame = set()
+        self._walls_touched_with_area = set()
+
+    def wall_contact_began(self, wall):
+        """Note that a contact with a wall began.
+        :param wall: The wall's pymunk shape."""
+        if self._sprite.physics._has_area:
+            self._walls_touched_with_area.add(wall)
+
+    def wall_contact_ended(self, wall):
+        """Forget a contact with a wall that ended.
+        :param wall: The wall's pymunk shape.
+        :return: Whether the sprite had an area when the contact began or has one now.
+        """
+        had_area = wall in self._walls_touched_with_area
+        self._walls_touched_with_area.discard(wall)
+        return had_area or self._sprite.physics._has_area
 
     def set_stopped(self, key, callback):
         """Record a stopped-touching collision callback.
         :param key: Collision key.
         :param callback: The callback to store."""
         self._stopped_callback[key] = callback
+        collision_registry.mark_changed(self._sprite)
+
+    def new_touching_callbacks(self):
+        """Return the callbacks of contacts that began since the last call."""
+        contacts = self._new_touching
+        self._fired_this_frame.update(contacts)
+        self._new_touching = {}
+        return [
+            callback
+            for callback, other in contacts.values()
+            if self._can_touch_with(other)
+        ]
 
     def touching_callbacks(self):
-        """Return all active touching collision callbacks."""
-        return list(self._touching_callback.values())
+        """Return the callbacks still touching that have not run this frame."""
+        callbacks = [
+            callback
+            for key, (callback, other) in self._touching_callback.items()
+            if key not in self._fired_this_frame and self._can_touch_with(other)
+        ]
+        self._new_touching = {}
+        self._fired_this_frame = set()
+        return callbacks
+
+    def _can_touch_with(self, other):
+        """Whether this sprite and *other* (None for a wall) can both still touch."""
+        return self._sprite._can_touch() and (other is None or other._can_touch())
 
     def stopped_callbacks(self):
         """Return all pending stopped-touching collision callbacks."""
@@ -135,6 +184,7 @@ class EventComponent:
             async def wrapper():
                 await run_async_callback(async_callback, [], [])
 
+            wrapper.callback = func
             for target in sprites_to_check:
                 target.events._dependent_sprites.add(self._sprite)
                 callback_manager.add_callback(
@@ -165,6 +215,7 @@ class EventComponent:
             async def wrapper():
                 await run_async_callback(async_callback, [], [])
 
+            wrapper.callback = func
             for target in sprites_to_check:
                 target.events._dependent_sprites.add(self._sprite)
                 callback_manager.add_callback(
@@ -201,6 +252,7 @@ class EventComponent:
                 return wrapper
 
             wrapper = make_wrapper(wall_side)
+            wrapper.callback = func
 
             collision_registry.register(
                 self._sprite,

@@ -6,6 +6,8 @@ from play.utils import color_name_to_rgb as _color_name_to_rgb
 
 
 class Box(Sprite):
+    _scaled_by_size = True
+
     def __init__(
         self,
         color="black",
@@ -39,19 +41,20 @@ class Box(Sprite):
         # would let a widget built under the cursor activate itself on creation.
         super().update()
 
-    def _hit_dims(self, size_factor):
-        """Box hit-shape uses its logical width/height, scaled by size."""
-        return 0.0, self._width * size_factor, self._height * size_factor
+    def _unscaled_size(self):
+        """Return ``(width, height)`` before size and angle apply, a negative side as 0."""
+        return max(self._width, 0), max(self._height, 0)
 
     def _render(self):
         """Draw the box surface with border, scale, alpha, and rotation."""
-        draw_image = pygame.Surface((self._width, self._height), pygame.SRCALPHA)
+        width, height = self._unscaled_size()
+        draw_image = pygame.Surface((width, height), pygame.SRCALPHA)
 
         if self._border_width > 0:
             pygame.draw.rect(
                 draw_image,
                 _color_name_to_rgb(self._border_color),
-                (0, 0, self._width, self._height),
+                (0, 0, width, height),
                 self._border_width,
                 border_radius=self._border_radius,
             )
@@ -62,8 +65,8 @@ class Box(Sprite):
             (
                 self._border_width,
                 self._border_width,
-                self._width - 2 * self._border_width,
-                self._height - 2 * self._border_width,
+                width - 2 * self._border_width,
+                height - 2 * self._border_width,
             ),
             border_radius=max(self._border_radius - self._border_width, 0),
         )
