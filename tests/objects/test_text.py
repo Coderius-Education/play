@@ -323,6 +323,7 @@ def test_text_words_can_be_a_number_like_the_setter_allows():
 
     score = play.new_text(words=0)
     assert score.words == "0"
+    assert play.new_text(words=1.5).words == "1.5"
     score.words = 10
     assert score.words == "10"
 

@@ -261,3 +261,18 @@ def test_after_an_error_no_frame_runs_and_no_second_error_is_shown(capsys, caplo
     assert "first error" in shown
     assert "second error" not in shown
     assert frames_after_the_error == []
+
+
+def test_two_errors_in_the_same_frame_show_one_traceback(capsys):
+    @play.when_key_pressed("space")
+    def first():
+        raise ValueError("first error")
+
+    @play.when_key_pressed("space")
+    def second():
+        raise ValueError("second error")
+
+    _press_space_after_a_few_frames()
+    _count_frames_until_stopped()
+
+    assert capsys.readouterr().err.count("Traceback") == 1

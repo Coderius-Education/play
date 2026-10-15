@@ -2,6 +2,7 @@
 
 import inspect
 import logging
+import sys
 import warnings
 
 import pytest
@@ -109,3 +110,24 @@ def test_a_call_kept_in_a_variable_is_hinted_at_its_own_line(caplog):
     assert len(hints) == 1
     assert f"line {line} of file {__file__}" in hints[0]
     assert '"async def blink"' in hints[0]
+
+
+def test_the_hint_is_shown_once_per_line_even_when_warnings_always_show(caplog):
+    @play.repeat_forever
+    def blink():
+        play.timer(0.5)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("always")
+        with caplog.at_level(logging.WARNING, logger="play"):
+            _run_frames()
+
+    assert len(_hints(caplog)) == 1
+
+
+def test_start_program_puts_the_warning_settings_back():
+    before = warnings.showwarning, sys.get_coroutine_origin_tracking_depth()
+
+    _run_frames()
+
+    assert (warnings.showwarning, sys.get_coroutine_origin_tracking_depth()) == before

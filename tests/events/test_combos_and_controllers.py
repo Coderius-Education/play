@@ -67,6 +67,23 @@ def test_a_key_combination_fires_for_a_key_tapped_within_one_frame():
     assert fired == ["ctrl+s"]
 
 
+def test_a_held_key_combination_does_not_fire_again_for_an_extra_key():
+    fired = []
+    play.when_key_pressed(["a", "s"])(lambda: fired.append("pressed"))
+    play.when_key_released(["a", "s"])(lambda: fired.append("released"))
+
+    _run(
+        [
+            [_down(pygame.K_a), _down(pygame.K_s)],
+            [],
+            [_down(pygame.K_d)],
+            [_up(pygame.K_d)],
+        ]
+    )
+
+    assert fired == ["pressed"]
+
+
 def test_a_held_key_combination_keeps_firing_with_another_key_held_too():
     frames = []
     play.while_key_pressed(["a", "s"])(lambda: frames.append(1))
@@ -222,3 +239,18 @@ def test_an_unplugged_controller_answers_every_joystick_method(fake_joysticks):
             assert hasattr(stand_in, name), name
     assert stand_in.get_name() == ""
     assert stand_in.rumble(0.5, 0.5, 100) is False
+
+
+def test_a_button_combination_fires_when_its_last_button_goes_down():
+    fired = []
+    controllers.when_button_pressed(0, [1, 2])(lambda button: fired.append(button))
+
+    _run(
+        [
+            [_joy(pygame.JOYBUTTONDOWN, instance_id=0, button=1)],
+            [_joy(pygame.JOYBUTTONDOWN, instance_id=0, button=2)],
+            [_joy(pygame.JOYBUTTONDOWN, instance_id=0, button=3)],
+        ]
+    )
+
+    assert fired == [{1, 2}]
