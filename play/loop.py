@@ -1,6 +1,7 @@
 """This module is used to create a global event loop for the application."""
 
 import os
+import sys
 import asyncio
 import traceback
 from play.globals import globals_list, ProgramState
@@ -11,6 +12,8 @@ _creator_pid = None  # pylint: disable=invalid-name
 
 
 _DESTROYED_PENDING = "Task was destroyed but it is pending!"
+
+RUNS_IN_BROWSER = sys.platform == "emscripten"
 
 
 def _handle_exception(the_loop, context):
@@ -44,13 +47,16 @@ def _handle_exception(the_loop, context):
 def get_loop():
     """Get or create the global event loop.
 
-    Creates a new loop on first call and after a fork (detected via pid change).
+    Creates a new loop on first call and after a fork (detected via pid change);
+    in the browser it takes the page's loop, which keeps running on its own.
     """
     global _loop, _creator_pid
 
     pid = os.getpid()
     if _loop is None or _creator_pid != pid:
-        _loop = asyncio.new_event_loop()
+        _loop = (
+            asyncio.get_event_loop() if RUNS_IN_BROWSER else asyncio.new_event_loop()
+        )
         asyncio.set_event_loop(_loop)
         _loop.set_debug(False)
         _loop.set_exception_handler(_handle_exception)
@@ -60,6 +66,7 @@ def get_loop():
 
 
 def stop_loop(loop=None):
-    """Stop the event loop and mark the program as stopped."""
+    """Mark the program as stopped and stop the event loop, unless it is the page's."""
     globals_list.program_state = ProgramState.STOPPED
-    (loop if loop is not None else get_loop()).stop()
+    if not RUNS_IN_BROWSER:
+        (loop if loop is not None else get_loop()).stop()

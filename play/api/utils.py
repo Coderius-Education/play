@@ -8,6 +8,7 @@ import pygame
 
 from play.callback import callback_manager, CallbackType
 from play.core import game_loop as _game_loop
+from play import loop as _play_loop
 from play.globals import globals_list, ProgramState
 from play.io.keypress import keyboard_state
 from play.loop import get_loop as _get_loop, stop_loop as _stop_loop
@@ -33,21 +34,40 @@ def start_program():
     globals_list.program_state = ProgramState.RUNNING
     globals_list.should_auto_start = False
 
-    async def _run_start_then_loop():
-        # The yield lets each callback set up before the first frame renders.
-        callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
-        await _asyncio.sleep(0)
-        _get_loop().create_task(_game_loop())
+    if _play_loop.RUNS_IN_BROWSER:
+        _get_loop().create_task(_run_in_browser())
+        return
 
     try:
         with _hint_forgotten_awaits():
-            _run_until_stopped(_run_start_then_loop())
+            _run_until_stopped(_start_then_loop())
     finally:
-        logger = _logging.getLogger("asyncio")
-        logger.setLevel(_logging.CRITICAL)
-        _close_all_videos()
+        _clean_up()
         if _os.getpid() == globals_list.initial_pid:
             pygame.quit()
+
+
+async def _start_then_loop():
+    """Run the when_program_starts callbacks, then start the frames."""
+    callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
+    # The yield lets each callback set up before the first frame renders.
+    await _asyncio.sleep(0)
+    _get_loop().create_task(_game_loop())
+
+
+async def _run_in_browser():
+    """Run the program on the page's event loop, then clean up once it has stopped."""
+    with _hint_forgotten_awaits():
+        await _start_then_loop()
+        while not _program_has_stopped():
+            await _asyncio.sleep(0)
+    _clean_up()
+
+
+def _clean_up():
+    """Silence asyncio's shutdown messages and close any videos."""
+    _logging.getLogger("asyncio").setLevel(_logging.CRITICAL)
+    _close_all_videos()
 
 
 def _program_has_stopped():
