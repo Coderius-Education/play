@@ -1,11 +1,29 @@
 """An async def contact callback runs as a task of its own, so its awaits do not hold up the game."""
 
-import pygame
+from dataclasses import dataclass, field
+
+import pytest
 
 import play
-from tests.conftest import post_key_down
 
 FRAMES = 60
+
+
+@dataclass(eq=False)
+class _Runs:
+    """The frame count, and per run of a contact callback: its first frame, last frame and runs at once."""
+
+    frame: int = 0
+    running: int = 0
+    seen: list = field(default_factory=list)
+
+    async def landed(self):
+        self.running += 1
+        start = self.frame
+        for _ in range(3):
+            await play.animate()
+        self.seen.append((start, self.frame, self.running))
+        self.running -= 1
 
 
 def _ball_at(y):
@@ -14,52 +32,84 @@ def _ball_at(y):
     return ball
 
 
-def _run_frames(frame):
+def _run_frames(runs):
     @play.repeat_forever
     def count():
-        frame[0] += 1
-        if frame[0] == FRAMES:
+        runs.frame += 1
+        if runs.frame == FRAMES:
             play.stop_program()
 
     play.start_program()
 
 
-def _record_runs(frame, runs, running):
-    async def landed():
-        running.append(1)
-        start = frame[0]
-        for _ in range(3):
-            await play.animate()
-        runs.append((start, frame[0], len(running)))
-        running.pop()
-
-    return landed
+def _touching_a_floor():
+    floor = play.new_box(y=-200, width=400, height=20)
+    floor.start_physics(can_move=False)
+    return _ball_at(-179).when_touching(floor)
 
 
-def test_frames_keep_running_while_an_async_when_touching_awaits():
+def _touching_the_bottom_wall():
+    return _ball_at(play.screen.bottom + 11).when_touching_wall
+
+
+@pytest.mark.parametrize(
+    "when_touching",
+    [_touching_a_floor, _touching_the_bottom_wall],
+    ids=["sprite", "wall"],
+)
+def test_frames_keep_running_while_an_async_contact_callback_awaits(when_touching):
+    runs = _Runs()
+    when_touching()(runs.landed)
+
+    _run_frames(runs)
+
+    assert len(runs.seen) > 1
+    assert all(end > start for start, end, _ in runs.seen)
+    assert all(at_once == 1 for _, _, at_once in runs.seen)
+
+
+def test_restarting_physics_does_not_run_an_async_contact_callback_twice_at_once():
     floor = play.new_box(y=-200, width=400, height=20)
     floor.start_physics(can_move=False)
     ball = _ball_at(-179)
-    frame, runs, running = [0], [], []
-    ball.when_touching(floor)(_record_runs(frame, runs, running))
+    runs = _Runs()
+    ball.when_touching(floor)(runs.landed)
 
-    _run_frames(frame)
+    @play.repeat_forever
+    def restart():
+        if runs.frame in (10, 20):
+            ball.start_physics(bounciness=0)
 
-    assert len(runs) > 1
-    assert all(end > start for start, end, _ in runs)
-    assert all(overlapping == 1 for _, _, overlapping in runs)
+    _run_frames(runs)
+
+    assert len(runs.seen) > 1
+    assert all(at_once == 1 for _, _, at_once in runs.seen)
 
 
-def test_frames_keep_running_while_an_async_when_touching_wall_awaits():
-    ball = _ball_at(play.screen.bottom + 11)
-    frame, runs, running = [0], [], []
-    ball.when_touching_wall(_record_runs(frame, runs, running))
+def _bouncing_ball_over_a_floor(x):
+    floor = play.new_box(x=x, y=-200, width=100, height=20)
+    floor.start_physics(can_move=False)
+    ball = play.new_circle(x=x, y=-165, radius=10)
+    ball.start_physics(bounciness=1)
+    return ball, floor
 
-    _run_frames(frame)
 
-    assert len(runs) > 1
-    assert all(end > start for start, end, _ in runs)
-    assert all(overlapping == 1 for _, _, overlapping in runs)
+def test_an_async_when_touching_starts_in_the_sub_step_its_contact_begins():
+    runs, first_touch = _Runs(), {}
+    plain_ball, plain_floor = _bouncing_ball_over_a_floor(-100)
+    async_ball, async_floor = _bouncing_ball_over_a_floor(100)
+
+    @plain_ball.when_touching(plain_floor)
+    def plain():
+        first_touch.setdefault("plain", (runs.frame, plain_ball.y))
+
+    @async_ball.when_touching(async_floor)
+    async def landed():
+        first_touch.setdefault("async", (runs.frame, async_ball.y))
+
+    _run_frames(runs)
+
+    assert first_touch["async"] == first_touch["plain"]
 
 
 def test_a_bound_method_can_be_a_contact_callback():
@@ -69,62 +119,6 @@ def test_a_bound_method_can_be_a_contact_callback():
     coin.start_physics(can_move=False)
     ball.when_touching(coin)(coin.hide)
 
-    _run_frames([0])
+    _run_frames(_Runs())
 
     assert coin.is_hidden
-
-
-def test_a_bound_method_can_be_a_key_callback():
-    box = play.new_box()
-    play.when_key_pressed("space")(box.hide)
-
-    @play.when_program_starts
-    async def press():
-        await play.animate()
-        post_key_down(pygame.K_SPACE)
-
-    _run_frames([0])
-
-    assert box.is_hidden
-
-
-def _record_where(kind, ball, frame, first_touch):
-    if kind == "plain":
-        return lambda: first_touch.setdefault(kind, (frame[0], ball.y))
-
-    async def landed():
-        first_touch.setdefault(kind, (frame[0], ball.y))
-
-    return landed
-
-
-def test_an_async_when_touching_starts_in_the_sub_step_its_contact_begins():
-    frame, first_touch = [0], {}
-    for kind, x in (("plain", -100), ("async", 100)):
-        floor = play.new_box(x=x, y=-200, width=100, height=20)
-        floor.start_physics(can_move=False)
-        ball = play.new_circle(x=x, y=-165, radius=10)
-        ball.start_physics(bounciness=1)
-        ball.when_touching(floor)(_record_where(kind, ball, frame, first_touch))
-
-    _run_frames(frame)
-
-    assert first_touch["async"] == first_touch["plain"]
-
-
-def test_restarting_physics_does_not_run_an_async_contact_callback_twice_at_once():
-    floor = play.new_box(y=-200, width=400, height=20)
-    floor.start_physics(can_move=False)
-    ball = _ball_at(-179)
-    frame, runs, running = [0], [], []
-    ball.when_touching(floor)(_record_runs(frame, runs, running))
-
-    @play.repeat_forever
-    def restart():
-        if frame[0] in (10, 20):
-            ball.start_physics(bounciness=0)
-
-    _run_frames(frame)
-
-    assert len(runs) > 1
-    assert all(overlapping == 1 for _, _, overlapping in runs)

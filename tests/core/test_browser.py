@@ -11,7 +11,7 @@ import pytest
 
 import play
 import play.loop
-from play.globals import globals_list
+from play.globals import ProgramState, globals_list
 
 
 @pytest.fixture
@@ -23,9 +23,36 @@ def in_the_browser(monkeypatch):
     page_loop.close()
 
 
+def _stop_after(frames):
+    counted = []
+
+    def count():
+        counted.append(1)
+        if len(counted) == frames:
+            play.stop_program()
+
+    return count
+
+
+def _main_py(source):
+    """Return *source* as pygbag runs a main.py: a __main__ module that may await at the top."""
+    code = compile(source, "main.py", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
+    main = {
+        "__name__": "__main__",
+        "asyncio": asyncio,
+        "play": play,
+        "stop_after": _stop_after,
+    }
+    play.api.auto_start.stop_waiting_for_the_script()
+    play.api.auto_start._schedule_auto_start.has_run = False
+    return types.FunctionType(code, main)
+
+
 def _run_page(page_loop, script):
     async def page():
-        script()
+        started = script()
+        if asyncio.iscoroutine(started):
+            await started
         await _until_only_the_page_is_left()
 
     page_loop.run_until_complete(page())
@@ -36,6 +63,7 @@ async def _until_only_the_page_is_left(steps=1000):
         if len(asyncio.all_tasks()) == 1:
             return
         await asyncio.sleep(0)
+    pytest.fail("play's tasks did not end")
 
 
 def test_start_program_returns_at_once_and_the_page_loop_runs_the_frames(
@@ -102,17 +130,6 @@ def test_stopping_in_the_browser_ends_the_programs_other_callbacks(in_the_browse
     assert 0 < len(ticks) <= 6
 
 
-def _stop_after(frames):
-    counted = []
-
-    def count():
-        counted.append(1)
-        if len(counted) == frames:
-            play.stop_program()
-
-    return count
-
-
 def test_an_error_in_a_page_task_leaves_the_program_running(in_the_browser):
     async def pages_own_task():
         raise OSError("the page's own task failed")
@@ -164,7 +181,7 @@ def test_sounds_stop_once_the_program_has_stopped_in_the_browser(
 
     _run_page(in_the_browser, play.start_program)
 
-    assert states_when_stopped == [play.globals.ProgramState.STOPPED]
+    assert states_when_stopped == [ProgramState.STOPPED]
 
 
 def test_a_forgotten_await_gets_a_hint_in_the_browser(in_the_browser, caplog):
@@ -181,59 +198,31 @@ def test_a_forgotten_await_gets_a_hint_in_the_browser(in_the_browser, caplog):
 
 
 def test_a_top_level_await_does_not_start_the_program_early(in_the_browser):
-    script = compile(
+    main_py = _main_py(
         "play.repeat_forever(stop_after(3))\n"
         "await asyncio.sleep(0)\n"
-        "play.start_program()\n",
-        "main.py",
-        "exec",
-        flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT,
+        "play.start_program()\n"
     )
-    main = {
-        "__name__": "__main__",
-        "asyncio": asyncio,
-        "play": play,
-        "stop_after": _stop_after,
-    }
-    play.api.auto_start._schedule_auto_start.has_run = False
 
-    async def page():
-        await types.FunctionType(script, main)()
-        await _until_only_the_page_is_left()
+    _run_page(in_the_browser, main_py)
 
-    in_the_browser.run_until_complete(page())
-
-    assert globals_list.program_state is play.globals.ProgramState.STOPPED
+    assert globals_list.program_state is ProgramState.STOPPED
     assert not globals_list.error_shown
 
 
 def test_start_program_inside_an_async_main_is_ignored_after_auto_start(
     in_the_browser, caplog
 ):
-    script = compile(
+    main_py = _main_py(
         "play.repeat_forever(stop_after(3))\n"
         "async def main():\n"
         "    play.start_program()\n"
-        "asyncio.get_running_loop().create_task(main())\n",
-        "main.py",
-        "exec",
-        flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT,
+        "asyncio.get_running_loop().create_task(main())\n"
     )
-    main = {
-        "__name__": "__main__",
-        "asyncio": asyncio,
-        "play": play,
-        "stop_after": _stop_after,
-    }
-    play.api.auto_start._schedule_auto_start.has_run = False
 
-    async def page():
-        types.FunctionType(script, main)()
-        await _until_only_the_page_is_left()
+    _run_page(in_the_browser, main_py)
 
-    in_the_browser.run_until_complete(page())
-
-    assert globals_list.program_state is play.globals.ProgramState.STOPPED
+    assert globals_list.program_state is ProgramState.STOPPED
     assert "already started" not in caplog.text
 
 
@@ -254,35 +243,20 @@ def test_an_async_contact_callback_that_stops_the_program_goes_no_further(
 
     _run_page(in_the_browser, play.start_program)
 
-    assert globals_list.program_state is play.globals.ProgramState.STOPPED
+    assert globals_list.program_state is ProgramState.STOPPED
     assert after_the_stop == []
 
 
 def test_a_script_with_top_level_awaits_starts_once_it_ends(in_the_browser):
-    script = compile(
+    main_py = _main_py(
         "play.repeat_forever(stop_after(3))\n"
         "await asyncio.sleep(0)\n"
-        "await asyncio.sleep(0)\n",
-        "main.py",
-        "exec",
-        flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT,
+        "await asyncio.sleep(0)\n"
     )
-    main = {
-        "__name__": "__main__",
-        "asyncio": asyncio,
-        "play": play,
-        "stop_after": _stop_after,
-    }
-    play.api.auto_start.stop_waiting_for_the_script()
-    play.api.auto_start._schedule_auto_start.has_run = False
 
-    async def page():
-        await types.FunctionType(script, main)()
-        await _until_only_the_page_is_left()
+    _run_page(in_the_browser, main_py)
 
-    in_the_browser.run_until_complete(page())
-
-    assert globals_list.program_state is play.globals.ProgramState.STOPPED
+    assert globals_list.program_state is ProgramState.STOPPED
 
 
 def test_a_second_start_program_in_the_browser_is_reported(in_the_browser, caplog):
@@ -299,13 +273,9 @@ def test_a_second_start_program_in_the_browser_is_reported(in_the_browser, caplo
 
 
 def test_a_debugger_still_sees_a_top_level_await_pause(in_the_browser):
-    script = compile(
-        "play.when_program_starts(lambda: None)\nawait asyncio.sleep(0)\n",
-        "main.py",
-        "exec",
-        flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT,
+    main_py = _main_py(
+        "play.when_program_starts(lambda: None)\nawait asyncio.sleep(0)\n"
     )
-    main = {"__name__": "__main__", "asyncio": asyncio, "play": play}
     returns = []
 
     def local_trace(frame, event, _arg):
@@ -314,14 +284,12 @@ def test_a_debugger_still_sees_a_top_level_await_pause(in_the_browser):
         return local_trace
 
     def debugger(frame, _event, _arg):
-        return local_trace if frame.f_code is script else None
+        return local_trace if frame.f_code is main_py.__code__ else None
 
-    play.api.auto_start.stop_waiting_for_the_script()
-    play.api.auto_start._schedule_auto_start.has_run = False
     previous = sys.gettrace()
     sys.settrace(debugger)
     try:
-        in_the_browser.run_until_complete(types.FunctionType(script, main)())
+        in_the_browser.run_until_complete(main_py())
     finally:
         sys.settrace(previous)
 

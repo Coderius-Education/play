@@ -13,7 +13,6 @@ from play import loop as _play_loop
 from play.globals import globals_list, ProgramState
 from play.io.keypress import keyboard_state
 from play.io.logging import play_logger
-from play.loop import get_loop as _get_loop, stop_loop as _stop_loop
 from play.physics import set_physics_simulation_steps as _set_physics_simulation_steps
 from play.objects.video.video import close_all_videos as _close_all_videos
 from play.utils import color_name_to_rgb as _color_name_to_rgb
@@ -48,16 +47,16 @@ def start_program():
     stop_waiting_for_the_script()
 
     if _play_loop.RUNS_IN_BROWSER:
-        _get_loop().create_task(
-            _run_in_browser(), name=_play_loop.TASK_NAME_PREFIX + "start_program"
-        )
+        _play_loop.create_task(_run_in_browser())
         return
 
     try:
         with _hint_forgotten_awaits():
             _run_until_stopped(_start_then_loop())
     finally:
-        _clean_up()
+        logger = _logging.getLogger("asyncio")
+        logger.setLevel(_logging.CRITICAL)
+        _close_all_videos()
         if _os.getpid() == globals_list.initial_pid:
             pygame.quit()
 
@@ -71,19 +70,14 @@ async def _start_then_loop():
 
 
 async def _run_in_browser():
-    """Run the program on the page's event loop, then stop its sounds once it has stopped."""
-    with _hint_forgotten_awaits():
-        await _start_then_loop()
-        while not _program_has_stopped():
-            await _asyncio.sleep(0)
-    if pygame.mixer.get_init():
-        pygame.mixer.stop()
-
-
-def _clean_up():
-    """Silence asyncio's shutdown messages and close any videos."""
-    _logging.getLogger("asyncio").setLevel(_logging.CRITICAL)
-    _close_all_videos()
+    """Run the program on the page's event loop until stop_program() cancels it, then stop its sounds."""
+    try:
+        with _hint_forgotten_awaits():
+            await _start_then_loop()
+            await _play_loop.get_loop().create_future()
+    finally:
+        if pygame.mixer.get_init():
+            pygame.mixer.stop()
 
 
 def _program_has_stopped():
@@ -94,12 +88,12 @@ def _program_has_stopped():
 def _run_until_stopped(start):
     """Run *start*, then frames until the program stops, also when it stops during *start*."""
     try:
-        _get_loop().run_until_complete(start)
+        _play_loop.get_loop().run_until_complete(start)
     except RuntimeError:
         if not _program_has_stopped():
             raise
     if not _program_has_stopped():
-        _get_loop().run_forever()
+        _play_loop.get_loop().run_forever()
 
 
 def stop_program():
@@ -108,7 +102,7 @@ def stop_program():
 
     play.stop_program() should almost certainly go at the very end of your program.
     """
-    _stop_loop()
+    _play_loop.stop_loop()
 
 
 async def animate():

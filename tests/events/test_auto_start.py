@@ -84,7 +84,7 @@ def test_start_program_clears_auto_start_flag():
     # run_until_complete, so close it here — otherwise it is reported as
     # "coroutine ... was never awaited" against whichever test happens to be
     # running when the garbage collector gets to it.
-    with patch.object(utils, "_get_loop") as mock_get_loop:
+    with patch.object(utils._play_loop, "get_loop") as mock_get_loop:
         mock_get_loop.return_value.run_until_complete.side_effect = (
             lambda coro: coro.close()
         )

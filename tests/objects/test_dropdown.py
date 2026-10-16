@@ -265,13 +265,13 @@ def test_an_unturned_dropdown_at_a_fractional_x_keeps_its_place():
     dropdown = play.new_dropdown(options=["a", "bb"], x=1.5, width=121)
     dropdown.update()
 
-    assert dropdown.rect.x == 341
+    assert dropdown.rect.x == int(play.screen.width / 2 + 1.5 - 121 / 2)
 
 
 def test_a_dropdown_turned_a_full_turn_keeps_its_closed_height_when_open():
     dropdown = play.new_dropdown(options=["a", "bb", "ccc"], height=40)
     dropdown.angle = 360
-    dropdown._dropdown_open = True
+    dropdown._set_open(True)
     dropdown.update()
 
     assert dropdown.rect.height == 40
@@ -285,8 +285,8 @@ def test_an_anchored_turned_dropdown_stays_put_when_it_opens(angle):
     dropdown.angle = angle
     places = []
     for opened in (False, True, False):
-        dropdown._dropdown_open = opened
-        dropdown._should_recompute = True
+        dropdown._set_open(opened)
+        # anchoring uses the size drawn in the frame before
         dropdown.update()
         dropdown.update()
         places.append((dropdown.x, dropdown.y))

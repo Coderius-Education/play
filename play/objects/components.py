@@ -21,6 +21,7 @@ class EventComponent:
         self._fired_this_frame = set()
         self._stopped_callback = {}
         self._walls_touched_with_area = set()
+        self._contacts_running = set()
         self._dependent_sprites = set()
         self._is_clicked = False
 
@@ -169,20 +170,22 @@ class EventComponent:
         :param sprites_to_check: Sprites to check for collision."""
 
         def decorator(func):
-            async_callback = make_async(func)
-
             for target in sprites_to_check:
                 collision_registry.register(
                     self._sprite,
                     target,
                     self._sprite.physics._pymunk_shape,
                     target.physics._pymunk_shape,
-                    contact_callback(func, pair=(self._sprite, target, True)),
+                    contact_callback(
+                        func,
+                        contact=(target, True),
+                        running=self._contacts_running,
+                    ),
                     CollisionType.SPRITE,
                 )
 
             async def wrapper():
-                await run_async_callback(async_callback, [], [])
+                await run_async_callback(make_async(func), [], [])
 
             wrapper.callback = func
             for target in sprites_to_check:
@@ -199,21 +202,23 @@ class EventComponent:
         :param sprites_to_check: Sprites to check for collision separation."""
 
         def decorator(func):
-            async_callback = make_async(func)
-
             for target in sprites_to_check:
                 collision_registry.register(
                     self._sprite,
                     target,
                     self._sprite.physics._pymunk_shape,
                     target.physics._pymunk_shape,
-                    contact_callback(func, pair=(self._sprite, target, False)),
+                    contact_callback(
+                        func,
+                        contact=(target, False),
+                        running=self._contacts_running,
+                    ),
                     CollisionType.SPRITE,
                     begin=False,
                 )
 
             async def wrapper():
-                await run_async_callback(async_callback, [], [])
+                await run_async_callback(make_async(func), [], [])
 
             wrapper.callback = func
             for target in sprites_to_check:
@@ -246,7 +251,8 @@ class EventComponent:
             wrapper = contact_callback(
                 func,
                 wall_side,
-                pair=(self._sprite, wall_side, begin),
+                contact=(wall_side, begin),
+                running=self._contacts_running,
                 optional_args=["wall"],
             )
             wrapper.callback = func

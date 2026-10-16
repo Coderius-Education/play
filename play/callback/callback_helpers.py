@@ -5,9 +5,12 @@ This module contains helper functions for running callback functions.
 import inspect
 import traceback
 
-from play.globals import globals_list
 from play.io.logging import play_logger
-from play.loop import create_task as _create_task, stop_loop as _stop_loop
+from play.loop import (
+    create_task as _create_task,
+    first_error_to_show as _first_error_to_show,
+    stop_loop as _stop_loop,
+)
 from play.utils.async_helpers import make_async
 
 
@@ -78,9 +81,8 @@ async def run_async_callback(callback, required_args, optional_args, *args, **kw
 
 def _show_first_error(exc):
     """Stop the program and print the traceback, for the first error only."""
-    if globals_list.error_shown:
+    if not _first_error_to_show():
         return
-    globals_list.error_shown = True
     _stop_loop()
     traceback.print_exception(type(exc), exc, exc.__traceback__)
     play_logger.critical("Error in callback task: %s", exc)
@@ -94,20 +96,17 @@ async def _stop_on_error(callback, args, kwargs):
         _show_first_error(exc)
 
 
-_contacts_running = set()
-
-
-def contact_callback(func, *args, pair, optional_args=()):
+def contact_callback(func, *args, contact, running, optional_args=()):
     """Wrap a callback for a contact that begins or ends.
     :param func: The function to run. A plain function runs straight away; an async
         one starts straight away as a task of its own, so its awaits do not hold up
-        the game, and is skipped for this pair while its previous run has not finished.
+        the game, and is skipped while its previous run for this contact has not finished.
     :param args: The arguments to offer to func.
-    :param pair: What the contact is between, such as ``(sprite, other_sprite)``.
+    :param contact: What tells this contact apart, such as ``(other_sprite, True)`` for one that begins.
+    :param running: The set of contacts whose async run has not finished.
     :param optional_args: The names of the arguments func may leave out.
     :return: An async function without arguments that runs or starts func."""
     async_func = make_async(func)
-    key = (func, *pair)
 
     async def run():
         await run_async_callback(async_func, [], list(optional_args), *args)
@@ -115,18 +114,24 @@ def contact_callback(func, *args, pair, optional_args=()):
     if not inspect.iscoroutinefunction(func):
         return run
 
-    async def run_then_allow_again():
-        try:
-            await run()
-        finally:
-            _contacts_running.discard(key)
+    key = (func, *contact)
 
     async def start():
-        if key not in _contacts_running:
-            _contacts_running.add(key)
-            _create_task(_stop_on_error(run_then_allow_again, (), {}), eager=True)
+        if key not in running:
+            running.add(key)
+            _create_task(
+                _stop_on_error(_one_at_a_time, (run, key, running), {}), eager=True
+            )
 
     return start
+
+
+async def _one_at_a_time(run, key, running):
+    """Await *run*, then let the contact *key* start again."""
+    try:
+        await run()
+    finally:
+        running.discard(key)
 
 
 def fire_async_callback(callback, required_args, optional_args, *args, **kwargs):

@@ -6,9 +6,11 @@ import functools
 import inspect
 import traceback
 
-from play.globals import globals_list
 from play.io.logging import play_logger
-from play.loop import stop_loop as _stop_loop
+from play.loop import (
+    first_error_to_show as _first_error_to_show,
+    stop_loop as _stop_loop,
+)
 
 
 # @decorator
@@ -27,8 +29,7 @@ def listen_to_failure():
                 return result
             except Exception as e:
                 _stop_loop()
-                if not globals_list.error_shown:
-                    globals_list.error_shown = True
+                if _first_error_to_show():
                     play_logger.critical(
                         "Error in %s:\n%s",
                         f.__name__,

@@ -15,41 +15,37 @@ def _opcode(frame):
     return _dis.opname[frame.f_code.co_code[frame.f_lasti]]
 
 
+def _start_after_the_script():
+    """Start the program the script left unstarted, as play.start_program() at its end would."""
+    if (
+        globals_list.should_auto_start
+        and globals_list.program_state is ProgramState.NOT_STARTED
+    ):
+        globals_list.started_by_auto_start = True
+        try:
+            globals_list.start_program_fn()
+        except RuntimeError as exc:
+            if "already started" not in str(exc):
+                raise
+
+
 def _make_main_return_trace(existing_trace, existing_f_trace):
-    """Create a frame-trace function for the __main__ frame.
+    """Create the trace for the script's frame: it starts the program once the script ends normally."""
 
-    Fires start_program() when the frame returns, then restores the previous
-    global trace. Wraps any existing frame trace so debuggers/coverage survive.
-    """
-
-    def _on_main_return(_frame, event, _arg):
+    def _on_main_return(frame, event, arg):
         if event == "return":
-            if _opcode(_frame) in _PAUSE_OPCODES:
-                if existing_f_trace is not None:
-                    existing_f_trace(_frame, event, _arg)
-                return None
-            if (
-                _opcode(_frame).startswith("RETURN")
-                and globals_list.should_auto_start
-                and globals_list.program_state is ProgramState.NOT_STARTED
-            ):
-                globals_list.started_by_auto_start = True
-                try:
-                    globals_list.start_program_fn()
-                except RuntimeError as exc:
-                    if "already started" not in str(exc):
-                        raise
-            if existing_trace is None:
-                _sys.settrace(None)
-            if existing_f_trace is not None:
-                existing_f_trace(_frame, event, _arg)
-            return None  # CPython ignores the return value on 'return' events
+            instruction = _opcode(frame)
+            if instruction not in _PAUSE_OPCODES:
+                if instruction.startswith("RETURN"):
+                    _start_after_the_script()
+                if existing_trace is None:
+                    _sys.settrace(None)
         # Return value of existing_f_trace is intentionally discarded: we
         # always keep _on_main_return as the local trace so we can detect
         # the 'return' event.  In practice, coverage tools (e.g. pytest-cov)
         # return themselves, so they are not disrupted.
         if existing_f_trace is not None:
-            existing_f_trace(_frame, event, _arg)
+            existing_f_trace(frame, event, arg)
         return _on_main_return
 
     return _on_main_return
@@ -115,6 +111,7 @@ def _cleanup_auto_start():
     """
     globals_list.program_state = ProgramState.NOT_STARTED
     globals_list.should_auto_start = False
+    globals_list.started_by_auto_start = False
     _schedule_auto_start.has_run = False
     callback_manager.on_first_callback = _schedule_auto_start
 

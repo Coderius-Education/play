@@ -1,6 +1,7 @@
-"""Serve a pygbag build, open it in headless Chromium and wait for the game's verdict.
+"""Serve a page that runs the smoke game (a pygbag build or the Pyodide site),
+open it in headless Chromium and wait for the game's verdict.
 
-Usage: python run_in_chromium.py BUILD_WEB_DIR
+Usage: python run_in_chromium.py WEB_DIR
 """
 
 import functools

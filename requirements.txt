@@ -1,5 +1,5 @@
 numpy==2.2.6; python_version < "3.14" and sys_platform != "emscripten"
-numpy==2.4.1; python_version >= "3.14" and python_version < "3.15" and sys_platform != "emscripten"
+numpy==2.4.1; python_version == "3.14" and sys_platform != "emscripten"
 numpy==2.5.4; python_version >= "3.15" and sys_platform != "emscripten"
 numpy; sys_platform == "emscripten"
 pygame-ce==2.5.8; sys_platform != "emscripten"

@@ -7,40 +7,47 @@ import asyncio
 import sys
 import traceback
 
-if sys.platform == "emscripten":
-    try:
-        from platform import window as page
-    except ImportError:
-        import js as page
+try:
+    from platform import window as pygbag_page
+except ImportError:
+    pygbag_page = None
 
-    class _AlsoToConsole:
-        """Write to the terminal and to the browser console, where CI reads it."""
 
-        def __init__(self, stream):
-            self.stream = stream
+class _AlsoToConsole:
+    """Write to pygbag's terminal and to the browser console, where CI reads it."""
 
-        def write(self, text):
-            page.console.log(text)
-            return self.stream.write(text)
+    def __init__(self, stream):
+        self.stream = stream
 
-        def flush(self):
-            self.stream.flush()
+    def write(self, text):
+        pygbag_page.console.log(text)
+        return self.stream.write(text)
 
-    sys.stderr = _AlsoToConsole(sys.stderr)
+    def flush(self):
+        self.stream.flush()
+
+
+def _window():
+    """Return the browser's window: pygbag's platform.window or Pyodide's js module."""
+    if pygbag_page is not None:
+        return pygbag_page
+    import js  # pylint: disable=import-outside-toplevel
+
+    return js
 
 
 def report(result):
-    """Print the result and put it in the page title, where the browser test reads it."""
+    """Print the result and put its first line in the page title, where CI reads it."""
     print(result)
     if sys.platform == "emscripten":
-        page.console.log(result)
-        page.document.title = result.splitlines()[0]
+        _window().document.title = result.splitlines()[0]
 
 
-try:
-    import play
-    from play.globals import globals_list
-    from play.loop import get_loop
+def main():
+    """Drop a box onto a floor, with an async contact callback, and report after 60 frames."""
+    import play  # pylint: disable=import-outside-toplevel
+    from play.globals import globals_list  # pylint: disable=import-outside-toplevel
+    from play.loop import get_loop  # pylint: disable=import-outside-toplevel
 
     box = play.new_box(color="red", y=100, width=40, height=40)
     box.start_physics()
@@ -76,5 +83,13 @@ try:
 
     get_loop().create_task(report_an_error())
     play.start_program()
+
+
+if pygbag_page is not None:
+    sys.stdout = _AlsoToConsole(sys.stdout)
+    sys.stderr = _AlsoToConsole(sys.stderr)
+
+try:
+    main()
 except Exception:  # pylint: disable=broad-exception-caught
     report("PLAY-FAIL\n" + traceback.format_exc())
