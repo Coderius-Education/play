@@ -822,3 +822,10 @@ def test_seek_after_finishing_un_ends_the_video(video_file, fake_clock):
     assert video.finished is False
     assert video.paused is True
     assert video.time == pytest.approx(1.0, abs=0.01)
+
+
+def test_a_video_in_the_browser_says_videos_do_not_play_there(video_file, monkeypatch):
+    monkeypatch.setattr(play.loop, "RUNS_IN_BROWSER", True)
+
+    with pytest.raises(ImportError, match="can't be played in the browser"):
+        play.new_video(video_file)

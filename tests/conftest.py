@@ -213,7 +213,7 @@ def run_script(tmp_path):
     root = os.path.dirname(os.path.dirname(os.path.abspath(play.__file__)))
     env = {**os.environ, "PYTHONPATH": root, "PYGAME_HIDE_SUPPORT_PROMPT": "1"}
 
-    def run(body):
+    def run(body, returncode=0):
         script = tmp_path / "game.py"
         script.write_text(
             "import os\n"
@@ -229,7 +229,7 @@ def run_script(tmp_path):
             text=True,
             env=env,
         )
-        assert result.returncode == 0, result.stderr
+        assert result.returncode == returncode, result.stderr
         return result.stdout.split()
 
     return run
@@ -297,7 +297,7 @@ def _install_collision_error_recorder():
     if _RECORDER_INSTALLED:
         return
     from play.callback.collision_callbacks import collision_registry
-    from play.physics import physics_space
+    from play.physics import on_every_collision
 
     def _wrap(func):
         def wrapper(*args, **kwargs):
@@ -311,7 +311,7 @@ def _install_collision_error_recorder():
 
     begin = _wrap(collision_registry._handle_collision)
     separate = _wrap(collision_registry._handle_end_collision)
-    physics_space.on_collision(begin=begin, separate=separate)
+    on_every_collision(begin, separate)
     _RECORDER_INSTALLED.append(True)
 
 

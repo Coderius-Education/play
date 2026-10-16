@@ -1,50 +1,47 @@
 """Auto-start logic for running the game loop when the user forgets start_program()."""
 
+import dis as _dis
 import sys as _sys
 
 from play.callback import callback_manager
 from play.globals import globals_list, ProgramState
 from play.utils import run_once as _run_once
 
+_PAUSE_OPCODES = ("YIELD_VALUE", "RESUME")
+
+
+def _opcode(frame):
+    """Return the name of the instruction a frame stopped at."""
+    return _dis.opname[frame.f_code.co_code[frame.f_lasti]]
+
+
+def _start_after_the_script():
+    """Start the program the script left unstarted, as play.start_program() at its end would."""
+    if (
+        globals_list.should_auto_start
+        and globals_list.program_state is ProgramState.NOT_STARTED
+    ):
+        globals_list.started_by_auto_start = True
+        globals_list.start_program_fn()
+
 
 def _make_main_return_trace(existing_trace, existing_f_trace):
-    """Create a frame-trace function for the __main__ frame.
+    """Create the trace for the script's frame: it starts the program once the script ends normally."""
 
-    Fires start_program() when the frame returns, then restores the previous
-    global trace. Wraps any existing frame trace so debuggers/coverage survive.
-    """
-
-    def _on_main_return(_frame, event, _arg):
+    def _on_main_return(frame, event, arg):
         if event == "return":
-            if (
-                globals_list.should_auto_start
-                and globals_list.program_state is ProgramState.NOT_STARTED
-            ):
-                try:
-                    globals_list.start_program_fn()
-                except RuntimeError as exc:
-                    if "already started" not in str(exc):
-                        raise
-            if existing_trace is None:
-                _sys.settrace(None)
-            if existing_f_trace is not None:
-                existing_f_trace(_frame, event, _arg)
-            return None  # CPython ignores the return value on 'return' events
-        if event == "exception":
-            # An unhandled exception is propagating through __main__ — don't
-            # auto-start since the script has crashed.  Clean up the trace and
-            # pass the event to any existing tracer.
-            if existing_trace is None:
-                _sys.settrace(None)
-            if existing_f_trace is not None:
-                return existing_f_trace(_frame, event, _arg)
-            return None
+            instruction = _opcode(frame)
+            if instruction not in _PAUSE_OPCODES:
+                if instruction.startswith("RETURN"):
+                    _start_after_the_script()
+                if existing_trace is None:
+                    _sys.settrace(None)
         # Return value of existing_f_trace is intentionally discarded: we
         # always keep _on_main_return as the local trace so we can detect
         # the 'return' event.  In practice, coverage tools (e.g. pytest-cov)
         # return themselves, so they are not disrupted.
         if existing_f_trace is not None:
-            existing_f_trace(_frame, event, _arg)
+            existing_f_trace(frame, event, arg)
         return _on_main_return
 
     return _on_main_return
@@ -65,6 +62,16 @@ def _main_module_frame():
     return None
 
 
+def _placeholder_trace(*_args):
+    """Keep tracing on, so the trace on the script's frame sees it end."""
+
+
+def stop_waiting_for_the_script():
+    """Turn tracing off again when only auto-start had turned it on."""
+    if _sys.gettrace() is _placeholder_trace:
+        _sys.settrace(None)
+
+
 @_run_once
 def _schedule_auto_start():
     """Set up auto-start when the user's script finishes.
@@ -82,7 +89,7 @@ def _schedule_auto_start():
     if frame is not None:
         existing_trace = _sys.gettrace()
         if existing_trace is None:
-            _sys.settrace(lambda *_args: None)
+            _sys.settrace(_placeholder_trace)
         frame.f_trace = _make_main_return_trace(existing_trace, frame.f_trace)
         frame.f_trace_lines = False
     # If no __main__ frame was found (e.g. interactive REPL, embedded context),
@@ -100,6 +107,7 @@ def _cleanup_auto_start():
     """
     globals_list.program_state = ProgramState.NOT_STARTED
     globals_list.should_auto_start = False
+    globals_list.started_by_auto_start = False
     _schedule_auto_start.has_run = False
     callback_manager.on_first_callback = _schedule_auto_start
 

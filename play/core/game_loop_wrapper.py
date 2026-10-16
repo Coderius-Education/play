@@ -4,6 +4,7 @@ This module contains a decorator that listens to exceptions in the game loop.
 
 import functools
 import inspect
+import traceback
 
 from play.globals import globals_list
 from play.io.logging import play_logger
@@ -26,8 +27,12 @@ def listen_to_failure():
                 return result
             except Exception as e:
                 _stop_loop()
-                if not globals_list.error_shown:
-                    play_logger.critical("Error in %s: %s", f.__name__, e)
+                if globals_list.claim_first_error():
+                    play_logger.critical(
+                        "Error in %s:\n%s",
+                        f.__name__,
+                        "".join(traceback.format_exception(e)),
+                    )
                 raise
 
         return applicator

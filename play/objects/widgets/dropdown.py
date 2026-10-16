@@ -219,6 +219,13 @@ class Dropdown(WidgetMixin, Box):
         for cb in self._on_change_callbacks:
             cb(val, index)
 
+    def _anchor_size(self):
+        """Return the size of the closed row as drawn, so an open list does not move it."""
+        width, height = self._unscaled_size()
+        angle = self.physics._pymunk_body.angle
+        cos, sin = abs(_math.cos(angle)), abs(_math.sin(angle))
+        return width * cos + height * sin, width * sin + height * cos
+
     def _render(self):
         """Draw the closed button plus the open option list (if open)."""
         n_extra = len(self._options) if self._dropdown_open else 0
@@ -301,16 +308,17 @@ class Dropdown(WidgetMixin, Box):
 
         draw_image.set_alpha(round(self._transparency * 255 / 100))
 
-        # rect.height stays at the *closed* height, or _apply_anchor would
-        # re-anchor on the open height and an edge-anchored dropdown would jump.
         pos = convert_pos(self.x, self.y)
         angle_deg = _math.degrees(self.physics._pymunk_body.angle)
         self.image = pygame.transform.rotate(draw_image, angle_deg)
+        to_centre = pygame.math.Vector2(0, total_h // 2 - self._height // 2)
+        to_centre.rotate_ip(-angle_deg)
         self.rect = self.image.get_rect(
-            center=(pos[0], pos[1] - self._height // 2 + total_h // 2)
+            center=(pos[0] + to_centre.x, pos[1] + to_centre.y)
         )
-        self.rect.height = self._height
-        self.rect.top = pos[1] - self._height // 2
+        if angle_deg % 360 == 0:
+            self.rect.height = self._height
+            self.rect.top = pos[1] - self._height // 2
 
     # ── public API ────────────────────────────────────────────────────────────
 

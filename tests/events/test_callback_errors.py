@@ -111,6 +111,47 @@ def test_an_error_in_a_collision_callback_is_reported(caplog):
     ]
 
 
+def _ball_hits_a_block(on_touch, caplog):
+    ball = play.new_circle(x=-150, radius=10)
+    block = play.new_box(width=40, height=400)
+    ball.start_physics(obeys_gravity=False, x_speed=200)
+    block.start_physics(obeys_gravity=False, can_move=False)
+    ball.when_touching(block)(on_touch)
+
+    @play.when_program_starts
+    async def budget():
+        for _ in range(300):
+            await play.animate()
+        play.stop_program()
+
+    with caplog.at_level(logging.CRITICAL, logger="play"):
+        play.start_program()
+    return [r.getMessage() for r in _criticals(caplog)]
+
+
+def test_an_async_collision_callback_error_is_logged_once_with_its_traceback(
+    caplog,
+):
+    async def on_touch():
+        raise ValueError("typo in async when_touching")
+
+    shown = _ball_hits_a_block(on_touch, caplog)
+
+    assert len(shown) == 1
+    assert "Traceback" in shown[0]
+    assert "ValueError: typo in async when_touching" in shown[0]
+
+
+def test_a_collision_callback_traceback_has_no_extra_play_frames(caplog):
+    def on_touch():
+        raise ValueError("typo in when_touching")
+
+    shown = _ball_hits_a_block(on_touch, caplog)
+
+    assert "ValueError: typo in when_touching" in shown[0]
+    assert "in run\n" not in shown[0]
+
+
 def test_an_error_in_repeat_forever_is_reported(caplog):
     """The other place beginners put most of their code."""
     ran = []
@@ -169,15 +210,19 @@ def _count_frames_until_stopped(frames=60):
     return len(counted)
 
 
-def test_an_async_repeat_forever_error_stops_the_game_with_one_traceback(capsys):
+def test_an_async_repeat_forever_error_stops_the_game_with_one_traceback(
+    capsys, caplog
+):
     @play.repeat_forever
     async def broken():
         raise ValueError("typo in async repeat_forever")
 
-    frames = _count_frames_until_stopped()
+    with caplog.at_level(logging.CRITICAL, logger="play"):
+        frames = _count_frames_until_stopped()
 
     assert frames < 5
-    assert capsys.readouterr().err.count("ValueError: typo in async") == 1
+    shown = capsys.readouterr().err + caplog.text
+    assert shown.count("ValueError: typo in async") == 1
 
 
 def _press_space_after_a_few_frames():
@@ -227,16 +272,17 @@ def test_an_error_in_an_event_callback_stops_the_game(event, is_async):
     assert _count_frames_until_stopped() < 10
 
 
-def test_an_error_right_after_stop_program_is_still_shown(capsys):
+def test_an_error_right_after_stop_program_is_still_shown(capsys, caplog):
     @play.when_program_starts
     async def finish():
         await play.animate()
         play.stop_program()
         raise ValueError("typo after stop_program")
 
-    play.start_program()
+    with caplog.at_level(logging.CRITICAL, logger="play"):
+        play.start_program()
 
-    assert "typo after stop_program" in capsys.readouterr().err
+    assert "typo after stop_program" in capsys.readouterr().err + caplog.text
 
 
 def test_after_an_error_no_frame_runs_and_no_second_error_is_shown(capsys, caplog):
@@ -264,7 +310,7 @@ def test_after_an_error_no_frame_runs_and_no_second_error_is_shown(capsys, caplo
     assert frames_after_the_error == []
 
 
-def test_two_errors_in_the_same_frame_show_one_traceback(capsys):
+def test_two_errors_in_the_same_frame_show_one_traceback(capsys, caplog):
     @play.when_key_pressed("space")
     def first():
         raise ValueError("first error")
@@ -274,9 +320,10 @@ def test_two_errors_in_the_same_frame_show_one_traceback(capsys):
         raise ValueError("second error")
 
     _press_space_after_a_few_frames()
-    _count_frames_until_stopped()
+    with caplog.at_level(logging.CRITICAL, logger="play"):
+        _count_frames_until_stopped()
 
-    assert capsys.readouterr().err.count("Traceback") == 1
+    assert (capsys.readouterr().err + caplog.text).count("Traceback") == 1
 
 
 def test_a_repeat_forever_error_and_an_async_error_in_the_same_frame_show_one(

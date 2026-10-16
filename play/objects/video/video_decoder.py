@@ -13,6 +13,7 @@ import os
 import queue
 import threading
 
+from play import loop as _play_loop
 from play.io.logging import play_logger as logger
 
 _AV_IMPORT_ERROR = (
@@ -20,9 +21,16 @@ _AV_IMPORT_ERROR = (
     "along with play. Install it with:\n\n    pip install av\n"
 )
 
+_NO_VIDEO_IN_THE_BROWSER = (
+    "Videos can't be played in the browser: the 'av' package that plays them "
+    "only runs on a computer."
+)
+
 
 def _import_av():
     """Import PyAV, or raise a message a student can act on."""
+    if _play_loop.RUNS_IN_BROWSER:
+        raise ImportError(_NO_VIDEO_IN_THE_BROWSER)
     try:
         import av  # pylint: disable=import-outside-toplevel
 

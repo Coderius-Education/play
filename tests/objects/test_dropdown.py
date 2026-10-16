@@ -259,3 +259,49 @@ def test_closed_dropdown_does_not_claim_clicks():
     click_at(0, -40, dd, cb)
     assert dd.is_open is False
     assert cb.checked is True  # normal click still reaches the checkbox
+
+
+def test_an_unturned_dropdown_at_a_fractional_x_keeps_its_place():
+    dropdown = play.new_dropdown(options=["a", "bb"], x=1.5, width=121)
+    dropdown.update()
+
+    assert dropdown.rect.x == int(play.screen.width / 2 + 1.5 - 121 / 2)
+
+
+def test_a_dropdown_turned_a_full_turn_keeps_its_closed_height_when_open():
+    dropdown = play.new_dropdown(options=["a", "bb", "ccc"], height=40)
+    dropdown.angle = 360
+    dropdown._set_open(True)
+    dropdown.update()
+
+    assert dropdown.rect.height == 40
+
+
+@pytest.mark.parametrize("angle", [30, 90])
+def test_an_anchored_turned_dropdown_stays_put_when_it_opens(angle):
+    dropdown = play.new_dropdown(
+        options=["a", "bb", "ccc"], width=120, anchor="bottom-left", x=10, y=10
+    )
+    dropdown.angle = angle
+    places = []
+    for opened in (False, True, False):
+        dropdown._set_open(opened)
+        # anchoring uses the size drawn in the frame before
+        dropdown.update()
+        dropdown.update()
+        places.append((dropdown.x, dropdown.y))
+
+    assert places[0] == places[1] == places[2]
+
+
+def test_a_dropdown_turned_a_quarter_turn_folds_its_list_out_sideways():
+    dropdown = play.new_dropdown(options=["a", "bb", "ccc"], height=40)
+    dropdown.angle = 90
+    dropdown.update()
+    closed = dropdown.rect.center
+    dropdown._set_open(True)
+    dropdown.update()
+    opened = dropdown.rect.center
+
+    assert opened[1] == pytest.approx(closed[1], abs=1)
+    assert opened[0] > closed[0] + 40
