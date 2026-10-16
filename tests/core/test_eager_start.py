@@ -17,6 +17,8 @@ from play.globals import ProgramState, globals_list
 def eager_start(request, monkeypatch):
     if request.param and not play.loop._HAS_EAGER_TASK_FACTORY:
         pytest.skip("eager_task_factory needs Python 3.12")
+    if not request.param and sys.version_info >= (3, 14):
+        pytest.skip("on 3.14+ asyncio does not see a pure-Python Task as current")
     monkeypatch.setattr(play.loop, "_HAS_EAGER_TASK_FACTORY", request.param)
     return play.loop.start_task
 

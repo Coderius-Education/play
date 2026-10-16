@@ -3,7 +3,10 @@
 import ast
 import asyncio
 import logging
+import os
+import subprocess
 import sys
+import textwrap
 import types
 
 import pygame
@@ -370,3 +373,35 @@ def test_a_debugger_still_sees_a_top_level_await_pause(in_the_browser):
         sys.settrace(previous)
 
     assert returns == ["<module>", "<module>"]
+
+
+def test_play_loop_works_where_asyncio_tasks_is_not_the_module_as_in_pygbag():
+    script = textwrap.dedent("""
+        import asyncio
+        asyncio.tasks = []
+        import play.loop as loop
+        loop._HAS_EAGER_TASK_FACTORY = False
+
+        async def callback():
+            await asyncio.sleep(0)
+            return "done"
+
+        async def frame():
+            task = loop.start_task(callback())
+            loop._handle_exception(
+                loop.get_loop(), {"message": loop._DESTROYED_PENDING, "task": task}
+            )
+            return await task
+
+        print(loop.get_loop().run_until_complete(frame()))
+        """)
+    root = os.path.dirname(os.path.dirname(os.path.abspath(play.__file__)))
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        env={**os.environ, "PYTHONPATH": root, "PYGAME_HIDE_SUPPORT_PROMPT": "1"},
+        check=False,
+    )
+
+    assert result.stdout.split() == ["done"], result.stderr

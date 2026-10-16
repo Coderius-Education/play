@@ -3,6 +3,7 @@
 import os
 import sys
 import asyncio
+import importlib
 import traceback
 from play.globals import globals_list, ProgramState
 from play.io.logging import play_logger
@@ -19,6 +20,8 @@ _TASK_NAME_PREFIX = "play: "
 
 _HAS_EAGER_TASK_FACTORY = sys.version_info >= (3, 12)
 
+_asyncio_tasks = importlib.import_module("asyncio.tasks")
+
 _tasks = set()
 
 _page_exception_handler = None  # pylint: disable=invalid-name
@@ -29,7 +32,7 @@ def _handle_exception(the_loop, context):
     task = context.get("future") or context.get("task")
     task_name = (
         task.get_name()
-        if isinstance(task, (asyncio.Task, asyncio.tasks._PyTask))
+        if isinstance(task, (asyncio.Task, _asyncio_tasks._PyTask))
         else "unknown"
     )
     message = context.get("message", "Unhandled exception in async task")
@@ -89,7 +92,9 @@ def get_loop():
     return _loop
 
 
-class _HandStartedTask(asyncio.tasks._PyTask):  # pylint: disable=too-few-public-methods
+class _HandStartedTask(
+    _asyncio_tasks._PyTask
+):  # pylint: disable=too-few-public-methods
     """A task whose first step is taken by hand, as eager_task_factory does on Python 3.12+."""
 
     _skip_the_scheduled_first_step = True
@@ -112,12 +117,12 @@ class _HandStartedTask(asyncio.tasks._PyTask):  # pylint: disable=too-few-public
         """Take the first step now, with this task as its loop's current task."""
         outer = asyncio.current_task(self._loop)
         if outer is not None:
-            asyncio.tasks._leave_task(self._loop, outer)
+            _asyncio_tasks._leave_task(self._loop, outer)
         try:
             self._context.run(super()._Task__step)
         finally:
             if outer is not None:
-                asyncio.tasks._enter_task(self._loop, outer)
+                _asyncio_tasks._enter_task(self._loop, outer)
 
 
 def _start_by_hand(coro, name):
