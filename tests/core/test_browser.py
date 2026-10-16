@@ -11,6 +11,7 @@ import pytest
 
 import play
 import play.loop
+from play.api import auto_start
 from play.globals import ProgramState, globals_list
 
 
@@ -34,6 +35,12 @@ def _stop_after(frames):
     return count
 
 
+def _wait_for_a_new_script():
+    """Let auto-start watch the next script, as it does right after play is imported."""
+    auto_start.stop_waiting_for_the_script()
+    auto_start._schedule_auto_start.has_run = False
+
+
 def _main_py(source):
     """Return *source* as pygbag runs a main.py: a __main__ module that may await at the top."""
     code = compile(source, "main.py", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
@@ -43,8 +50,7 @@ def _main_py(source):
         "play": play,
         "stop_after": _stop_after,
     }
-    play.api.auto_start.stop_waiting_for_the_script()
-    play.api.auto_start._schedule_auto_start.has_run = False
+    _wait_for_a_new_script()
     return types.FunctionType(code, main)
 
 
@@ -142,6 +148,25 @@ def test_an_error_in_a_page_task_leaves_the_program_running(in_the_browser):
 
     _run_page(in_the_browser, script)
 
+    assert not globals_list.error_shown
+
+
+def test_a_failed_future_of_the_page_goes_to_the_default_handler(
+    in_the_browser, monkeypatch
+):
+    reported = []
+    monkeypatch.setattr(in_the_browser, "default_exception_handler", reported.append)
+
+    def script():
+        play.start_program()
+        future = asyncio.get_running_loop().create_future()
+        future.set_exception(OSError("the page's own future failed"))
+
+    play.repeat_forever(_stop_after(5))
+
+    _run_page(in_the_browser, script)
+
+    assert [type(context.get("exception")) for context in reported] == [OSError]
     assert not globals_list.error_shown
 
 

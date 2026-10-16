@@ -12,10 +12,10 @@ from play.globals import ProgramState, globals_list
     params=[True, False], ids=["eager_task_factory", "by hand, as on Python 3.11"]
 )
 def eager_start(request, monkeypatch):
-    if request.param and not play.loop._EAGER_TASKS:
+    if request.param and not play.loop._HAS_EAGER_TASK_FACTORY:
         pytest.skip("eager_task_factory needs Python 3.12")
-    monkeypatch.setattr(play.loop, "_EAGER_TASKS", request.param)
-    return lambda coro: play.loop.create_task(coro, eager=True)
+    monkeypatch.setattr(play.loop, "_HAS_EAGER_TASK_FACTORY", request.param)
+    return play.loop.start_task
 
 
 def _run(coroutine):
@@ -53,6 +53,19 @@ def test_an_eager_start_of_a_coroutine_that_ends_at_once_is_done_at_once(
 
     assert started.done()
     assert started.result() == "done"
+
+
+def test_an_error_before_the_first_await_is_kept_in_the_eager_task(eager_start):
+    async def callback():
+        raise ValueError("typo before the await")
+
+    async def frame():
+        return eager_start(callback())
+
+    started = _run(frame())
+
+    assert started.done()
+    assert str(started.exception()) == "typo before the await"
 
 
 def test_an_error_after_the_first_await_reaches_the_eager_task(eager_start):

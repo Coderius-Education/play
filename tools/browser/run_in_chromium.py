@@ -25,6 +25,7 @@ def serve(directory):
 
 
 def main(directory):
+    """Open the page served from *directory* in Chromium; return 0 only if it reports PLAY-OK."""
     server = serve(directory)
     url = f"http://127.0.0.1:{server.server_address[1]}/index.html"
     log = []

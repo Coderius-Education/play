@@ -69,12 +69,17 @@ async def _start_then_loop():
     _play_loop.create_task(_game_loop())
 
 
+async def _until_cancelled():
+    """Wait until the task awaiting this is cancelled."""
+    await _play_loop.get_loop().create_future()
+
+
 async def _run_in_browser():
-    """Run the program on the page's event loop until stop_program() cancels it, then stop its sounds."""
+    """Run the program on the page's event loop until the program stops, then stop its sounds."""
     try:
         with _hint_forgotten_awaits():
             await _start_then_loop()
-            await _play_loop.get_loop().create_future()
+            await _until_cancelled()
     finally:
         if pygame.mixer.get_init():
             pygame.mixer.stop()

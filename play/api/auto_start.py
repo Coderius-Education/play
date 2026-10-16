@@ -22,11 +22,7 @@ def _start_after_the_script():
         and globals_list.program_state is ProgramState.NOT_STARTED
     ):
         globals_list.started_by_auto_start = True
-        try:
-            globals_list.start_program_fn()
-        except RuntimeError as exc:
-            if "already started" not in str(exc):
-                raise
+        globals_list.start_program_fn()
 
 
 def _make_main_return_trace(existing_trace, existing_f_trace):

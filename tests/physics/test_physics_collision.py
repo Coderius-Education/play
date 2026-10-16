@@ -1,7 +1,7 @@
 import pytest
 
 import play
-from play.physics import physics_space
+from play.physics import _keep_colliding, physics_space
 
 
 @pytest.fixture(autouse=True)
@@ -111,8 +111,7 @@ def test_sleep_disabled_on_space():
     assert physics_space.sleep_time_threshold == float("inf")
 
 
-def test_keep_colliding_reports_a_raising_begin_handler_and_still_returns_true(capsys):
-    from play.physics import _keep_colliding
+def test_a_raising_begin_handler_is_reported_and_the_shapes_still_collide(capsys):
 
     def begin(*_):
         raise RuntimeError("bug in a begin handler")

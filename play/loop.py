@@ -18,7 +18,7 @@ RUNS_IN_BROWSER = sys.platform == "emscripten"
 
 _TASK_NAME_PREFIX = "play: "
 
-_EAGER_TASKS = sys.version_info >= (3, 12)
+_HAS_EAGER_TASK_FACTORY = sys.version_info >= (3, 12)
 
 _tasks = set()
 
@@ -26,7 +26,7 @@ _tasks = set()
 def _handle_exception(the_loop, context):
     exception = context.get("exception")
     task = context.get("future")
-    task_name = task.get_name() if task else "unknown"
+    task_name = task.get_name() if isinstance(task, asyncio.Task) else "unknown"
     message = context.get("message", "Unhandled exception in async task")
 
     if RUNS_IN_BROWSER and not task_name.startswith(_TASK_NAME_PREFIX):
@@ -40,7 +40,7 @@ def _handle_exception(the_loop, context):
 
     if not exception:
         play_logger.critical(message)
-    elif first_error_to_show():
+    elif globals_list.claim_first_error():
         play_logger.critical(
             "Unhandled exception in task '%s':\n%s",
             task_name,
@@ -48,15 +48,6 @@ def _handle_exception(the_loop, context):
         )
 
     stop_loop()
-
-
-def first_error_to_show():
-    """Tell whether an error is the program's first, the only one whose traceback is shown.
-    :return: True the first time it is called for a program, False after that."""
-    if globals_list.error_shown:
-        return False
-    globals_list.error_shown = True
-    return True
 
 
 def get_loop():
@@ -83,8 +74,8 @@ def get_loop():
 
 
 @types.coroutine
-def _resume(coro, awaiting):
-    """Pass on to *coro*, paused at *awaiting*, what its task sends or throws in."""
+def _relay(coro, awaiting):
+    """Pass on to *coro*, paused at *awaiting*, what its task sends or throws in; a bare yield (None) has already had its loop turn."""
     try:
         if awaiting is None:
             awaiting = coro.send(None)
@@ -101,38 +92,63 @@ def _resume(coro, awaiting):
 
 async def _carry_on(coro, awaiting):
     """Await the rest of a coroutine that already took its first step."""
-    return await _resume(coro, awaiting)
+    return await _relay(coro, awaiting)
 
 
-def _start_eagerly(coro, name):
+def _finished(result=None, error=None):
+    """Return a future that is already done with *result*, or with *error* if given."""
+    future = get_loop().create_future()
+    if error is None:
+        future.set_result(result)
+    else:
+        future.set_exception(error)
+    return future
+
+
+def _start_by_hand(coro, name):
     """Run a coroutine up to its first await, then hand the rest to a task."""
     try:
         awaiting = coro.send(None)
     except StopIteration as stop:
-        finished = get_loop().create_future()
-        finished.set_result(stop.value)
-        return finished
+        return _finished(result=stop.value)
+    except Exception as error:  # pylint: disable=broad-exception-caught
+        return _finished(error=error)
     return get_loop().create_task(_carry_on(coro, awaiting), name=name)
 
 
-def create_task(coro, eager=False):
-    """Start a coroutine as one of play's tasks.
-    :param coro: The coroutine to run.
-    :param eager: Run it straight away up to its first await; if that stops the program, it goes no further.
-    :return: The task, or a finished future if an eager coroutine ended at once."""
-    name = _TASK_NAME_PREFIX + coro.__qualname__
-    if eager and _EAGER_TASKS:
-        task = asyncio.eager_task_factory(get_loop(), coro, name=name)
-    elif eager:
-        task = _start_eagerly(coro, name)
-    else:
-        task = get_loop().create_task(coro, name=name)
-    if eager and globals_list.program_state is ProgramState.STOPPED:
-        task.cancel()
-    elif RUNS_IN_BROWSER:
+def _task_name(coro):
+    """Return the name of play's task for *coro*."""
+    return _TASK_NAME_PREFIX + coro.__qualname__
+
+
+def _track(task):
+    """Remember one of play's tasks in the browser, so that stopping the program can cancel it."""
+    if RUNS_IN_BROWSER:
         _tasks.add(task)
         task.add_done_callback(_tasks.discard)
     return task
+
+
+def create_task(coro):
+    """Schedule a coroutine as one of play's tasks; it starts on a later turn of the loop.
+    :param coro: The coroutine to run.
+    :return: The task."""
+    return _track(get_loop().create_task(coro, name=_task_name(coro)))
+
+
+def start_task(coro):
+    """Run a coroutine straight away up to its first await, then go on with it as one of play's tasks.
+    :param coro: The coroutine to run. If it stops the program before its first await, it goes no further.
+    :return: The task, or a finished future if the coroutine ended or failed before its first await.
+    """
+    if _HAS_EAGER_TASK_FACTORY:
+        task = asyncio.eager_task_factory(get_loop(), coro, name=_task_name(coro))
+    else:
+        task = _start_by_hand(coro, _task_name(coro))
+    if globals_list.program_state is ProgramState.STOPPED:
+        task.cancel()
+        return task
+    return _track(task)
 
 
 def stop_loop():

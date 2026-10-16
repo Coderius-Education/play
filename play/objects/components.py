@@ -184,8 +184,10 @@ class EventComponent:
                     CollisionType.SPRITE,
                 )
 
+            async_func = make_async(func)
+
             async def wrapper():
-                await run_async_callback(make_async(func), [], [])
+                await run_async_callback(async_func, [], [])
 
             wrapper.callback = func
             for target in sprites_to_check:
@@ -217,8 +219,10 @@ class EventComponent:
                     begin=False,
                 )
 
+            async_func = make_async(func)
+
             async def wrapper():
-                await run_async_callback(make_async(func), [], [])
+                await run_async_callback(async_func, [], [])
 
             wrapper.callback = func
             for target in sprites_to_check:

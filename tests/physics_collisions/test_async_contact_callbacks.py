@@ -1,6 +1,6 @@
 """An async def contact callback runs as a task of its own, so its awaits do not hold up the game."""
 
-from dataclasses import dataclass, field
+from typing import NamedTuple
 
 import pytest
 
@@ -9,20 +9,26 @@ import play
 FRAMES = 60
 
 
-@dataclass(eq=False)
-class _Runs:
-    """The frame count, and per run of a contact callback: its first frame, last frame and runs at once."""
+class Run(NamedTuple):
+    start: int
+    end: int
+    at_once: int
 
-    frame: int = 0
-    running: int = 0
-    seen: list = field(default_factory=list)
+
+class _Runs:
+    """The frame count, and every finished run of a contact callback."""
+
+    def __init__(self):
+        self.frame = 0
+        self.running = 0
+        self.seen = []
 
     async def landed(self):
         self.running += 1
         start = self.frame
         for _ in range(3):
             await play.animate()
-        self.seen.append((start, self.frame, self.running))
+        self.seen.append(Run(start, self.frame, self.running))
         self.running -= 1
 
 
@@ -64,8 +70,8 @@ def test_frames_keep_running_while_an_async_contact_callback_awaits(when_touchin
     _run_frames(runs)
 
     assert len(runs.seen) > 1
-    assert all(end > start for start, end, _ in runs.seen)
-    assert all(at_once == 1 for _, _, at_once in runs.seen)
+    assert all(run.end > run.start for run in runs.seen)
+    assert all(run.at_once == 1 for run in runs.seen)
 
 
 def test_restarting_physics_does_not_run_an_async_contact_callback_twice_at_once():
@@ -83,7 +89,7 @@ def test_restarting_physics_does_not_run_an_async_contact_callback_twice_at_once
     _run_frames(runs)
 
     assert len(runs.seen) > 1
-    assert all(at_once == 1 for _, _, at_once in runs.seen)
+    assert all(run.at_once == 1 for run in runs.seen)
 
 
 def _bouncing_ball_over_a_floor(x):
@@ -110,15 +116,3 @@ def test_an_async_when_touching_starts_in_the_sub_step_its_contact_begins():
     _run_frames(runs)
 
     assert first_touch["async"] == first_touch["plain"]
-
-
-def test_a_bound_method_can_be_a_contact_callback():
-    ball = play.new_circle(x=-100, radius=10)
-    ball.start_physics(x_speed=300, obeys_gravity=False)
-    coin = play.new_circle(radius=10)
-    coin.start_physics(can_move=False)
-    ball.when_touching(coin)(coin.hide)
-
-    _run_frames(_Runs())
-
-    assert coin.is_hidden

@@ -20,10 +20,12 @@ class _AlsoToConsole:
         self.stream = stream
 
     def write(self, text):
+        """Write *text* to both."""
         pygbag_page.console.log(text)
         return self.stream.write(text)
 
     def flush(self):
+        """Flush the terminal; the console needs no flushing."""
         self.stream.flush()
 
 
@@ -45,9 +47,10 @@ def report(result):
 
 def main():
     """Drop a box onto a floor, with an async contact callback, and report after 60 frames."""
-    import play  # pylint: disable=import-outside-toplevel
-    from play.globals import globals_list  # pylint: disable=import-outside-toplevel
-    from play.loop import get_loop  # pylint: disable=import-outside-toplevel
+    # pylint: disable=import-outside-toplevel
+    import play
+    from play.globals import globals_list
+    from play.loop import get_loop
 
     box = play.new_box(color="red", y=100, width=40, height=40)
     box.start_physics()

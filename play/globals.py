@@ -71,5 +71,11 @@ class Globals:
         self.started_by_auto_start = False
         self.focused_text_input = None
 
+    def claim_first_error(self):
+        """Mark that an error is shown; return True only for the program's first."""
+        first = not self.error_shown
+        self.error_shown = True
+        return first
+
 
 globals_list = Globals()
