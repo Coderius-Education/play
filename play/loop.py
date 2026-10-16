@@ -3,10 +3,7 @@
 import os
 import sys
 import asyncio
-import contextlib
-import contextvars
 import traceback
-import types
 from play.globals import globals_list, ProgramState
 from play.io.logging import play_logger
 
@@ -24,15 +21,17 @@ _HAS_EAGER_TASK_FACTORY = sys.version_info >= (3, 12)
 
 _tasks = set()
 
-_FIRST_STEP_TAKEN = object()
-
 _page_exception_handler = None  # pylint: disable=invalid-name
 
 
 def _handle_exception(the_loop, context):
     exception = context.get("exception")
     task = context.get("future") or context.get("task")
-    task_name = task.get_name() if isinstance(task, asyncio.Task) else "unknown"
+    task_name = (
+        task.get_name()
+        if isinstance(task, (asyncio.Task, asyncio.tasks._PyTask))
+        else "unknown"
+    )
     message = context.get("message", "Unhandled exception in async task")
 
     if RUNS_IN_BROWSER and not task_name.startswith(_TASK_NAME_PREFIX):
@@ -90,64 +89,44 @@ def get_loop():
     return _loop
 
 
-@types.coroutine
-def _relay(coro):
-    """Take *coro*'s first step at once, then pass on to it what the task running this sends or throws in."""
-    try:
-        awaiting = coro.send(None)
-    except StopIteration as stop:
-        yield _FIRST_STEP_TAKEN
-        return stop.value
-    except Exception:  # pylint: disable=broad-exception-caught
-        yield _FIRST_STEP_TAKEN
-        raise
-    try:
-        try:
-            yield _FIRST_STEP_TAKEN
-        except BaseException as thrown:  # pylint: disable=broad-exception-caught
-            awaiting = coro.throw(thrown)
+class _HandStartedTask(asyncio.tasks._PyTask):
+    """A task whose first step is taken by hand, as eager_task_factory does on Python 3.12+."""
+
+    _skip_the_scheduled_first_step = True
+
+    def _Task__step(self, exc=None):  # pylint: disable=invalid-name
+        """Skip the step that Task.__init__ scheduled, as take_first_step takes it."""
+        if self._skip_the_scheduled_first_step:
+            self._skip_the_scheduled_first_step = False
         else:
-            if awaiting is None:
-                awaiting = coro.send(None)
-        while True:
-            try:
-                sent = yield awaiting
-            except BaseException as thrown:  # pylint: disable=broad-exception-caught
-                awaiting = coro.throw(thrown)
-            else:
-                awaiting = coro.send(sent)
-    except StopIteration as stop:
-        return stop.value
+            super()._Task__step(exc)
 
+    def _Task__wakeup(self, future):  # pylint: disable=invalid-name
+        """Go on once *future* is done, passing on its error without raising it here first."""
+        if future.cancelled():
+            self._Task__step(future._make_cancelled_error())
+        else:
+            self._Task__step(future.exception())
 
-async def _carry_on(relay):
-    """Await a relay whose first step has been taken by hand."""
-    return await relay
-
-
-@contextlib.contextmanager
-def _running_as(task):
-    """Make *task* its loop's current task while the block runs."""
-    loop = task.get_loop()
-    outer = asyncio.current_task(loop)
-    if outer is not None:
-        asyncio.tasks._leave_task(loop, outer)
-    asyncio.tasks._enter_task(loop, task)
-    try:
-        yield
-    finally:
-        asyncio.tasks._leave_task(loop, task)
+    def take_first_step(self):
+        """Take the first step now, with this task as its loop's current task."""
+        outer = asyncio.current_task(self._loop)
         if outer is not None:
-            asyncio.tasks._enter_task(loop, outer)
+            asyncio.tasks._leave_task(self._loop, outer)
+        try:
+            self._context.run(super()._Task__step)
+        finally:
+            if outer is not None:
+                asyncio.tasks._enter_task(self._loop, outer)
 
 
 def _start_by_hand(coro, name):
     """Run a coroutine up to its first await as the task that then goes on with it."""
-    context = contextvars.copy_context()
-    carry_on = _carry_on(_relay(coro))
-    task = get_loop().create_task(carry_on, name=name, context=context)
-    with _running_as(task):
-        context.run(carry_on.send, None)
+    loop = get_loop()
+    if not loop.is_running():
+        return loop.create_task(coro, name=name)
+    task = _HandStartedTask(coro, loop=loop, name=name)
+    task.take_first_step()
     return task
 
 
@@ -166,9 +145,9 @@ def _track(task):
 
 def create_task(coro):
     """Schedule a coroutine as one of play's tasks; it starts on a later turn of the loop.
-    :param coro: The coroutine to run.
+    :param coro: The coroutine to run. If the program has stopped, it does not run.
     :return: The task."""
-    return _track(get_loop().create_task(coro, name=_task_name(coro)))
+    return _unless_stopped(get_loop().create_task(coro, name=_task_name(coro)))
 
 
 def start_task(coro):
@@ -179,6 +158,11 @@ def start_task(coro):
         task = asyncio.eager_task_factory(get_loop(), coro, name=_task_name(coro))
     else:
         task = _start_by_hand(coro, _task_name(coro))
+    return _unless_stopped(task)
+
+
+def _unless_stopped(task):
+    """Cancel *task* if the program has stopped, or else keep track of it."""
     if globals_list.program_state is ProgramState.STOPPED:
         task.cancel()
         return task

@@ -81,11 +81,12 @@ async def run_async_callback(callback, required_args, optional_args, *args, **kw
 
 
 def _show_first_error(exc):
-    """Stop the program; for its first error, also print the traceback."""
+    """Stop the program; for its first error, also show the traceback."""
     _stop_loop()
     if globals_list.claim_first_error():
-        traceback.print_exception(exc)
-        play_logger.critical("Error in callback task: %s", exc)
+        play_logger.critical(
+            "Error in callback task:\n%s", "".join(traceback.format_exception(exc))
+        )
 
 
 async def _stop_on_error(callback, /, *args, **kwargs):
@@ -107,11 +108,14 @@ def contact_callback(func, *args, contact, running, optional_args=()):
     :param optional_args: The names of the arguments func may leave out.
     :return: An async function without arguments that runs or starts func."""
     async_func = make_async(func)
+    is_async = inspect.iscoroutinefunction(func)
+    if not is_async and not args:
+        return async_func
 
     async def run():
         await run_async_callback(async_func, [], optional_args, *args)
 
-    if not inspect.iscoroutinefunction(func):
+    if not is_async:
         return run
 
     key = (func, contact)

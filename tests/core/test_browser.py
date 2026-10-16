@@ -107,7 +107,7 @@ def test_the_display_stays_open_after_the_program_stops_in_the_browser(
     assert pygame.display.get_init()
 
 
-def test_an_error_stops_the_program_in_the_browser(in_the_browser, capsys):
+def test_an_error_stops_the_program_in_the_browser(in_the_browser, capsys, caplog):
     frames = []
 
     @play.repeat_forever
@@ -115,11 +115,13 @@ def test_an_error_stops_the_program_in_the_browser(in_the_browser, capsys):
         frames.append(1)
         raise ValueError("typo in the browser")
 
-    _run_page(in_the_browser, play.start_program)
+    with caplog.at_level(logging.CRITICAL, logger="play"):
+        _run_page(in_the_browser, play.start_program)
 
     assert frames == [1]
     assert globals_list.error_shown
-    assert capsys.readouterr().err.count("ValueError: typo in the browser") == 1
+    shown = capsys.readouterr().err + caplog.text
+    assert shown.count("ValueError: typo in the browser") == 1
 
 
 def test_stopping_in_the_browser_ends_the_programs_other_callbacks(in_the_browser):
@@ -170,6 +172,24 @@ def test_a_failed_future_of_the_page_goes_to_the_default_handler(
 
     assert [type(context.get("exception")) for context in reported] == [OSError]
     assert not globals_list.error_shown
+
+
+def test_a_task_made_after_the_program_stopped_does_not_run_in_the_browser(
+    in_the_browser,
+):
+    ran = []
+
+    async def late():
+        ran.append(1)
+
+    @play.repeat_forever
+    def stop_then_schedule():
+        play.stop_program()
+        play.loop.create_task(late())
+
+    _run_page(in_the_browser, play.start_program)
+
+    assert ran == []
 
 
 def test_an_error_in_a_page_task_goes_to_the_handler_the_page_had(in_the_browser):

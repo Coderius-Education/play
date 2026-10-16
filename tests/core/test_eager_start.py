@@ -2,6 +2,8 @@
 
 import asyncio
 import contextvars
+import gc
+import sys
 
 import pytest
 
@@ -195,3 +197,55 @@ def test_an_eager_task_resumes_one_loop_turn_after_a_bare_await(eager_start):
     _run(frame())
 
     assert order == ["turn 0", "callback", "turn 1", "turn 2"]
+
+
+def test_a_cancellation_in_the_first_step_ends_only_the_eager_task(eager_start):
+    async def callback():
+        cancelled = asyncio.get_running_loop().create_future()
+        cancelled.cancel()
+        await cancelled
+
+    async def frame():
+        task = eager_start(callback())
+        await asyncio.sleep(0)
+        return task
+
+    assert _run(frame()).cancelled()
+
+
+def test_an_error_after_a_caught_timeout_does_not_carry_the_timeout(eager_start):
+    async def callback():
+        try:
+            async with asyncio.timeout(0.01):
+                await asyncio.sleep(10)
+        except TimeoutError:
+            pass
+        raise ValueError("typo after the timeout")
+
+    async def frame():
+        task = eager_start(callback())
+        while not task.done():
+            await asyncio.sleep(0.005)
+        return task.exception()
+
+    error = _run(frame())
+
+    assert str(error) == "typo after the timeout"
+    assert error.__context__ is None
+
+
+def test_a_forgotten_eager_task_is_collected_quietly(eager_start, monkeypatch):
+    unraisable = []
+    monkeypatch.setattr(sys, "unraisablehook", unraisable.append)
+
+    async def callback():
+        await asyncio.Event().wait()
+
+    async def frame():
+        eager_start(callback())
+        await asyncio.sleep(0)
+
+    _run(frame())
+    gc.collect()
+
+    assert unraisable == []
