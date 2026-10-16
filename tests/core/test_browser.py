@@ -142,6 +142,11 @@ def test_an_error_in_a_plain_callback_stops_the_program_in_the_browser(
     assert frames == [1]
     assert globals_list.error_shown
     assert caplog.text.count("ValueError: typo in a plain callback") == 1
+    assert any(
+        "Error in game_loop" in record.getMessage()
+        and "ValueError: typo in a plain callback" in record.getMessage()
+        for record in caplog.records
+    )
 
 
 def test_sounds_stop_once_the_program_has_stopped_in_the_browser(
@@ -199,3 +204,33 @@ def test_a_top_level_await_does_not_start_the_program_early(in_the_browser):
 
     assert globals_list.program_state is play.globals.ProgramState.STOPPED
     assert not globals_list.error_shown
+
+
+def test_start_program_inside_an_async_main_is_ignored_after_auto_start(
+    in_the_browser, caplog
+):
+    script = compile(
+        "play.repeat_forever(stop_after(3))\n"
+        "async def main():\n"
+        "    play.start_program()\n"
+        "asyncio.get_running_loop().create_task(main())\n",
+        "main.py",
+        "exec",
+        flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT,
+    )
+    main = {
+        "__name__": "__main__",
+        "asyncio": asyncio,
+        "play": play,
+        "stop_after": _stop_after,
+    }
+    play.api.auto_start._schedule_auto_start.has_run = False
+
+    async def page():
+        types.FunctionType(script, main)()
+        await _until_only_the_page_is_left()
+
+    in_the_browser.run_until_complete(page())
+
+    assert globals_list.program_state is play.globals.ProgramState.STOPPED
+    assert "already started" not in caplog.text

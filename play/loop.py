@@ -75,11 +75,16 @@ def get_loop():
     return _loop
 
 
-def create_task(coro):
+def create_task(coro, eager=False):
     """Start a coroutine as one of play's tasks.
     :param coro: The coroutine to run.
+    :param eager: Run it straight away up to its first real await, where Python allows that.
     :return: The task."""
-    task = get_loop().create_task(coro, name=TASK_NAME_PREFIX + coro.__qualname__)
+    name = TASK_NAME_PREFIX + coro.__qualname__
+    if eager and sys.version_info >= (3, 12):
+        task = asyncio.eager_task_factory(get_loop(), coro, name=name)
+    else:
+        task = get_loop().create_task(coro, name=name)
     if RUNS_IN_BROWSER:
         _tasks.add(task)
         task.add_done_callback(_tasks.discard)

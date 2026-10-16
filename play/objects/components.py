@@ -177,7 +177,7 @@ class EventComponent:
                     target,
                     self._sprite.physics._pymunk_shape,
                     target.physics._pymunk_shape,
-                    contact_callback(func),
+                    contact_callback(func, pair=(self._sprite, target, True)),
                     CollisionType.SPRITE,
                 )
 
@@ -207,7 +207,7 @@ class EventComponent:
                     target,
                     self._sprite.physics._pymunk_shape,
                     target.physics._pymunk_shape,
-                    contact_callback(func),
+                    contact_callback(func, pair=(self._sprite, target, False)),
                     CollisionType.SPRITE,
                     begin=False,
                 )
@@ -243,7 +243,12 @@ class EventComponent:
         for wall_segment in walls_to_register:
             wall_side = wall_segment.wall_side
 
-            wrapper = contact_callback(func, wall_side, optional_args=["wall"])
+            wrapper = contact_callback(
+                func,
+                wall_side,
+                pair=(self._sprite, wall_side, begin),
+                optional_args=["wall"],
+            )
             wrapper.callback = func
 
             collision_registry.register(

@@ -213,7 +213,7 @@ def run_script(tmp_path):
     root = os.path.dirname(os.path.dirname(os.path.abspath(play.__file__)))
     env = {**os.environ, "PYTHONPATH": root, "PYGAME_HIDE_SUPPORT_PROMPT": "1"}
 
-    def run(body):
+    def run(body, returncode=0):
         script = tmp_path / "game.py"
         script.write_text(
             "import os\n"
@@ -229,7 +229,7 @@ def run_script(tmp_path):
             text=True,
             env=env,
         )
-        assert result.returncode == 0, result.stderr
+        assert result.returncode == returncode, result.stderr
         return result.stdout.split()
 
     return run

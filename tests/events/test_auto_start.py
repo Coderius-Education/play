@@ -164,3 +164,29 @@ def test_an_exception_the_script_catches_still_lets_the_game_start(run_script):
         "    print('caught')\n",
     )
     assert printed == ["caught", "started"]
+
+
+def test_tracing_is_off_while_a_started_program_runs(run_script):
+    printed = run_script(
+        "import sys\n"
+        "@play.when_program_starts\n"
+        "def start():\n"
+        "    print('trace', sys.gettrace())\n"
+        "    os._exit(0)\n"
+        "play.start_program()\n",
+    )
+    assert printed == ["trace", "None"]
+
+
+def test_a_script_that_reraises_leaves_no_tracing_behind(run_script):
+    printed = run_script(
+        "import atexit, sys\n"
+        "atexit.register(lambda: print('trace', sys.gettrace()))\n"
+        "play.new_box()\n"
+        "try:\n"
+        "    1 / 0\n"
+        "except ZeroDivisionError:\n"
+        "    raise\n",
+        returncode=1,
+    )
+    assert printed == ["trace", "None"]

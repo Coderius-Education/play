@@ -307,11 +307,11 @@ class Dropdown(WidgetMixin, Box):
         to_centre = pygame.math.Vector2(0, total_h // 2 - self._height // 2)
         to_centre.rotate_ip(-angle_deg)
         self.rect = self.image.get_rect(
-            center=(round(pos[0] + to_centre.x), round(pos[1] + to_centre.y))
+            center=(pos[0] + to_centre.x, pos[1] + to_centre.y)
         )
         # rect.height stays at the *closed* height, or _apply_anchor would
         # re-anchor on the open height and an edge-anchored dropdown would jump.
-        if not angle_deg:
+        if angle_deg % 360 == 0:
             self.rect.height = self._height
             self.rect.top = pos[1] - self._height // 2
 

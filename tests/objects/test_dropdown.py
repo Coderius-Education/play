@@ -259,3 +259,19 @@ def test_closed_dropdown_does_not_claim_clicks():
     click_at(0, -40, dd, cb)
     assert dd.is_open is False
     assert cb.checked is True  # normal click still reaches the checkbox
+
+
+def test_an_unturned_dropdown_at_a_fractional_x_keeps_its_place():
+    dropdown = play.new_dropdown(options=["a", "bb"], x=1.5, width=121)
+    dropdown.update()
+
+    assert dropdown.rect.x == 341
+
+
+def test_a_dropdown_turned_a_full_turn_keeps_its_closed_height_when_open():
+    dropdown = play.new_dropdown(options=["a", "bb", "ccc"], height=40)
+    dropdown.angle = 360
+    dropdown._dropdown_open = True
+    dropdown.update()
+
+    assert dropdown.rect.height == 40

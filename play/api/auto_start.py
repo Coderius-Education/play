@@ -7,10 +7,12 @@ from play.callback import callback_manager
 from play.globals import globals_list, ProgramState
 from play.utils import run_once as _run_once
 
+_PAUSE_OPCODES = ("YIELD_VALUE", "RESUME")
 
-def _returns_normally(frame):
-    """Whether a frame's 'return' event comes from a return instruction, not from a pause or a crash."""
-    return _dis.opname[frame.f_code.co_code[frame.f_lasti]].startswith("RETURN")
+
+def _opcode(frame):
+    """Return the name of the instruction a frame stopped at."""
+    return _dis.opname[frame.f_code.co_code[frame.f_lasti]]
 
 
 def _make_main_return_trace(existing_trace, existing_f_trace):
@@ -19,17 +21,13 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
     Fires start_program() when the frame returns, then restores the previous
     global trace. Wraps any existing frame trace so debuggers/coverage survive.
     """
-    raised_at = [None]
 
     def _on_main_return(_frame, event, _arg):
-        if event == "exception":
-            raised_at[0] = _frame.f_lasti
         if event == "return":
-            ended = _returns_normally(_frame)
-            if not ended and _frame.f_lasti != raised_at[0]:
+            if _opcode(_frame) in _PAUSE_OPCODES:
                 return None
             if (
-                ended
+                _opcode(_frame).startswith("RETURN")
                 and globals_list.should_auto_start
                 and globals_list.program_state is ProgramState.NOT_STARTED
             ):
@@ -69,6 +67,16 @@ def _main_module_frame():
     return None
 
 
+def _placeholder_trace(*_args):
+    """Keep tracing on, so the trace on the script's frame sees it end."""
+
+
+def stop_waiting_for_the_script():
+    """Turn tracing off again when only auto-start had turned it on."""
+    if _sys.gettrace() is _placeholder_trace:
+        _sys.settrace(None)
+
+
 @_run_once
 def _schedule_auto_start():
     """Set up auto-start when the user's script finishes.
@@ -86,7 +94,7 @@ def _schedule_auto_start():
     if frame is not None:
         existing_trace = _sys.gettrace()
         if existing_trace is None:
-            _sys.settrace(lambda *_args: None)
+            _sys.settrace(_placeholder_trace)
         frame.f_trace = _make_main_return_trace(existing_trace, frame.f_trace)
         frame.f_trace_lines = False
     # If no __main__ frame was found (e.g. interactive REPL, embedded context),

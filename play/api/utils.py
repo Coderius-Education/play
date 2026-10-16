@@ -6,6 +6,7 @@ import os as _os
 
 import pygame
 
+from play.api.auto_start import stop_waiting_for_the_script
 from play.callback import callback_manager, CallbackType
 from play.core import game_loop as _game_loop
 from play import loop as _play_loop
@@ -24,6 +25,11 @@ def start_program():
 
     play.start_program() should almost certainly go at the very end of your program.
     """
+    if (
+        _play_loop.RUNS_IN_BROWSER
+        and globals_list.program_state is ProgramState.RUNNING
+    ):
+        return
     if globals_list.program_state is not ProgramState.NOT_STARTED:
         raise RuntimeError(
             "You've already started the program! Calling play.start_program() "
@@ -33,6 +39,7 @@ def start_program():
 
     globals_list.program_state = ProgramState.RUNNING
     globals_list.should_auto_start = False
+    stop_waiting_for_the_script()
 
     if _play_loop.RUNS_IN_BROWSER:
         _get_loop().create_task(

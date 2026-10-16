@@ -94,15 +94,20 @@ async def _stop_on_error(callback, args, kwargs):
         _show_first_error(exc)
 
 
-def contact_callback(func, *args, optional_args=()):
+_contacts_running = set()
+
+
+def contact_callback(func, *args, pair, optional_args=()):
     """Wrap a callback for a contact that begins or ends.
     :param func: The function to run. A plain function runs straight away; an async
-        one runs as a task of its own, so its awaits do not hold up the game, and is
-        skipped while its previous run has not finished.
+        one starts straight away as a task of its own, so its awaits do not hold up
+        the game, and is skipped for this pair while its previous run has not finished.
     :param args: The arguments to offer to func.
+    :param pair: What the contact is between, such as ``(sprite, other_sprite)``.
     :param optional_args: The names of the arguments func may leave out.
     :return: An async function without arguments that runs or starts func."""
     async_func = make_async(func)
+    key = (func, *pair)
 
     async def run():
         await run_async_callback(async_func, [], list(optional_args), *args)
@@ -114,14 +119,13 @@ def contact_callback(func, *args, optional_args=()):
         try:
             await run()
         finally:
-            start.is_running = False
+            _contacts_running.discard(key)
 
     async def start():
-        if not start.is_running:
-            start.is_running = True
-            _create_task(_stop_on_error(run_then_allow_again, (), {}))
+        if key not in _contacts_running:
+            _contacts_running.add(key)
+            _create_task(_stop_on_error(run_then_allow_again, (), {}), eager=True)
 
-    start.is_running = False
     return start
 
 
