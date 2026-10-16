@@ -111,7 +111,7 @@ def test_sleep_disabled_on_space():
     assert physics_space.sleep_time_threshold == float("inf")
 
 
-def test_a_begin_handler_that_raises_on_pymunk_6_still_lets_the_shapes_collide(capsys):
+def test_keep_colliding_reports_a_raising_begin_handler_and_still_returns_true(capsys):
     from play.physics import _keep_colliding
 
     def begin(*_):

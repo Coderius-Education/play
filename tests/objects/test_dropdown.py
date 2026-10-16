@@ -275,3 +275,20 @@ def test_a_dropdown_turned_a_full_turn_keeps_its_closed_height_when_open():
     dropdown.update()
 
     assert dropdown.rect.height == 40
+
+
+@pytest.mark.parametrize("angle", [30, 90])
+def test_an_anchored_turned_dropdown_stays_put_when_it_opens(angle):
+    dropdown = play.new_dropdown(
+        options=["a", "bb", "ccc"], width=120, anchor="bottom-left", x=10, y=10
+    )
+    dropdown.angle = angle
+    places = []
+    for opened in (False, True, False):
+        dropdown._dropdown_open = opened
+        dropdown._should_recompute = True
+        dropdown.update()
+        dropdown.update()
+        places.append((dropdown.x, dropdown.y))
+
+    assert places[0] == places[1] == places[2]

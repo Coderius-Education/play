@@ -137,6 +137,10 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         if globals_list.sprites_group.has(self):
             globals_list.sprites_group.change_layer(self, value)
 
+    def _anchor_size(self):
+        """Return the ``(width, height)`` that anchoring places on the screen."""
+        return self.rect.size
+
     def _apply_anchor(self):
         """Recompute x/y from the anchor + offsets and current screen dimensions.
 
@@ -153,8 +157,9 @@ class Sprite(pygame.sprite.Sprite):  # pylint: disable=too-many-public-methods
         """
         ox, oy = self._anchor_ox, self._anchor_oy
         a = self._anchor
-        w2 = self.rect.width / 2
-        h2 = self.rect.height / 2
+        width, height = self._anchor_size()
+        w2 = width / 2
+        h2 = height / 2
 
         parts = a.split("-")
         if len(parts) > 2:

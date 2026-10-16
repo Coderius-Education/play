@@ -25,12 +25,15 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
     def _on_main_return(_frame, event, _arg):
         if event == "return":
             if _opcode(_frame) in _PAUSE_OPCODES:
+                if existing_f_trace is not None:
+                    existing_f_trace(_frame, event, _arg)
                 return None
             if (
                 _opcode(_frame).startswith("RETURN")
                 and globals_list.should_auto_start
                 and globals_list.program_state is ProgramState.NOT_STARTED
             ):
+                globals_list.started_by_auto_start = True
                 try:
                     globals_list.start_program_fn()
                 except RuntimeError as exc:

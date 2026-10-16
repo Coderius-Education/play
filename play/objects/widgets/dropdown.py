@@ -219,6 +219,13 @@ class Dropdown(WidgetMixin, Box):
         for cb in self._on_change_callbacks:
             cb(val, index)
 
+    def _anchor_size(self):
+        """Return the size of the closed row as drawn, so an open list does not move it."""
+        width, height = self._unscaled_size()
+        angle = self.physics._pymunk_body.angle
+        cos, sin = abs(_math.cos(angle)), abs(_math.sin(angle))
+        return width * cos + height * sin, width * sin + height * cos
+
     def _render(self):
         """Draw the closed button plus the open option list (if open)."""
         n_extra = len(self._options) if self._dropdown_open else 0

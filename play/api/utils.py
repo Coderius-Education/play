@@ -12,6 +12,7 @@ from play.core import game_loop as _game_loop
 from play import loop as _play_loop
 from play.globals import globals_list, ProgramState
 from play.io.keypress import keyboard_state
+from play.io.logging import play_logger
 from play.loop import get_loop as _get_loop, stop_loop as _stop_loop
 from play.physics import set_physics_simulation_steps as _set_physics_simulation_steps
 from play.objects.video.video import close_all_videos as _close_all_videos
@@ -29,6 +30,11 @@ def start_program():
         _play_loop.RUNS_IN_BROWSER
         and globals_list.program_state is ProgramState.RUNNING
     ):
+        if not globals_list.started_by_auto_start:
+            play_logger.warning(
+                "You've already started the program! play.start_program() only "
+                "needs to be called once, at the very bottom of your file."
+            )
         return
     if globals_list.program_state is not ProgramState.NOT_STARTED:
         raise RuntimeError(

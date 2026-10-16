@@ -1,9 +1,6 @@
 """An async def contact callback runs as a task of its own, so its awaits do not hold up the game."""
 
-import sys
-
 import pygame
-import pytest
 
 import play
 from tests.conftest import post_key_down
@@ -91,21 +88,24 @@ def test_a_bound_method_can_be_a_key_callback():
     assert box.is_hidden
 
 
-@pytest.mark.skipif(sys.version_info < (3, 12), reason="eager tasks need 3.12")
-def test_an_async_when_touching_starts_in_the_frame_its_contact_begins():
+def _record_where(kind, ball, frame, first_touch):
+    if kind == "plain":
+        return lambda: first_touch.setdefault(kind, (frame[0], ball.y))
+
+    async def landed():
+        first_touch.setdefault(kind, (frame[0], ball.y))
+
+    return landed
+
+
+def test_an_async_when_touching_starts_in_the_sub_step_its_contact_begins():
     frame, first_touch = [0], {}
     for kind, x in (("plain", -100), ("async", 100)):
         floor = play.new_box(x=x, y=-200, width=100, height=20)
         floor.start_physics(can_move=False)
-        ball = _ball_at(-165)
-        ball.x = x
-        if kind == "plain":
-            ball.when_touching(floor)(lambda: first_touch.setdefault("plain", frame[0]))
-        else:
-
-            @ball.when_touching(floor)
-            async def landed():
-                first_touch.setdefault("async", frame[0])
+        ball = play.new_circle(x=x, y=-165, radius=10)
+        ball.start_physics(bounciness=1)
+        ball.when_touching(floor)(_record_where(kind, ball, frame, first_touch))
 
     _run_frames(frame)
 

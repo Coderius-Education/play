@@ -44,15 +44,26 @@ try:
 
     box = play.new_box(color="red", y=100, width=40, height=40)
     box.start_physics()
+    floor = play.new_box(color="black", y=40, width=200, height=20)
+    floor.start_physics(can_move=False)
     frames = []
+    contact = []
+
+    @box.when_touching(floor)
+    async def landed():
+        if not contact:
+            contact.append(f"landed={len(frames)}")
+            await play.animate()
+            contact.append(f"resumed={len(frames)}")
 
     @play.repeat_forever
     def check():
         frames.append(1)
         if len(frames) == 60:
-            landed = box.y < 100
+            fine = box.y < 100 and len(contact) == 2
             report(
-                f"PLAY-{'OK' if landed else 'FAIL'} frames={len(frames)} y={box.y:.0f}"
+                f"PLAY-{'OK' if fine else 'FAIL'} frames={len(frames)} "
+                f"y={box.y:.0f} {' '.join(contact)}"
             )
             play.stop_program()
 

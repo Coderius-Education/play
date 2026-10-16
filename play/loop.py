@@ -75,17 +75,65 @@ def get_loop():
     return _loop
 
 
+class _CarryOn:  # pylint: disable=too-few-public-methods
+    """Carry on, in a task, with a coroutine that already ran up to its first await."""
+
+    def __init__(self, coro, awaiting):
+        self._coro = coro
+        self._awaiting = awaiting
+
+    def __await__(self):
+        awaiting = self._awaiting
+        if awaiting is None:
+            try:
+                awaiting = self._coro.send(None)
+            except StopIteration as stop:
+                return stop.value
+        while True:
+            try:
+                sent = yield awaiting
+            except BaseException as thrown:  # pylint: disable=broad-exception-caught
+                step = self._coro.throw
+                value = thrown
+            else:
+                step = self._coro.send
+                value = sent
+            try:
+                awaiting = step(value)
+            except StopIteration as stop:
+                return stop.value
+
+
+async def _carry_on(coro, awaiting):
+    """Await the rest of a coroutine that already took its first step."""
+    return await _CarryOn(coro, awaiting)
+
+
+def _start_eagerly(coro, name):
+    """Run a coroutine up to its first await, then hand the rest to a task, or return None if it is done."""
+    try:
+        awaiting = coro.send(None)
+    except StopIteration:
+        return None
+    if globals_list.program_state is ProgramState.STOPPED:
+        coro.close()
+        return None
+    return get_loop().create_task(_carry_on(coro, awaiting), name=name)
+
+
 def create_task(coro, eager=False):
     """Start a coroutine as one of play's tasks.
     :param coro: The coroutine to run.
-    :param eager: Run it straight away up to its first real await, where Python allows that.
-    :return: The task."""
+    :param eager: Run it straight away up to its first await.
+    :return: The task, or None if an eager coroutine finished straight away."""
     name = TASK_NAME_PREFIX + coro.__qualname__
     if eager and sys.version_info >= (3, 12):
         task = asyncio.eager_task_factory(get_loop(), coro, name=name)
+    elif eager:
+        task = _start_eagerly(coro, name)
     else:
         task = get_loop().create_task(coro, name=name)
-    if RUNS_IN_BROWSER:
+    if task is not None and RUNS_IN_BROWSER:
         _tasks.add(task)
         task.add_done_callback(_tasks.discard)
     return task
@@ -95,6 +143,9 @@ def stop_loop(loop=None):
     """Mark the program as stopped and stop the event loop; in the browser, cancel play's tasks."""
     globals_list.program_state = ProgramState.STOPPED
     if RUNS_IN_BROWSER:
+        running = asyncio.current_task(get_loop())
+        if running is not None and running.get_name().startswith(TASK_NAME_PREFIX):
+            _tasks.add(running)
         for task in list(_tasks):
             task.cancel()
     else:

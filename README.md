@@ -35,11 +35,10 @@ play.start_program()
 ```
 Then run `pygbag my_game_folder` and open http://localhost:8000. In the
 browser `play.start_program()` returns straight away and the page keeps the
-game running. Videos are not available there. This needs a coderius-play
-release newer than 3.4.0.
+game running. Videos are not available there.
 
-The same works in [Pyodide](https://pyodide.org): give pygame a canvas
-before play is imported, install play with micropip and run the game:
+The same works in [Pyodide](https://pyodide.org) 0.29 or newer: give pygame
+a canvas before play is imported, install play with micropip and run the game:
 ```javascript
 const pyodide = await loadPyodide();
 pyodide.canvas.setCanvas2D(document.getElementById("canvas"));
@@ -47,6 +46,8 @@ await pyodide.loadPackage("micropip");
 await pyodide.pyimport("micropip").install("coderius-play");
 await pyodide.runPythonAsync(gameCode);
 ```
+Both ways need a coderius-play release newer than 3.4.0; 3.4.0 itself pins
+versions that pygbag and Pyodide do not have.
 
 ## Usage
 Please visit [the documentation](https://play.coderius.nl/).

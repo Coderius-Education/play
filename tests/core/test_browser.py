@@ -3,6 +3,7 @@
 import ast
 import asyncio
 import logging
+import sys
 import types
 
 import pygame
@@ -234,3 +235,94 @@ def test_start_program_inside_an_async_main_is_ignored_after_auto_start(
 
     assert globals_list.program_state is play.globals.ProgramState.STOPPED
     assert "already started" not in caplog.text
+
+
+def test_an_async_contact_callback_that_stops_the_program_goes_no_further(
+    in_the_browser,
+):
+    floor = play.new_box(y=-200, width=400, height=20)
+    floor.start_physics(can_move=False)
+    ball = play.new_circle(y=-170, radius=10)
+    ball.start_physics(bounciness=0)
+    after_the_stop = []
+
+    @ball.when_touching(floor)
+    async def landed():
+        play.stop_program()
+        await play.animate()
+        after_the_stop.append(1)
+
+    _run_page(in_the_browser, play.start_program)
+
+    assert globals_list.program_state is play.globals.ProgramState.STOPPED
+    assert after_the_stop == []
+
+
+def test_a_script_with_top_level_awaits_starts_once_it_ends(in_the_browser):
+    script = compile(
+        "play.repeat_forever(stop_after(3))\n"
+        "await asyncio.sleep(0)\n"
+        "await asyncio.sleep(0)\n",
+        "main.py",
+        "exec",
+        flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT,
+    )
+    main = {
+        "__name__": "__main__",
+        "asyncio": asyncio,
+        "play": play,
+        "stop_after": _stop_after,
+    }
+    play.api.auto_start.stop_waiting_for_the_script()
+    play.api.auto_start._schedule_auto_start.has_run = False
+
+    async def page():
+        await types.FunctionType(script, main)()
+        await _until_only_the_page_is_left()
+
+    in_the_browser.run_until_complete(page())
+
+    assert globals_list.program_state is play.globals.ProgramState.STOPPED
+
+
+def test_a_second_start_program_in_the_browser_is_reported(in_the_browser, caplog):
+    play.repeat_forever(_stop_after(3))
+
+    def script():
+        play.start_program()
+        play.start_program()
+
+    with caplog.at_level(logging.WARNING, logger="play"):
+        _run_page(in_the_browser, script)
+
+    assert "already started" in caplog.text
+
+
+def test_a_debugger_still_sees_a_top_level_await_pause(in_the_browser):
+    script = compile(
+        "play.when_program_starts(lambda: None)\nawait asyncio.sleep(0)\n",
+        "main.py",
+        "exec",
+        flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT,
+    )
+    main = {"__name__": "__main__", "asyncio": asyncio, "play": play}
+    returns = []
+
+    def local_trace(frame, event, _arg):
+        if event == "return":
+            returns.append(frame.f_code.co_name)
+        return local_trace
+
+    def debugger(frame, _event, _arg):
+        return local_trace if frame.f_code is script else None
+
+    play.api.auto_start.stop_waiting_for_the_script()
+    play.api.auto_start._schedule_auto_start.has_run = False
+    previous = sys.gettrace()
+    sys.settrace(debugger)
+    try:
+        in_the_browser.run_until_complete(types.FunctionType(script, main)())
+    finally:
+        sys.settrace(previous)
+
+    assert returns == ["<module>", "<module>"]
