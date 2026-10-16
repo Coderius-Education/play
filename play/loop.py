@@ -75,7 +75,7 @@ def get_loop():
 
 @types.coroutine
 def _relay(coro, awaiting):
-    """Pass on to *coro*, paused at *awaiting*, what its task sends or throws in; a bare yield (None) has already had its loop turn."""
+    """Relay to *coro*, paused at *awaiting* (None after a bare yield), what its task sends or throws in."""
     try:
         if awaiting is None:
             awaiting = coro.send(None)
