@@ -22,6 +22,8 @@ _HAS_EAGER_TASK_FACTORY = sys.version_info >= (3, 12)
 
 _tasks = set()
 
+_page_exception_handler = None  # pylint: disable=invalid-name
+
 
 def _handle_exception(the_loop, context):
     exception = context.get("exception")
@@ -30,7 +32,7 @@ def _handle_exception(the_loop, context):
     message = context.get("message", "Unhandled exception in async task")
 
     if RUNS_IN_BROWSER and not task_name.startswith(_TASK_NAME_PREFIX):
-        the_loop.default_exception_handler(context)
+        _pass_to_the_page(the_loop, context)
         return
 
     if not exception and message.startswith(_DESTROYED_PENDING):
@@ -50,18 +52,29 @@ def _handle_exception(the_loop, context):
     stop_loop()
 
 
+def _pass_to_the_page(the_loop, context):
+    """Hand an error that is not play's to the handler the page had, or to asyncio's default one."""
+    if _page_exception_handler is None:
+        the_loop.default_exception_handler(context)
+    else:
+        _page_exception_handler(the_loop, context)
+
+
 def get_loop():
     """Get or create the global event loop.
 
     Creates a new loop on first call and after a fork (detected via pid change);
     in the browser it takes the page's loop, which keeps running on its own.
     """
-    global _loop, _creator_pid
+    global _loop, _creator_pid, _page_exception_handler
 
     pid = os.getpid()
     if _loop is None or _creator_pid != pid:
         if RUNS_IN_BROWSER:
             _loop = asyncio.get_event_loop()
+            page_handler = _loop.get_exception_handler()
+            if page_handler is not _handle_exception:
+                _page_exception_handler = page_handler
         else:
             _loop = asyncio.new_event_loop()
             asyncio.set_event_loop(_loop)

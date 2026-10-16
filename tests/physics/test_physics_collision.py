@@ -112,7 +112,6 @@ def test_sleep_disabled_on_space():
 
 
 def test_a_raising_begin_handler_is_reported_and_the_shapes_still_collide(capsys):
-
     def begin(*_):
         raise RuntimeError("bug in a begin handler")
 

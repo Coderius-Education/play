@@ -46,8 +46,8 @@ await pyodide.loadPackage("micropip");
 await pyodide.pyimport("micropip").install("coderius-play");
 await pyodide.runPythonAsync(gameCode);
 ```
-Both ways need a coderius-play release newer than 3.4.0; 3.4.0 itself pins
-versions that pygbag and Pyodide do not have.
+Both ways need a coderius-play release newer than 3.4.0, the first that runs
+in the browser.
 
 ## Usage
 Please visit [the documentation](https://play.coderius.nl/).

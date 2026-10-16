@@ -170,6 +170,27 @@ def test_a_failed_future_of_the_page_goes_to_the_default_handler(
     assert not globals_list.error_shown
 
 
+def test_an_error_in_a_page_task_goes_to_the_handler_the_page_had(in_the_browser):
+    reported = []
+    in_the_browser.set_exception_handler(
+        lambda _loop, context: reported.append(context)
+    )
+
+    async def pages_own_task():
+        raise OSError("the page's own task failed")
+
+    def script():
+        play.start_program()
+        asyncio.get_running_loop().create_task(pages_own_task())
+
+    play.repeat_forever(_stop_after(20))
+
+    _run_page(in_the_browser, script)
+
+    assert [type(context.get("exception")) for context in reported] == [OSError]
+    assert not globals_list.error_shown
+
+
 def test_an_error_in_a_plain_callback_stops_the_program_in_the_browser(
     in_the_browser, caplog
 ):
