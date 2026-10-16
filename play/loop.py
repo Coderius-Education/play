@@ -89,7 +89,7 @@ def get_loop():
     return _loop
 
 
-class _HandStartedTask(asyncio.tasks._PyTask):
+class _HandStartedTask(asyncio.tasks._PyTask):  # pylint: disable=too-few-public-methods
     """A task whose first step is taken by hand, as eager_task_factory does on Python 3.12+."""
 
     _skip_the_scheduled_first_step = True
