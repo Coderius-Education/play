@@ -89,8 +89,33 @@ jobs:
 
     - name: Build a play game with pygbag
       run: |
-        cp -r play tools/pygbag/game/play
-        python -m pygbag --build --ume_block 0 tools/pygbag/game
+        cp -r play tools/browser/game/play
+        python -m pygbag --build --ume_block 0 tools/browser/game
 
     - name: Run it in Chromium
-      run: python tools/pygbag/run_in_chromium.py tools/pygbag/game/build/web
+      run: python tools/browser/run_in_chromium.py tools/browser/game/build/web
+
+  pyodide:
+    name: In the browser (Pyodide)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+
+    - uses: actions/setup-python@v6
+      with:
+        python-version: "3.14"
+
+    - name: Install build and Playwright
+      run: |
+        python -m pip install --upgrade pip
+        pip install build playwright==1.56.0
+        python -m playwright install --with-deps chromium
+
+    - name: Build the play wheel and the page that installs it with micropip
+      run: |
+        python -m build --wheel --outdir "$RUNNER_TEMP/site"
+        cp tools/browser/pyodide/index.html tools/browser/game/main.py "$RUNNER_TEMP/site/"
+        (cd "$RUNNER_TEMP/site" && ls *.whl > wheel.txt)
+
+    - name: Run it in Chromium
+      run: python tools/browser/run_in_chromium.py "$RUNNER_TEMP/site"

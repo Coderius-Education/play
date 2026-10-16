@@ -1,14 +1,17 @@
 # /// script
 # dependencies = ["numpy", "pygame-ce", "pymunk"]
 # ///
-"""A short play game that tells the page whether it ran: CI builds it with pygbag."""
+"""A short play game that tells the page whether it ran: CI runs it with pygbag and Pyodide."""
 
 import asyncio
 import sys
 import traceback
 
 if sys.platform == "emscripten":
-    import platform
+    try:
+        from platform import window as page
+    except ImportError:
+        import js as page
 
     class _AlsoToConsole:
         """Write to the terminal and to the browser console, where CI reads it."""
@@ -17,7 +20,7 @@ if sys.platform == "emscripten":
             self.stream = stream
 
         def write(self, text):
-            platform.window.console.log(text)
+            page.console.log(text)
             return self.stream.write(text)
 
         def flush(self):
@@ -30,8 +33,8 @@ def report(result):
     """Print the result and put it in the page title, where the browser test reads it."""
     print(result)
     if sys.platform == "emscripten":
-        platform.window.console.log(result)
-        platform.window.document.title = result.splitlines()[0]
+        page.console.log(result)
+        page.document.title = result.splitlines()[0]
 
 
 try:

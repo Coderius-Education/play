@@ -18,5 +18,5 @@ dist/
 build/
 coverage_report.txt
 
-# pygbag smoke test copies play here
-tools/pygbag/game/play/
+# the pygbag smoke test copies play here
+tools/browser/game/play/

@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>loading</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.js"></script>
+</head>
+<body>
+  <canvas id="canvas" width="800" height="600"></canvas>
+  <script>
+    async function run() {
+      const pyodide = await loadPyodide();
+      pyodide.setStdout({ batched: (text) => console.log(text) });
+      pyodide.setStderr({ batched: (text) => console.log(text) });
+      pyodide.canvas.setCanvas2D(document.getElementById("canvas"));
+      await pyodide.loadPackage("micropip");
+      const wheel = (await (await fetch("wheel.txt")).text()).trim();
+      await pyodide.pyimport("micropip").install(new URL(wheel, location.href).href);
+      await pyodide.runPythonAsync(await (await fetch("main.py")).text());
+    }
+    run().catch((error) => {
+      console.log(String(error));
+      document.title = "PLAY-FAIL " + error;
+    });
+  </script>
+</body>
+</html>
