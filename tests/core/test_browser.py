@@ -41,7 +41,7 @@ def _wait_for_a_new_script():
     auto_start._schedule_auto_start.has_run = False
 
 
-def _main_py(source):
+def _main_py(source, **names):
     """Return *source* as pygbag runs a main.py: a __main__ module that may await at the top."""
     code = compile(source, "main.py", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
     main = {
@@ -49,6 +49,8 @@ def _main_py(source):
         "asyncio": asyncio,
         "play": play,
         "stop_after": _stop_after,
+        "globals_list": globals_list,
+        **names,
     }
     _wait_for_a_new_script()
     return types.FunctionType(code, main)
@@ -244,14 +246,18 @@ def test_a_forgotten_await_gets_a_hint_in_the_browser(in_the_browser, caplog):
 
 
 def test_a_top_level_await_does_not_start_the_program_early(in_the_browser):
+    states = []
     main_py = _main_py(
         "play.repeat_forever(stop_after(3))\n"
         "await asyncio.sleep(0)\n"
-        "play.start_program()\n"
+        "states.append(globals_list.program_state)\n"
+        "play.start_program()\n",
+        states=states,
     )
 
     _run_page(in_the_browser, main_py)
 
+    assert states == [ProgramState.NOT_STARTED]
     assert globals_list.program_state is ProgramState.STOPPED
     assert not globals_list.error_shown
 
@@ -294,14 +300,18 @@ def test_an_async_contact_callback_that_stops_the_program_goes_no_further(
 
 
 def test_a_script_with_top_level_awaits_starts_once_it_ends(in_the_browser):
+    states = []
     main_py = _main_py(
         "play.repeat_forever(stop_after(3))\n"
         "await asyncio.sleep(0)\n"
         "await asyncio.sleep(0)\n"
+        "states.append(globals_list.program_state)\n",
+        states=states,
     )
 
     _run_page(in_the_browser, main_py)
 
+    assert states == [ProgramState.NOT_STARTED]
     assert globals_list.program_state is ProgramState.STOPPED
 
 

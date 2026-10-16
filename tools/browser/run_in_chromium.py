@@ -34,8 +34,8 @@ def main(directory):
         page = browser.new_page()
         page.on("console", lambda message: log.append(f"[console] {message.text}"))
         page.on("pageerror", lambda error: log.append(f"[pageerror] {error}"))
-        page.goto(url)
         try:
+            page.goto(url)
             page.wait_for_function(
                 "document.title.startsWith('PLAY-')", timeout=TIMEOUT_MS
             )

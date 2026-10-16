@@ -1,6 +1,7 @@
 """A contact callback starts at once and runs up to its first await before the frame goes on."""
 
 import asyncio
+import contextvars
 
 import pytest
 
@@ -80,25 +81,85 @@ def test_an_error_after_the_first_await_reaches_the_eager_task(eager_start):
         _run(frame())
 
 
-def test_cancelling_an_eager_task_cancels_the_coroutine(eager_start):
-    cleaned_up = []
+@pytest.mark.parametrize(
+    "turns_before_cancel", [0, 1], ids=["before its first turn", "after"]
+)
+def test_cancelling_an_eager_task_cancels_the_coroutine(
+    eager_start, turns_before_cancel
+):
+    seen = []
 
     async def callback():
         try:
             await asyncio.sleep(10)
+        except asyncio.CancelledError:
+            seen.append("cancelled")
+            raise
         finally:
-            cleaned_up.append(True)
+            seen.append("cleaned up")
 
     async def frame():
         task = eager_start(callback())
-        await asyncio.sleep(0)
+        for _ in range(turns_before_cancel):
+            await asyncio.sleep(0)
         task.cancel()
         with pytest.raises(asyncio.CancelledError):
             await task
 
     _run(frame())
 
-    assert cleaned_up == [True]
+    assert seen == ["cancelled", "cleaned up"]
+
+
+def test_an_eager_task_is_the_current_task_from_its_first_step(eager_start):
+    current = []
+
+    async def callback():
+        current.append(asyncio.current_task())
+        await asyncio.sleep(0)
+
+    async def frame():
+        task = eager_start(callback())
+        await task
+        return task
+
+    assert current == [_run(frame())]
+
+
+def test_a_timeout_set_in_the_first_step_ends_the_eager_task(eager_start):
+    async def callback():
+        try:
+            async with asyncio.timeout(0.01):
+                await asyncio.sleep(10)
+        except TimeoutError:
+            return "timed out"
+        return "slept"
+
+    async def frame():
+        task = eager_start(callback())
+        while not task.done():
+            await asyncio.sleep(0.005)
+        return task.result()
+
+    assert _run(frame()) == "timed out"
+
+
+def test_a_context_variable_set_in_the_first_step_stays_in_the_eager_task(
+    eager_start,
+):
+    level = contextvars.ContextVar("level", default="frame")
+
+    async def callback():
+        level.set("callback")
+        await asyncio.sleep(0)
+        return level.get()
+
+    async def frame():
+        task = eager_start(callback())
+        in_the_frame = level.get()
+        return in_the_frame, await task
+
+    assert _run(frame()) == ("frame", "callback")
 
 
 def test_an_eager_task_that_stops_the_program_goes_no_further(eager_start):

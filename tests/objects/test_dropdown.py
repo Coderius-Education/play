@@ -292,3 +292,16 @@ def test_an_anchored_turned_dropdown_stays_put_when_it_opens(angle):
         places.append((dropdown.x, dropdown.y))
 
     assert places[0] == places[1] == places[2]
+
+
+def test_a_dropdown_turned_a_quarter_turn_folds_its_list_out_sideways():
+    dropdown = play.new_dropdown(options=["a", "bb", "ccc"], height=40)
+    dropdown.angle = 90
+    dropdown.update()
+    closed = dropdown.rect.center
+    dropdown._set_open(True)
+    dropdown.update()
+    opened = dropdown.rect.center
+
+    assert opened[1] == pytest.approx(closed[1], abs=1)
+    assert opened[0] > closed[0] + 40

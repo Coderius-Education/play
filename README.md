@@ -16,8 +16,7 @@ python3 -m venv ~/play-env
 ~/play-env/bin/pip install coderius-play
 ```
 To use it from Thonny, open *Run → Configure interpreter…*, choose
-*Alternative Python 3 interpreter or virtual environment* and select
-`~/play-env/bin/python3`.
+*Local Python 3* and set *Python executable* to `~/play-env/bin/python3`.
 
 ### In the browser
 With [pygbag](https://pypi.org/project/pygbag/) a play game runs in the

@@ -387,16 +387,17 @@ def _keep_colliding(begin):
     return begin_and_collide
 
 
-def on_every_collision(begin, separate):
+def on_every_collision(begin, separate, space=physics_space):
     """Call *begin* when any two shapes start touching and *separate* when they stop.
     :param begin: Called with ``(arbiter, space, data)``; the shapes collide whatever it returns.
-    :param separate: Called with ``(arbiter, space, data)``."""
+    :param separate: Called with ``(arbiter, space, data)``.
+    :param space: The pymunk space to watch; play's own by default."""
     if _pymunk.version.startswith("6."):
-        handler = physics_space.add_default_collision_handler()
+        handler = space.add_default_collision_handler()
         handler.begin = _keep_colliding(begin)
         handler.separate = separate
     else:
-        physics_space.on_collision(begin=begin, separate=separate)
+        space.on_collision(begin=begin, separate=separate)
 
 
 @_atexit.register

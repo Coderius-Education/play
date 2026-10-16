@@ -3,6 +3,8 @@
 import os
 import sys
 import asyncio
+import contextlib
+import contextvars
 import traceback
 import types
 from play.globals import globals_list, ProgramState
@@ -22,12 +24,14 @@ _HAS_EAGER_TASK_FACTORY = sys.version_info >= (3, 12)
 
 _tasks = set()
 
+_FIRST_STEP_TAKEN = object()
+
 _page_exception_handler = None  # pylint: disable=invalid-name
 
 
 def _handle_exception(the_loop, context):
     exception = context.get("exception")
-    task = context.get("future")
+    task = context.get("future") or context.get("task")
     task_name = task.get_name() if isinstance(task, asyncio.Task) else "unknown"
     message = context.get("message", "Unhandled exception in async task")
 
@@ -87,11 +91,24 @@ def get_loop():
 
 
 @types.coroutine
-def _relay(coro, awaiting):
-    """Relay to *coro*, paused at *awaiting* (None after a bare yield), what its task sends or throws in."""
+def _relay(coro):
+    """Take *coro*'s first step at once, then pass on to it what the task running this sends or throws in."""
     try:
-        if awaiting is None:
-            awaiting = coro.send(None)
+        awaiting = coro.send(None)
+    except StopIteration as stop:
+        yield _FIRST_STEP_TAKEN
+        return stop.value
+    except Exception:  # pylint: disable=broad-exception-caught
+        yield _FIRST_STEP_TAKEN
+        raise
+    try:
+        try:
+            yield _FIRST_STEP_TAKEN
+        except BaseException as thrown:  # pylint: disable=broad-exception-caught
+            awaiting = coro.throw(thrown)
+        else:
+            if awaiting is None:
+                awaiting = coro.send(None)
         while True:
             try:
                 sent = yield awaiting
@@ -103,30 +120,35 @@ def _relay(coro, awaiting):
         return stop.value
 
 
-async def _carry_on(coro, awaiting):
-    """Await the rest of a coroutine that already took its first step."""
-    return await _relay(coro, awaiting)
+async def _carry_on(relay):
+    """Await a relay whose first step has been taken by hand."""
+    return await relay
 
 
-def _finished(result=None, error=None):
-    """Return a future that is already done with *result*, or with *error* if given."""
-    future = get_loop().create_future()
-    if error is None:
-        future.set_result(result)
-    else:
-        future.set_exception(error)
-    return future
+@contextlib.contextmanager
+def _running_as(task):
+    """Make *task* its loop's current task while the block runs."""
+    loop = task.get_loop()
+    outer = asyncio.current_task(loop)
+    if outer is not None:
+        asyncio.tasks._leave_task(loop, outer)
+    asyncio.tasks._enter_task(loop, task)
+    try:
+        yield
+    finally:
+        asyncio.tasks._leave_task(loop, task)
+        if outer is not None:
+            asyncio.tasks._enter_task(loop, outer)
 
 
 def _start_by_hand(coro, name):
-    """Run a coroutine up to its first await, then hand the rest to a task."""
-    try:
-        awaiting = coro.send(None)
-    except StopIteration as stop:
-        return _finished(result=stop.value)
-    except Exception as error:  # pylint: disable=broad-exception-caught
-        return _finished(error=error)
-    return get_loop().create_task(_carry_on(coro, awaiting), name=name)
+    """Run a coroutine up to its first await as the task that then goes on with it."""
+    context = contextvars.copy_context()
+    carry_on = _carry_on(_relay(coro))
+    task = get_loop().create_task(carry_on, name=name, context=context)
+    with _running_as(task):
+        context.run(carry_on.send, None)
+    return task
 
 
 def _task_name(coro):
@@ -152,8 +174,7 @@ def create_task(coro):
 def start_task(coro):
     """Run a coroutine straight away up to its first await, then go on with it as one of play's tasks.
     :param coro: The coroutine to run. If it stops the program before its first await, it goes no further.
-    :return: The task, or a finished future if the coroutine ended or failed before its first await.
-    """
+    :return: The task."""
     if _HAS_EAGER_TASK_FACTORY:
         task = asyncio.eager_task_factory(get_loop(), coro, name=_task_name(coro))
     else:

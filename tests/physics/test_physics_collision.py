@@ -1,7 +1,8 @@
+import pymunk
 import pytest
 
 import play
-from play.physics import _keep_colliding, physics_space
+from play.physics import _keep_colliding, on_every_collision, physics_space
 
 
 @pytest.fixture(autouse=True)
@@ -117,3 +118,22 @@ def test_a_raising_begin_handler_is_reported_and_the_shapes_still_collide(capsys
 
     assert _keep_colliding(begin)(None, None, None) is True
     assert "RuntimeError: bug in a begin handler" in capsys.readouterr().err
+
+
+@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
+def test_a_ball_still_lands_on_a_floor_when_the_begin_handler_raises():
+    space = pymunk.Space()
+    space.gravity = (0, -900)
+    floor = pymunk.Segment(space.static_body, (-100, 0), (100, 0), 1)
+    ball = pymunk.Body(1, 100)
+    ball.position = (0, 20)
+    space.add(floor, ball, pymunk.Circle(ball, 10))
+
+    def begin(*_):
+        raise RuntimeError("bug in a begin handler")
+
+    on_every_collision(begin, lambda *_: None, space=space)
+    for _ in range(120):
+        space.step(1 / 60)
+
+    assert ball.position.y > 0

@@ -116,3 +116,16 @@ def test_an_async_when_touching_starts_in_the_sub_step_its_contact_begins():
     _run_frames(runs)
 
     assert first_touch["async"] == first_touch["plain"]
+
+
+def test_one_async_callback_runs_at_once_for_each_sprite_it_touches():
+    left = play.new_box(x=-15, y=-200, width=20, height=20)
+    right = play.new_box(x=15, y=-200, width=20, height=20)
+    for floor in (left, right):
+        floor.start_physics(can_move=False)
+    runs = _Runs()
+    _ball_at(-179).when_touching(left, right)(runs.landed)
+
+    _run_frames(runs)
+
+    assert max(run.at_once for run in runs.seen) == 2
