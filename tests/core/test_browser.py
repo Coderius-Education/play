@@ -2,6 +2,7 @@
 
 import ast
 import asyncio
+import gc
 import logging
 import sys
 import types
@@ -256,6 +257,30 @@ def test_sounds_stop_once_the_program_has_stopped_in_the_browser(
     _run_page(in_the_browser, play.start_program)
 
     assert states_when_stopped == [ProgramState.STOPPED]
+
+
+def test_a_garbage_collection_does_not_end_the_program_in_the_browser(
+    in_the_browser, monkeypatch
+):
+    states_when_sounds_stop = []
+    monkeypatch.setattr(pygame.mixer, "get_init", lambda: (22050, -16, 2))
+    monkeypatch.setattr(
+        pygame.mixer,
+        "stop",
+        lambda: states_when_sounds_stop.append(globals_list.program_state),
+    )
+    collected = []
+
+    @play.repeat_forever
+    def collect():
+        collected.append(gc.collect())
+
+    play.repeat_forever(_stop_after(3))
+
+    _run_page(in_the_browser, play.start_program)
+
+    assert len(collected) >= 2
+    assert states_when_sounds_stop == [ProgramState.STOPPED]
 
 
 def test_a_forgotten_await_gets_a_hint_in_the_browser(in_the_browser, caplog):

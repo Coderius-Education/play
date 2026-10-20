@@ -22,6 +22,8 @@ if sys.version_info >= (3, 12):
 else:
     from play._eager_start_py311 import eager_task_factory as _eager_task_factory
 
+_tasks = set()
+
 _page_exception_handler = None  # pylint: disable=invalid-name
 
 
@@ -79,6 +81,7 @@ def get_loop():
             _loop.set_debug(False)
         _loop.set_exception_handler(_handle_exception)
         _creator_pid = pid
+        _tasks.clear()
 
     return _loop
 
@@ -92,22 +95,23 @@ def create_task(coro):
     """Schedule a coroutine as one of play's tasks; it starts on a later turn of the loop.
     :param coro: The coroutine to run. If the program has stopped, it does not run.
     :return: The task."""
-    return _cancel_if_stopped(get_loop().create_task(coro, name=_task_name(coro)))
+    return _as_play_task(get_loop().create_task(coro, name=_task_name(coro)))
 
 
 def start_task(coro):
     """Run a coroutine straight away up to its first await, then go on with it as one of play's tasks.
     :param coro: The coroutine to run. If it stops the program before its first await, it goes no further.
     :return: The task."""
-    return _cancel_if_stopped(
-        _eager_task_factory(get_loop(), coro, name=_task_name(coro))
-    )
+    return _as_play_task(_eager_task_factory(get_loop(), coro, name=_task_name(coro)))
 
 
-def _cancel_if_stopped(task):
-    """Cancel *task* if the program has stopped; return it either way."""
+def _as_play_task(task):
+    """Cancel *task* if the program has stopped; in the browser, keep hold of it until it is done."""
     if globals_list.program_state is ProgramState.STOPPED:
         task.cancel()
+    elif RUNS_IN_BROWSER:
+        _tasks.add(task)
+        task.add_done_callback(_tasks.discard)
     return task
 
 
@@ -115,8 +119,7 @@ def stop_loop():
     """Mark the program as stopped and stop the event loop; in the browser, cancel play's tasks."""
     globals_list.program_state = ProgramState.STOPPED
     if RUNS_IN_BROWSER:
-        for task in asyncio.all_tasks(get_loop()):
-            if task.get_name().startswith(_TASK_NAME_PREFIX):
-                task.cancel()
+        for task in list(_tasks):
+            task.cancel()
     else:
         get_loop().stop()
