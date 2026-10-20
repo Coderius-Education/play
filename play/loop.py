@@ -22,6 +22,12 @@ _HAS_EAGER_TASK_FACTORY = sys.version_info >= (3, 12)
 
 _asyncio_tasks = importlib.import_module("asyncio.tasks")
 
+_CAN_START_BY_HAND = all(
+    hasattr(_asyncio_tasks, name) for name in ("_enter_task", "_leave_task")
+) and all(
+    hasattr(_asyncio_tasks._PyTask, name) for name in ("_Task__step", "_Task__wakeup")
+)
+
 _tasks = set()
 
 _page_exception_handler = None  # pylint: disable=invalid-name
@@ -128,7 +134,7 @@ class _HandStartedTask(
 def _start_by_hand(coro, name):
     """Run a coroutine up to its first await as the task that then goes on with it."""
     loop = get_loop()
-    if not loop.is_running():
+    if not (_CAN_START_BY_HAND and loop.is_running()):
         return loop.create_task(coro, name=name)
     task = _HandStartedTask(coro, loop=loop, name=name)
     task.take_first_step()

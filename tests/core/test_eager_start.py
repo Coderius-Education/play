@@ -251,3 +251,24 @@ def test_a_forgotten_eager_task_is_collected_quietly(eager_start, monkeypatch):
     gc.collect()
 
     assert unraisable == []
+
+
+def test_without_asyncios_task_internals_a_by_hand_start_is_a_plain_task(
+    monkeypatch,
+):
+    monkeypatch.setattr(play.loop, "_HAS_EAGER_TASK_FACTORY", False)
+    monkeypatch.setattr(play.loop, "_CAN_START_BY_HAND", False)
+    steps = []
+
+    async def callback():
+        steps.append("first step")
+        await asyncio.sleep(0)
+        return "done"
+
+    async def frame():
+        task = play.loop.start_task(callback())
+        steps.append("frame goes on")
+        return await task
+
+    assert _run(frame()) == "done"
+    assert steps == ["frame goes on", "first step"]

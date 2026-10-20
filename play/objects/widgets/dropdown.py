@@ -316,7 +316,7 @@ class Dropdown(WidgetMixin, Box):
         self.rect = self.image.get_rect(
             center=(pos[0] + to_centre.x, pos[1] + to_centre.y)
         )
-        if angle_deg % 360 == 0:
+        if _math.isclose(_math.remainder(angle_deg, 360), 0, abs_tol=1e-9):
             self.rect.height = self._height
             self.rect.top = pos[1] - self._height // 2
 

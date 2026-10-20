@@ -268,6 +268,18 @@ def test_an_unturned_dropdown_at_a_fractional_x_keeps_its_place():
     assert dropdown.rect.x == int(play.screen.width / 2 + 1.5 - 121 / 2)
 
 
+def test_a_dropdown_turned_a_full_turn_in_small_steps_keeps_its_closed_height_when_open():
+    full_turn_in_steps = 0.0
+    for _ in range(3600):
+        full_turn_in_steps += 0.1
+    dropdown = play.new_dropdown(options=["a", "bb", "ccc"], height=40)
+    dropdown.angle = full_turn_in_steps
+    dropdown._set_open(True)
+    dropdown.update()
+
+    assert dropdown.rect.height == 40
+
+
 def test_a_dropdown_turned_a_full_turn_keeps_its_closed_height_when_open():
     dropdown = play.new_dropdown(options=["a", "bb", "ccc"], height=40)
     dropdown.angle = 360
