@@ -6,6 +6,49 @@ The goal of coderius-play is to help starting programmers to become more capable
 pip install coderius-play
 ```
 
+coderius-play runs on Python 3.11 to 3.15 and is tested on Windows and Linux.
+
+### Raspberry Pi
+On a Raspberry Pi with 64-bit Raspberry Pi OS (Bookworm or Trixie), install it
+in a virtual environment with the Python that comes with the system:
+```bash
+python3 -m venv ~/play-env
+~/play-env/bin/pip install coderius-play
+```
+To use it from Thonny, open *Run → Configure interpreter…*, choose
+*Local Python 3*, click the *…* button next to *Python executable* and pick
+`python3` in the `play-env/bin` folder in your home folder.
+
+### In the browser
+With [pygbag](https://pypi.org/project/pygbag/) a play game runs in the
+browser. Name the file `main.py`, put it in a folder of its own and list
+coderius-play and pygame-ce at the top, so pygbag loads them:
+```python
+# /// script
+# dependencies = ["coderius-play", "pygame-ce"]
+# ///
+import play
+
+play.new_text(words="Hello from the browser!")
+
+play.start_program()
+```
+Then run `pygbag my_game_folder` and open http://localhost:8000. In the
+browser `play.start_program()` returns straight away and the page keeps the
+game running. Videos are not available there.
+
+The same works in [Pyodide](https://pyodide.org) 0.29 or newer: give pygame
+a canvas before play is imported, install play with micropip and run the game:
+```javascript
+const pyodide = await loadPyodide();
+pyodide.canvas.setCanvas2D(document.getElementById("canvas"));
+await pyodide.loadPackage("micropip");
+await pyodide.pyimport("micropip").install("coderius-play");
+await pyodide.runPythonAsync(gameCode);
+```
+Both ways need a coderius-play release newer than 3.4.0, the first that runs
+in the browser.
+
 ## Usage
 Please visit [the documentation](https://play.coderius.nl/).
 

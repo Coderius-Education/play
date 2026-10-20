@@ -17,3 +17,6 @@ __pycache__/
 dist/
 build/
 coverage_report.txt
+
+# the pygbag smoke test copies play here
+tools/browser/game/play/
