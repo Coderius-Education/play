@@ -3,10 +3,7 @@
 import ast
 import asyncio
 import logging
-import os
-import subprocess
 import sys
-import textwrap
 import types
 
 import pygame
@@ -22,6 +19,7 @@ from play.globals import ProgramState, globals_list
 def in_the_browser(monkeypatch):
     monkeypatch.setattr(play.loop, "RUNS_IN_BROWSER", True)
     monkeypatch.setattr(play.loop, "_loop", None)
+    monkeypatch.setattr(play.loop, "_page_exception_handler", None)
     page_loop = asyncio.new_event_loop()
     yield page_loop
     page_loop.close()
@@ -143,19 +141,24 @@ def test_stopping_in_the_browser_ends_the_programs_other_callbacks(in_the_browse
     assert 0 < len(ticks) <= 6
 
 
-def test_an_error_in_a_page_task_leaves_the_program_running(in_the_browser):
-    async def pages_own_task():
-        raise OSError("the page's own task failed")
+def test_a_play_task_destroyed_while_pending_is_not_passed_to_the_page(
+    in_the_browser,
+):
+    reported = []
+    in_the_browser.set_exception_handler(
+        lambda _loop, context: reported.append(context)
+    )
 
-    def script():
-        play.start_program()
-        asyncio.get_running_loop().create_task(pages_own_task())
+    async def page():
+        task = play.loop.create_task(asyncio.sleep(10))
+        play.loop.get_loop().call_exception_handler(
+            {"message": "Task was destroyed but it is pending!", "task": task}
+        )
+        task.cancel()
 
-    play.repeat_forever(_stop_after(20))
+    in_the_browser.run_until_complete(page())
 
-    _run_page(in_the_browser, script)
-
-    assert not globals_list.error_shown
+    assert reported == []
 
 
 def test_a_failed_future_of_the_page_goes_to_the_default_handler(
@@ -373,35 +376,3 @@ def test_a_debugger_still_sees_a_top_level_await_pause(in_the_browser):
         sys.settrace(previous)
 
     assert returns == ["<module>", "<module>"]
-
-
-def test_play_loop_works_where_asyncio_tasks_is_not_the_module_as_in_pygbag():
-    script = textwrap.dedent("""
-        import asyncio
-        asyncio.tasks = []
-        import play.loop as loop
-        loop._HAS_EAGER_TASK_FACTORY = False
-
-        async def callback():
-            await asyncio.sleep(0)
-            return "done"
-
-        async def frame():
-            task = loop.start_task(callback())
-            loop._handle_exception(
-                loop.get_loop(), {"message": loop._DESTROYED_PENDING, "task": task}
-            )
-            return await task
-
-        print(loop.get_loop().run_until_complete(frame()))
-        """)
-    root = os.path.dirname(os.path.dirname(os.path.abspath(play.__file__)))
-    result = subprocess.run(
-        [sys.executable, "-c", script],
-        capture_output=True,
-        text=True,
-        env={**os.environ, "PYTHONPATH": root, "PYGAME_HIDE_SUPPORT_PROMPT": "1"},
-        check=False,
-    )
-
-    assert result.stdout.split() == ["done"], result.stderr

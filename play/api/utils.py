@@ -62,9 +62,8 @@ def start_program():
 
 
 async def _start_then_loop():
-    """Run the when_program_starts callbacks, then start the frames."""
+    """Run the when_program_starts callbacks, give each a turn to set up, then start the frames."""
     callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
-    # The yield lets each callback set up before the first frame renders.
     await _asyncio.sleep(0)
     _play_loop.create_task(_game_loop())
 

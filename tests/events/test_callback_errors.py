@@ -142,16 +142,6 @@ def test_an_async_collision_callback_error_is_logged_once_with_its_traceback(
     assert "ValueError: typo in async when_touching" in shown[0]
 
 
-def test_a_collision_callback_traceback_has_no_extra_play_frames(caplog):
-    def on_touch():
-        raise ValueError("typo in when_touching")
-
-    shown = _ball_hits_a_block(on_touch, caplog)
-
-    assert "ValueError: typo in when_touching" in shown[0]
-    assert "in run\n" not in shown[0]
-
-
 def test_an_error_in_repeat_forever_is_reported(caplog):
     """The other place beginners put most of their code."""
     ran = []

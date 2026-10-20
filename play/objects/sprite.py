@@ -708,19 +708,22 @@ You might want to look in your code where you're setting transparency and make s
         return self.events.when_click_released(callback, call_with_sprite)
 
     def when_touching(self, *sprites):
-        """Run a function when the sprite is touching another sprite.
+        """Run a function when the sprite starts touching another sprite.
+        An async function runs as a task of its own, so its awaits do not hold up the game.
         :param sprites: The sprites to check if they're touching.
         """
         return self.events.when_touching(*sprites)
 
     def when_stopped_touching(self, *sprites):
         """Run a function when the sprite is no longer touching another sprite.
+        An async function runs as a task of its own, so its awaits do not hold up the game.
         :param sprites: The sprites to check if they're touching.
         """
         return self.events.when_stopped_touching(*sprites)
 
     def when_touching_wall(self, callback=None, *, wall=None):
-        """Run a function when the sprite is touching the edge of the screen.
+        """Run a function when the sprite starts touching the edge of the screen.
+        An async function runs as a task of its own, so its awaits do not hold up the game.
         :param callback: The function to run.
         :param wall: Optional WallSide or list of WallSides to filter which walls trigger the callback.
         """
@@ -728,6 +731,7 @@ You might want to look in your code where you're setting transparency and make s
 
     def when_stopped_touching_wall(self, callback=None, *, wall=None):
         """Run a function when the sprite is no longer touching the edge of the screen.
+        An async function runs as a task of its own, so its awaits do not hold up the game.
         :param callback: The function to run.
         :param wall: Optional WallSide or list of WallSides to filter which walls trigger the callback.
         """

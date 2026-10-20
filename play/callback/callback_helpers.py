@@ -108,14 +108,11 @@ def contact_callback(func, *args, contact, running, optional_args=()):
     :param optional_args: The names of the arguments func may leave out.
     :return: An async function without arguments that runs or starts func."""
     async_func = make_async(func)
-    is_async = inspect.iscoroutinefunction(func)
-    if not is_async and not args:
-        return async_func
 
     async def run():
         await run_async_callback(async_func, [], optional_args, *args)
 
-    if not is_async:
+    if not inspect.iscoroutinefunction(func):
         return run
 
     key = (func, contact)

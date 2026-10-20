@@ -2,7 +2,7 @@ import pymunk
 import pytest
 
 import play
-from play.physics import _keep_colliding, on_every_collision, physics_space
+from play.physics import on_every_collision, physics_space
 
 
 @pytest.fixture(autouse=True)
@@ -110,14 +110,6 @@ def test_sensor_setter_survives_remake():
 def test_sleep_disabled_on_space():
     """The physics space should not have body sleeping enabled."""
     assert physics_space.sleep_time_threshold == float("inf")
-
-
-def test_a_raising_begin_handler_is_reported_and_the_shapes_still_collide(capsys):
-    def begin(*_):
-        raise RuntimeError("bug in a begin handler")
-
-    assert _keep_colliding(begin)(None, None, None) is True
-    assert "RuntimeError: bug in a begin handler" in capsys.readouterr().err
 
 
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")

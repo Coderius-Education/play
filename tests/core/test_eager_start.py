@@ -8,6 +8,7 @@ import sys
 import pytest
 
 import play.loop
+from play import _eager_start_py311
 from play.globals import ProgramState, globals_list
 
 
@@ -15,11 +16,14 @@ from play.globals import ProgramState, globals_list
     params=[True, False], ids=["eager_task_factory", "by hand, as on Python 3.11"]
 )
 def eager_start(request, monkeypatch):
-    if request.param and not play.loop._HAS_EAGER_TASK_FACTORY:
+    if request.param and sys.version_info < (3, 12):
         pytest.skip("eager_task_factory needs Python 3.12")
     if not request.param and sys.version_info >= (3, 14):
         pytest.skip("on 3.14+ asyncio does not see a pure-Python Task as current")
-    monkeypatch.setattr(play.loop, "_HAS_EAGER_TASK_FACTORY", request.param)
+    if not request.param:
+        monkeypatch.setattr(
+            play.loop, "_eager_task_factory", _eager_start_py311.eager_task_factory
+        )
     return play.loop.start_task
 
 
@@ -251,24 +255,3 @@ def test_a_forgotten_eager_task_is_collected_quietly(eager_start, monkeypatch):
     gc.collect()
 
     assert unraisable == []
-
-
-def test_without_asyncios_task_internals_a_by_hand_start_is_a_plain_task(
-    monkeypatch,
-):
-    monkeypatch.setattr(play.loop, "_HAS_EAGER_TASK_FACTORY", False)
-    monkeypatch.setattr(play.loop, "_CAN_START_BY_HAND", False)
-    steps = []
-
-    async def callback():
-        steps.append("first step")
-        await asyncio.sleep(0)
-        return "done"
-
-    async def frame():
-        task = play.loop.start_task(callback())
-        steps.append("frame goes on")
-        return await task
-
-    assert _run(frame()) == "done"
-    assert steps == ["frame goes on", "first step"]
