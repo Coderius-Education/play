@@ -6,11 +6,13 @@ import os as _os
 
 import pygame
 
+from play.api.auto_start import stop_waiting_for_the_script
 from play.callback import callback_manager, CallbackType
 from play.core import game_loop as _game_loop
+from play import loop as _play_loop
 from play.globals import globals_list, ProgramState
 from play.io.keypress import keyboard_state
-from play.loop import get_loop as _get_loop, stop_loop as _stop_loop
+from play.io.logging import play_logger
 from play.physics import set_physics_simulation_steps as _set_physics_simulation_steps
 from play.objects.video.video import close_all_videos as _close_all_videos
 from play.utils import color_name_to_rgb as _color_name_to_rgb
@@ -23,6 +25,16 @@ def start_program():
 
     play.start_program() should almost certainly go at the very end of your program.
     """
+    if (
+        _play_loop.RUNS_IN_BROWSER
+        and globals_list.program_state is ProgramState.RUNNING
+    ):
+        if not globals_list.started_by_auto_start:
+            play_logger.warning(
+                "You've already started the program! play.start_program() only "
+                "needs to be called once, at the very bottom of your file."
+            )
+        return
     if globals_list.program_state is not ProgramState.NOT_STARTED:
         raise RuntimeError(
             "You've already started the program! Calling play.start_program() "
@@ -32,22 +44,44 @@ def start_program():
 
     globals_list.program_state = ProgramState.RUNNING
     globals_list.should_auto_start = False
+    stop_waiting_for_the_script()
 
-    async def _run_start_then_loop():
-        # The yield lets each callback set up before the first frame renders.
-        callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
-        await _asyncio.sleep(0)
-        _get_loop().create_task(_game_loop())
+    if _play_loop.RUNS_IN_BROWSER:
+        _play_loop.create_task(_run_in_browser())
+        return
 
     try:
         with _hint_forgotten_awaits():
-            _run_until_stopped(_run_start_then_loop())
+            _run_until_stopped(_start_then_loop())
     finally:
         logger = _logging.getLogger("asyncio")
         logger.setLevel(_logging.CRITICAL)
         _close_all_videos()
         if _os.getpid() == globals_list.initial_pid:
             pygame.quit()
+
+
+async def _start_then_loop():
+    """Run the when_program_starts callbacks, give each a turn to set up, then start the frames."""
+    callback_manager.run_callbacks(CallbackType.WHEN_PROGRAM_START)
+    await _asyncio.sleep(0)
+    _play_loop.create_task(_game_loop())
+
+
+async def _until_cancelled():
+    """Wait until the task awaiting this is cancelled."""
+    await _play_loop.get_loop().create_future()
+
+
+async def _run_in_browser():
+    """Run the program on the page's event loop until the program stops, then stop its sounds."""
+    try:
+        with _hint_forgotten_awaits():
+            await _start_then_loop()
+            await _until_cancelled()
+    finally:
+        if pygame.mixer.get_init():
+            pygame.mixer.stop()
 
 
 def _program_has_stopped():
@@ -58,12 +92,12 @@ def _program_has_stopped():
 def _run_until_stopped(start):
     """Run *start*, then frames until the program stops, also when it stops during *start*."""
     try:
-        _get_loop().run_until_complete(start)
+        _play_loop.get_loop().run_until_complete(start)
     except RuntimeError:
         if not _program_has_stopped():
             raise
     if not _program_has_stopped():
-        _get_loop().run_forever()
+        _play_loop.get_loop().run_forever()
 
 
 def stop_program():
@@ -72,7 +106,7 @@ def stop_program():
 
     play.stop_program() should almost certainly go at the very end of your program.
     """
-    _stop_loop()
+    _play_loop.stop_loop()
 
 
 async def animate():

@@ -43,6 +43,7 @@ class Globals:
     program_state: ProgramState = ProgramState.NOT_STARTED
     error_shown: bool = False
     should_auto_start: bool = False
+    started_by_auto_start: bool = False
     initial_pid: int = field(default_factory=_os.getpid)
     start_program_fn: object = None  # set by play.api.utils to avoid cyclic import
     focused_text_input: Optional["TextInput"] = None
@@ -67,7 +68,14 @@ class Globals:
         self.program_state = ProgramState.NOT_STARTED
         self.error_shown = False
         self.should_auto_start = False
+        self.started_by_auto_start = False
         self.focused_text_input = None
+
+    def claim_first_error(self):
+        """Mark that an error is shown; return True only for the program's first."""
+        first = not self.error_shown
+        self.error_shown = True
+        return first
 
 
 globals_list = Globals()

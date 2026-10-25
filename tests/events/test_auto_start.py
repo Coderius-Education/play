@@ -84,7 +84,7 @@ def test_start_program_clears_auto_start_flag():
     # run_until_complete, so close it here — otherwise it is reported as
     # "coroutine ... was never awaited" against whichever test happens to be
     # running when the garbage collector gets to it.
-    with patch.object(utils, "_get_loop") as mock_get_loop:
+    with patch.object(utils._play_loop, "get_loop") as mock_get_loop:
         mock_get_loop.return_value.run_until_complete.side_effect = (
             lambda coro: coro.close()
         )
@@ -150,3 +150,43 @@ def test_sprites_made_in_a_list_comprehension_are_all_made(run_script):
         "    os._exit(0)\n",
     )
     assert printed == ["made", "4"]
+
+
+def test_an_exception_the_script_catches_still_lets_the_game_start(run_script):
+    printed = run_script(
+        "@play.when_program_starts\n"
+        "def start():\n"
+        "    print('started')\n"
+        "    os._exit(0)\n"
+        "try:\n"
+        "    int('x')\n"
+        "except ValueError:\n"
+        "    print('caught')\n",
+    )
+    assert printed == ["caught", "started"]
+
+
+def test_tracing_is_off_while_a_started_program_runs(run_script):
+    printed = run_script(
+        "import sys\n"
+        "@play.when_program_starts\n"
+        "def start():\n"
+        "    print('trace', sys.gettrace())\n"
+        "    os._exit(0)\n"
+        "play.start_program()\n",
+    )
+    assert printed == ["trace", "None"]
+
+
+def test_a_script_that_reraises_leaves_no_tracing_behind(run_script):
+    printed = run_script(
+        "import atexit, sys\n"
+        "atexit.register(lambda: print('trace', sys.gettrace()))\n"
+        "play.new_box()\n"
+        "try:\n"
+        "    1 / 0\n"
+        "except ZeroDivisionError:\n"
+        "    raise\n",
+        returncode=1,
+    )
+    assert printed == ["trace", "None"]

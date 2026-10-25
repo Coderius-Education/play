@@ -7,7 +7,12 @@ import traceback
 
 from play.globals import globals_list
 from play.io.logging import play_logger
-from play.loop import get_loop as _get_loop, stop_loop as _stop_loop
+from play.loop import (
+    create_task as _create_task,
+    start_task as _start_task,
+    stop_loop as _stop_loop,
+)
+from play.utils.async_helpers import make_async
 
 
 def run_callback(callback, required_args, optional_args, *args, **kwargs):
@@ -16,6 +21,16 @@ def run_callback(callback, required_args, optional_args, *args, **kwargs):
     This is a convenience alias for :func:`fire_async_callback`.
     """
     fire_async_callback(callback, required_args, optional_args, *args, **kwargs)
+
+
+def _positional_parameters(func):
+    """Return the names of the positional parameters of *func*, leaving out a bound self."""
+    return [
+        parameter.name
+        for parameter in inspect.signature(func).parameters.values()
+        if parameter.kind
+        in (parameter.POSITIONAL_ONLY, parameter.POSITIONAL_OR_KEYWORD)
+    ]
 
 
 def _resolve_callback_args(callback, required_args, optional_args, *args):
@@ -29,7 +44,7 @@ def _resolve_callback_args(callback, required_args, optional_args, *args):
     actual_cb = callback
     if hasattr(callback, "original_function"):
         actual_cb = callback.original_function
-    actual_args = inspect.getfullargspec(actual_cb).args
+    actual_args = _positional_parameters(actual_cb)
     if (
         len(required_args)
         <= len(actual_args)
@@ -66,21 +81,56 @@ async def run_async_callback(callback, required_args, optional_args, *args, **kw
 
 
 def _show_first_error(exc):
-    """Stop the program and print the traceback, for the first error only."""
-    if globals_list.error_shown:
-        return
-    globals_list.error_shown = True
+    """Stop the program; for its first error, also show the traceback."""
     _stop_loop()
-    traceback.print_exception(type(exc), exc, exc.__traceback__)
-    play_logger.critical("Error in callback task: %s", exc)
+    if globals_list.claim_first_error():
+        play_logger.critical(
+            "Error in callback task:\n%s", "".join(traceback.format_exception(exc))
+        )
 
 
-async def _stop_on_error(callback, args, kwargs):
+async def _stop_on_error(callback, /, *args, **kwargs):
     """Run a callback task, showing its error as soon as it is raised."""
     try:
         await callback(*args, **kwargs)
     except Exception as exc:  # pylint: disable=broad-exception-caught
         _show_first_error(exc)
+
+
+def contact_callback(func, *args, contact, running, optional_args=()):
+    """Wrap a callback for a contact that begins or ends.
+    :param func: The function to run. A plain function runs straight away; an async
+        one starts straight away as a task of its own, so its awaits do not hold up
+        the game, and is skipped while its previous run for this contact has not finished.
+    :param args: The arguments to offer to func.
+    :param contact: What tells this contact apart, such as ``(other_sprite, True)`` for one that begins.
+    :param running: The set of callback-and-contact keys whose async run has not finished.
+    :param optional_args: The names of the arguments func may leave out.
+    :return: An async function without arguments that runs or starts func."""
+    async_func = make_async(func)
+
+    async def run():
+        await run_async_callback(async_func, [], optional_args, *args)
+
+    if not inspect.iscoroutinefunction(func):
+        return run
+
+    key = (func, contact)
+
+    async def start():
+        if key not in running:
+            running.add(key)
+            _start_task(_stop_on_error(_one_at_a_time, run, key, running))
+
+    return start
+
+
+async def _one_at_a_time(run, key, running):
+    """Await *run*, then let the contact *key* start again."""
+    try:
+        await run()
+    finally:
+        running.discard(key)
 
 
 def fire_async_callback(callback, required_args, optional_args, *args, **kwargs):
@@ -92,7 +142,7 @@ def fire_async_callback(callback, required_args, optional_args, *args, **kwargs)
     _, callback_args = _resolve_callback_args(
         callback, required_args, optional_args, *args
     )
-    _get_loop().create_task(_stop_on_error(callback, callback_args, kwargs))
+    _create_task(_stop_on_error(callback, *callback_args, **kwargs))
 
 
 async def run_any_async_callback(callbacks, *args, **kwargs):
