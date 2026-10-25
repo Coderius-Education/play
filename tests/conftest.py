@@ -428,6 +428,8 @@ def clean_play_state(request):
     # The width/height setters would also rebuild the walls.
     screen._width, screen._height = 800, 600
     screen._resizable = False
+    screen._fullscreen = False
+    screen.caption = "coderius-play"
     screen.update_display()
 
     # Clean Pymunk physics spaces

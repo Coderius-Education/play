@@ -15,6 +15,10 @@ import play.loop
 from play.api import auto_start
 from play.globals import ProgramState, globals_list
 
+_UNDER_A_C_TRACER = (
+    sys.gettrace() is not None and getattr(sys.gettrace(), "__code__", None) is None
+)
+
 
 @pytest.fixture
 def in_the_browser(monkeypatch):
@@ -350,6 +354,10 @@ def test_an_async_contact_callback_that_stops_the_program_goes_no_further(
     assert after_the_stop == []
 
 
+@pytest.mark.skipif(
+    _UNDER_A_C_TRACER,
+    reason="auto-start cannot see the script end under a C trace function, such as coverage's on 3.11",
+)
 def test_a_script_with_top_level_awaits_starts_once_it_ends(in_the_browser):
     states = []
     main_py = _main_py(
