@@ -77,7 +77,7 @@ def test_a_wall_callback_may_leave_out_the_wall_parameter():
 
 @pytest.mark.xfail(
     strict=True,
-    reason="a second when_touching_wall on a sprite silently replaces the first",
+    reason="a second wall callback of the same kind on a sprite silently replaces the first",
 )
 @pytest.mark.parametrize("event", ["when_touching_wall", "when_stopped_touching_wall"])
 def test_a_second_wall_callback_does_not_silently_replace_the_first(event):

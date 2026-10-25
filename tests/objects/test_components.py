@@ -177,28 +177,6 @@ def test_wall_callbacks_run_only_for_the_walls_they_name():
     assert set(ran) == {("left", WallSide.LEFT), ("any stopped", WallSide.LEFT)}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="a second when_touching_wall for the same wall silently replaces the first",
-)
-def test_two_wall_callbacks_for_the_same_wall_both_run():
-    box = play.new_box(x=play.screen.left, width=40, height=40)
-    box.start_physics(obeys_gravity=False)
-    ran = []
-
-    @box.when_touching_wall(wall=WallSide.LEFT)
-    def left(wall):
-        ran.append("left")
-
-    @box.when_touching_wall
-    def any_wall(wall):
-        ran.append("any")
-
-    run_frames(30)
-
-    assert set(ran) == {"left", "any"}
-
-
 @pytest.mark.parametrize(
     "register, event",
     [
