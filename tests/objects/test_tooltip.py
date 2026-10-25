@@ -17,7 +17,6 @@ def setup_play(clean_play_state):
 
 def _make(text="Hi", target_x=200):
     # Target sits away from the origin so the tooltip is hidden by default
-    # (the fixture resets the mouse to (0, 0)).
     target = play.new_box(color="red", x=target_x, y=0, width=100, height=100)
     tip = play.new_tooltip(text, target=target)
     return target, tip

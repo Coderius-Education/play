@@ -29,9 +29,6 @@ def _two_radios(selected="a"):
     return g, r1, r2
 
 
-# ── RadioGroup ─────────────────────────────────────────────────────────────────
-
-
 def test_radio_group_creation():
     g = play.new_radio_group()
     assert g.selected_value is None

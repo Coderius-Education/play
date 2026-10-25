@@ -29,9 +29,6 @@ def _image(sprite):
     return pygame.image.tobytes(sprite.image, "RGBA")
 
 
-# ── cursor position ───────────────────────────────────────────────────────────
-
-
 @pytest.mark.parametrize(
     "keys, expected",
     [
@@ -94,9 +91,6 @@ def test_deleting_a_character_reports_the_change(key):
     ti.when_changed(changed.append)
     _press(ti, pygame.K_LEFT, key)
     assert changed == [ti.value]
-
-
-# ── selection ─────────────────────────────────────────────────────────────────
 
 
 def test_typing_after_ctrl_a_replaces_everything():
@@ -184,9 +178,6 @@ def test_readonly_blocks_editing_keys():
     assert ti.value == "abc"  # the readonly guard stops editing keys
 
 
-# ── password mode ─────────────────────────────────────────────────────────────
-
-
 def test_a_password_field_draws_bullets_but_keeps_the_real_value():
     secret = play.new_text_input(value="secret", password_mode=True, x=0, y=100)
     bullets = play.new_text_input(value="••••••", x=0, y=-100)
@@ -263,9 +254,6 @@ def test_disabling_focused_field_clears_focus():
     registry.focus(ti)
     ti.disabled = True
     assert globals_list.focused_text_input is None
-
-
-# ── clone ─────────────────────────────────────────────────────────────────────
 
 
 def test_a_cloned_field_keeps_its_settings_but_not_its_value():
@@ -376,7 +364,6 @@ def test_paste_survives_unavailable_scrap(monkeypatch):
 
 
 def test_copy_survives_unavailable_scrap(monkeypatch):
-    # Regression: Ctrl+C/Ctrl+X must not propagate when pygame.scrap is unavailable.
     ti = play.new_text_input(value="hello")
     registry.focus(ti)
 
@@ -388,9 +375,6 @@ def test_copy_survives_unavailable_scrap(monkeypatch):
     assert ti.value == "hello"
     ti._handle_text_input("X")
     assert ti.value == "X"
-
-
-# ── rendering ────────────────────────────────────────────────────────────────
 
 
 def test_selection_highlight_is_rendered(monkeypatch):

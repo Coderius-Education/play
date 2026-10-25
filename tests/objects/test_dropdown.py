@@ -180,7 +180,6 @@ def test_a_dropdown_with_nothing_selected_shows_its_placeholder():
 
 
 def test_dropdown_click_uses_current_mouse_not_stale_hover():
-    # Regression: the click must select the row under the mouse now, not the last hovered one.
     dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
     click_at(0, 0, dd)
     mouse.x, mouse.y = 0, -40

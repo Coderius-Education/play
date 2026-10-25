@@ -114,9 +114,6 @@ def test_disabled_text_input_is_dimmed():
     assert enabled_px != disabled_px
 
 
-# ── every widget is put on screen at its layer ────────────────────────────────
-
-
 @pytest.mark.parametrize(
     "make, layer",
     [

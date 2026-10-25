@@ -19,7 +19,6 @@ def test_forget_removes_entries():
     shape = ball.physics._pymunk_shape
     ct = shape.collision_type
 
-    # The registered shape carries its sprite, and has callbacks, before cleanup
     assert shape._play_sprite is ball
     assert ct in collision_registry.callbacks[True]
 
@@ -50,12 +49,10 @@ def test_forget_removes_nested_entries():
     ball_ct = ball.physics._pymunk_shape.collision_type
     wall_ct = wall.physics._pymunk_shape.collision_type
 
-    # Verify ball_ct is nested inside wall_ct's dict before cleanup
     assert ball_ct in collision_registry.callbacks[True].get(wall_ct, {})
 
     collision_registry.forget(ball.physics._pymunk_shape)
 
-    # After cleanup, ball_ct should be removed from wall_ct's nested dict too
     for begin in [True, False]:
         assert ball_ct not in collision_registry.callbacks[begin].get(wall_ct, {})
 

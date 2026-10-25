@@ -221,9 +221,6 @@ def test_a_dropdown_shows_its_hover_colour_only_while_closed():
     assert count_color(dd.image, yellow) == 0
 
 
-# ── a disabled field ignores keys even if focus reaches it ────────────────────
-
-
 def test_a_disabled_field_ignores_editing_keys_even_when_focused(monkeypatch):
     store = _fake_scrap(monkeypatch, clipboard="pasted")
     ti = play.new_text_input(value="abc", disabled=True)

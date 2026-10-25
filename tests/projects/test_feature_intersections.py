@@ -157,11 +157,6 @@ def test_restarting_physics_while_touching_does_not_wedge():
     )
 
 
-# ---------------------------------------------------------------------------
-# visibility x physics lifecycle
-# ---------------------------------------------------------------------------
-
-
 def _position_after_frames(sprite, count):
     frames = [0]
     seen = []

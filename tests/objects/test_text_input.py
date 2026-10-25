@@ -392,9 +392,6 @@ def test_dispatch_keydown_no_focused_is_noop():
     assert ti.value == "abc"
 
 
-# ── focus and the keyboard ────────────────────────────────────────────────────
-
-
 def test_enter_blurs_field_after_submit():
     # Regression: Enter fired when_submit but left the field focused, so the
     # game's keyboard callbacks stayed suspended after submitting.

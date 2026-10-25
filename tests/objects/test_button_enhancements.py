@@ -39,9 +39,6 @@ def _image(sprite):
     return pygame.image.tobytes(sprite.image, "RGBA")
 
 
-# ── click handlers ────────────────────────────────────────────────────────────
-
-
 def test_a_click_handler_can_ask_for_the_button_it_belongs_to():
     btn = play.new_button("Go", x=0, y=0, width=100, height=50)
     seen = []
@@ -117,9 +114,6 @@ def test_the_disabled_text_colour_is_used_only_while_disabled(disabled):
         text="Stop", width=120, height=50, disabled=disabled, disabled_text_color="red"
     )
     assert (count_color(btn.image, (255, 0, 0)) > 0) is disabled
-
-
-# ── clone ─────────────────────────────────────────────────────────────────────
 
 
 def test_a_cloned_button_looks_like_the_original_resting_hovered_pressed_and_disabled():
