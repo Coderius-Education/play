@@ -6,6 +6,7 @@ than an exotic case, and several widgets size their hit-shape from
 ``font.size(label)``.
 """
 
+import pygame
 import pytest
 import play
 from play.io.mouse import mouse
@@ -27,18 +28,17 @@ def test_narrow_slider_is_still_draggable():
     click_at(0, 0, s, hold=True)
     mouse.x = 40  # well past the right edge
     s.update()
+    assert s.value == 100
+    mouse.x = -40
+    s.update()
+    assert s.value == 0
     mouse._is_clicked = False
-    assert s.value > 0
 
 
-def test_narrow_slider_thumb_fits_the_track():
-    s = play.new_slider(x=0, y=0, width=20)
-    assert s._thumb_radius * 2 < 20
-
-
-def test_normal_slider_thumb_is_untouched():
-    s = play.new_slider(x=0, y=0, width=200, thumb_radius=12)
-    assert s._thumb_radius == 12
+@pytest.mark.parametrize("width, height", [(20, 38), (200, 44)])
+def test_a_thumb_is_shrunk_only_when_it_would_not_fit_the_track(width, height):
+    s = play.new_slider(x=0, y=0, width=width, height=20, thumb_radius=12)
+    assert s.image.get_size() == (width, height)
 
 
 # ── max_length=0 ──────────────────────────────────────────────────────────────
@@ -107,15 +107,21 @@ def test_widgets_accept_non_ascii_labels(label):
     cb.update()
     rb.update()
     assert cb.label == label
-    # The hit-shape is sized from font.size(label), so it must be wide enough
-    # to cover the drawn widget rather than collapsing to the bare box.
-    assert cb.width >= 24
-    assert cb.image.get_width() >= 24
-    assert rb.image.get_width() >= 22
+    # The hit-shape is sized from font.size(label), so a click on the label lands.
+    assert cb.image.get_width() > 24 + 10
+    assert rb.image.get_width() > 22 + 10
+    click_at(cb.image.get_width() / 2 - 2, -60, cb, rb)
+    click_at(rb.image.get_width() / 2 - 2, 60, cb, rb)
+    assert cb.checked is True
+    assert rb.selected is True
 
 
 def test_non_ascii_text_input_round_trips():
     ti = play.new_text_input(value="")
     ti._handle_text_input("Grüße")
     assert ti.value == "Grüße"
-    assert ti._cursor_pos == 5  # characters, not bytes
+    ti._handle_keydown(
+        pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_LEFT, "mod": 0})
+    )
+    ti._handle_text_input("!")
+    assert ti.value == "Grüß!e"  # the cursor counts characters, not bytes

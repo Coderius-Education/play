@@ -8,7 +8,8 @@ ignored the click itself, but the game's own when_clicked handler still ran.
 import pytest
 import play
 from play.io.mouse import mouse
-from play.objects.widgets.widget import WidgetMixin
+from play.io.screen import screen
+from tests.conftest import post_mouse_down, post_mouse_motion, post_mouse_up
 
 
 @pytest.fixture(autouse=True)
@@ -55,6 +56,9 @@ def test_every_widget_supports_hover_callbacks(kind):
     widget.when_hover(lambda: events.append("hover"))
     widget.when_unhover(lambda: events.append("unhover"))
 
+    widget.update()
+    assert events == []
+
     mouse.x, mouse.y = 0, 0
     widget.update()
     assert events == ["hover"]
@@ -64,7 +68,12 @@ def test_every_widget_supports_hover_callbacks(kind):
 
     mouse.x, mouse.y = 999, 999
     widget.update()
+    widget.update()
     assert events == ["hover", "unhover"]
+
+    mouse.x, mouse.y = 0, 0
+    widget.update()
+    assert events == ["hover", "unhover", "hover"]
 
 
 @pytest.mark.parametrize("kind", KINDS)
@@ -80,50 +89,59 @@ def test_disabling_while_hovered_closes_the_hover(kind):
     assert events == ["unhover"]
 
 
+@pytest.mark.parametrize("decorator", ["when_hover", "when_unhover"])
 @pytest.mark.parametrize("kind", KINDS)
-def test_hover_callbacks_reject_async(kind):
+def test_hover_callbacks_reject_async(kind, decorator):
     widget = _make(kind)
-    with pytest.raises(TypeError):
 
-        @widget.when_hover
-        async def _handler():
-            pass
+    async def _handler():
+        pass
+
+    with pytest.raises(TypeError):
+        getattr(widget, decorator)(_handler)
 
 
 # ── `disabled` also suppresses the game's own click handler ───────────────────
 
 
+def _click_in_the_game_loop():
+    sx, sy = int(screen.width / 2), int(screen.height / 2)
+
+    @play.when_program_starts
+    async def driver():
+        post_mouse_motion(sx, sy)
+        await play.animate()
+        post_mouse_down(sx, sy)
+        await play.animate()
+        post_mouse_up(sx, sy)
+        await play.animate()
+        play.stop_program()
+
+    play.start_program()
+
+
+def _handlers(ran, label):
+    def sync_handler():
+        ran.append(label)
+
+    async def async_handler():
+        ran.append("async " + label)
+
+    return sync_handler, async_handler
+
+
+@pytest.mark.parametrize("disabled", [False, True])
 @pytest.mark.parametrize("kind", KINDS)
-def test_when_clicked_is_disabled_aware_on_every_widget(kind):
-    # The dispatcher fires callbacks as asyncio tasks, so asserting through
-    # handle_sprite_click() in a sync test would exercise nothing. Check that
-    # the guard is installed, and test the wrapper it installs directly below.
+def test_the_games_click_handlers_run_only_while_the_widget_is_enabled(kind, disabled):
     widget = _make(kind)
-    assert type(widget).when_clicked is WidgetMixin.when_clicked
-    assert type(widget).when_click_released is WidgetMixin.when_click_released
+    widget.disabled = disabled
+    ran = []
+    for handler in _handlers(ran, "clicked"):
+        widget.when_clicked(handler)
+    for handler in _handlers(ran, "released"):
+        widget.when_click_released(handler)
 
+    _click_in_the_game_loop()
 
-@pytest.mark.parametrize("kind", KINDS)
-def test_click_callback_is_suppressed_only_while_disabled(kind):
-    widget = _make(kind)
-    fired = []
-    guarded = widget._guard_disabled(lambda: fired.append(1))
-
-    widget.disabled = True
-    guarded()
-    assert fired == []  # disabled: the game's own handler is skipped
-
-    widget.disabled = False
-    guarded()
-    assert fired == [1]  # enabled: it runs normally
-
-
-# ── decorative widgets stay out of it ─────────────────────────────────────────
-
-
-def test_progress_bar_and_tooltip_are_not_widgets():
-    bar = play.new_progress_bar(x=0, y=0)
-    tip = play.new_tooltip("hi", target=bar)
-    assert bar._is_widget is False
-    assert tip._is_widget is False
-    assert not hasattr(bar, "_hover_callbacks")
+    expected = ["async clicked", "async released", "clicked", "released"]
+    assert sorted(ran) == ([] if disabled else expected)

@@ -20,6 +20,7 @@ import pytest
 
 import play
 from play.objects.widgets import text_input_registry as registry
+from tests.conftest import click_at, count_color
 
 
 @pytest.fixture
@@ -36,9 +37,15 @@ def _keydown(key):
 # ---------------------------------------------------------------------------
 
 
-def test_caret_starts_visible(field):
+def test_a_field_shows_its_caret_as_soon_as_it_is_clicked(monkeypatch):
     """A field the user has just focused must show its caret at once."""
-    assert field._cursor_visible is True
+    monkeypatch.setattr(pygame.time, "get_ticks", lambda: 0)
+    empty = play.new_text_input(x=0, y=0, text_color="red")
+    empty._cursor_visible = False
+
+    click_at(0, 0, empty)
+
+    assert count_color(empty.image, (255, 0, 0)) > 0
 
 
 def test_caret_toggles_after_the_blink_interval(field, monkeypatch):
@@ -122,29 +129,31 @@ def test_typing_shows_the_caret_immediately(field):
     """
     registry.focus(field)
     field._cursor_visible = False
-    field._should_recompute = False
 
     field._handle_text_input("x")
 
     assert field._cursor_visible is True
-    assert field._should_recompute is True
     assert field.value == "hellox"
 
 
 @pytest.mark.parametrize(
     "key", [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_HOME, pygame.K_END]
 )
-def test_moving_the_caret_shows_it(field, key):
+def test_moving_the_caret_shows_it(field, key, monkeypatch):
     """Moving the caret is exactly when the user needs to see where it went."""
+    monkeypatch.setattr(pygame.time, "get_ticks", lambda: 0)
     registry.focus(field)
-    field._cursor_pos = 2  # mid-text, so every direction has somewhere to go
+    field._handle_keydown(_keydown(pygame.K_LEFT))
+    field._handle_keydown(_keydown(pygame.K_LEFT))
     field._cursor_visible = False
-    field._should_recompute = False
+    field.update()
+    hidden = pygame.image.tobytes(field.image, "RGBA")
 
     field._handle_keydown(_keydown(key))
+    field.update()
 
     assert field._cursor_visible is True
-    assert field._should_recompute is True
+    assert pygame.image.tobytes(field.image, "RGBA") != hidden
 
 
 def test_typing_resets_the_blink_clock(field, monkeypatch):
@@ -170,10 +179,13 @@ def test_a_full_field_accepts_nothing_more():
     """A field at max_length must drop the keystroke, not append past the limit."""
     full = play.new_text_input(x=0, y=0, value="abc", max_length=3)
     registry.focus(full)
+    changes = []
+    full.when_changed(changes.append)
 
     full._handle_text_input("d")
 
     assert full.value == "abc"
+    assert changes == []
 
 
 def test_a_nearly_full_field_takes_only_what_fits():
@@ -200,9 +212,9 @@ def test_a_default_field_is_usable():
     plain = play.new_text_input()
 
     assert plain.x == 0 and plain.y == 0
-    assert plain._is_disabled is False
-    assert plain._readonly is False
-    assert plain._password_mode is False
+    assert plain.disabled is False
+    assert plain.readonly is False
+    assert plain.password_mode is False
 
     registry.focus(plain)
     plain._handle_text_input("typed")

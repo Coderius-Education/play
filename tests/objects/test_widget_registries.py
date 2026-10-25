@@ -22,6 +22,7 @@ from play.globals import globals_list
 from play.physics import physics_space
 from play.callback.collision_callbacks import collision_registry
 from play.objects.widgets import text_input_registry as registry
+from tests.conftest import click_at
 
 
 def _counts():
@@ -149,6 +150,13 @@ def _button_with_when_clicked():
     return [button]
 
 
+def _open_dropdown():
+    menu = play.new_dropdown(options=["a", "b"], x=0, y=0)
+    click_at(0, 0, menu)
+    assert menu.is_open
+    return [menu]
+
+
 @pytest.mark.parametrize(
     "make",
     [
@@ -156,8 +164,15 @@ def _button_with_when_clicked():
         _with_when_touching_wall,
         _with_when_clicked,
         _button_with_when_clicked,
+        _open_dropdown,
     ],
-    ids=["when_touching", "when_touching_wall", "when_clicked", "button"],
+    ids=[
+        "when_touching",
+        "when_touching_wall",
+        "when_clicked",
+        "button",
+        "open_dropdown",
+    ],
 )
 def test_removed_sprites_with_callbacks_are_freed(make):
     """A shooter that removes its bullets must not keep them in memory.

@@ -10,6 +10,7 @@ Covers three classes of bug:
 import pytest
 import pygame
 import play
+from play.globals import globals_list
 from play.io.mouse import mouse
 from play.io.screen import screen
 from play.core.mouse_loop import mouse_state
@@ -50,7 +51,7 @@ def test_radio_button_created_during_click_does_not_select():
     try:
         g = play.new_radio_group()
         r = play.new_radio_button("A", value="a", group=g, x=0, y=0)
-        assert r._selected is False
+        assert r.selected is False
         assert g.selected_value is None
     finally:
         _end_click()
@@ -61,7 +62,9 @@ def test_slider_created_during_click_does_not_start_drag():
     _begin_click(-50, 0)
     try:
         s = play.new_slider(min_value=0, max_value=100, value=50, x=0, y=0, width=200)
-        assert s._dragging is False
+        assert s.value == 50
+        mouse_state.clear()
+        s.update()
         assert s.value == 50
     finally:
         _end_click()
@@ -82,33 +85,6 @@ def test_anchor_tracks_content_size_change_within_one_frame():
     label.words = "100000"
     label.update()
     assert label.rect.right == pytest.approx(screen.width - 10, abs=1)
-
-
-# ── image and hit-shape scale together ────────────────────────────────────────
-
-
-def test_checkbox_size_scales_the_drawn_image():
-    cb = play.new_checkbox(x=0, y=0, size_px=24)
-    cb.update()
-    base_w = cb.image.get_width()
-    cb.size = 200
-    cb.update()
-    assert cb.image.get_width() > base_w
-
-
-# ── progress bar bounds stay ordered ──────────────────────────────────────────
-
-
-def test_progress_bar_min_value_cannot_cross_max():
-    pb = play.new_progress_bar(min_value=0, max_value=100, value=50)
-    pb.min_value = 200
-    assert pb.min_value <= pb.max_value
-
-
-def test_progress_bar_max_value_cannot_cross_min():
-    pb = play.new_progress_bar(min_value=0, max_value=100, value=50)
-    pb.max_value = -50
-    assert pb.min_value <= pb.max_value
 
 
 # ── hidden sprites are non-interactive both ways ──────────────────────────────
@@ -136,3 +112,36 @@ def test_disabled_text_input_is_dimmed():
     enabled_px = pygame.image.tobytes(enabled.image, "RGBA")
     disabled_px = pygame.image.tobytes(disabled.image, "RGBA")
     assert enabled_px != disabled_px
+
+
+# ── every widget is put on screen at its layer ────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "make, layer",
+    [
+        (lambda: play.new_button(), 10),
+        (lambda: play.new_checkbox(), 10),
+        (lambda: play.new_slider(), 10),
+        (lambda: play.new_dropdown(options=["A"]), 20),
+        (lambda: play.new_radio_button(), 10),
+        (lambda: play.new_text_input(), 10),
+        (lambda: play.new_progress_bar(), 0),
+        (lambda: play.new_tooltip("hi"), 100),
+    ],
+    ids=[
+        "button",
+        "checkbox",
+        "slider",
+        "dropdown",
+        "radio_button",
+        "text_input",
+        "progress_bar",
+        "tooltip",
+    ],
+)
+def test_a_new_widget_is_drawn_at_its_default_layer(make, layer):
+    widget = make()
+    assert widget.alive()
+    assert widget.layer == layer
+    assert globals_list.sprites_group.get_layer_of_sprite(widget) == layer

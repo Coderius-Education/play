@@ -22,6 +22,7 @@ import inspect
 import pytest
 
 import play
+from tests.conftest import click_at
 
 # ---------------------------------------------------------------------------
 # when_changed signatures
@@ -77,15 +78,13 @@ def test_dropdown_when_changed_passes_value_and_index():
     the pattern on a checkbox and applies it to a dropdown gets a TypeError.
     Listed on the PR as a known follow-up; normalising it breaks existing
     handlers, so this test is what makes that a deliberate change.
-
-    Driven through _select() because the selected_index setter does not
-    notify at all — see the test below.
     """
     seen = []
-    menu = play.new_dropdown(options=["a", "b"])
+    menu = play.new_dropdown(options=["a", "b"], x=0, y=0)
     menu.when_changed(lambda *args: seen.append(args))
 
-    menu._select(1)
+    click_at(0, 0, menu)
+    click_at(0, -80, menu)
 
     assert seen == [("b", 1)], f"expected (value, index), got {seen}"
 
@@ -175,26 +174,24 @@ def test_known_missing_properties_are_still_missing(factory_name):
 
 
 @pytest.mark.parametrize(
-    "factory_name,argument",
+    "factory_name,argument,value,extra",
     [
-        ("new_button", "text"),
-        ("new_checkbox", "checked"),
-        ("new_slider", "value"),
-        ("new_progress_bar", "value"),
-        ("new_dropdown", "selected_index"),
-        ("new_text_input", "value"),
+        ("new_button", "text", "Go", {}),
+        ("new_checkbox", "checked", True, {}),
+        ("new_slider", "value", 7, {}),
+        ("new_progress_bar", "value", 7, {}),
+        ("new_dropdown", "selected_index", 1, {"options": ["a", "b"]}),
+        ("new_text_input", "value", "hi", {}),
     ],
 )
-def test_core_constructor_arguments_round_trip(factory_name, argument):
+def test_core_constructor_arguments_round_trip(factory_name, argument, value, extra):
     """The arguments a game actually reads back must be readable."""
     factory = getattr(play, factory_name)
     parameters = inspect.signature(factory).parameters
     assert argument in parameters, f"{factory_name} has no {argument} argument"
 
-    widget = FACTORIES.get(factory_name, lambda: factory())()
-    assert hasattr(
-        widget, argument
-    ), f"{factory_name} accepts {argument} but does not expose it to read back"
+    widget = factory(**{argument: value}, **extra)
+    assert getattr(widget, argument) == value
 
 
 # ---------------------------------------------------------------------------
@@ -267,11 +264,11 @@ def test_setting_a_dropdowns_layer_while_open_survives_closing():
     later assignment, closing would restore the old value and discard it.
     """
     menu = play.new_dropdown(options=["a", "b"], x=0, y=0, layer=10)
-    menu._set_open(True)
+    click_at(0, 0, menu)
 
     menu.layer = 50
 
-    menu._set_open(False)
+    click_at(0, 0, menu)
     assert menu.layer == 50, f"the assignment was discarded on close ({menu.layer})"
 
 
@@ -283,8 +280,7 @@ def test_opening_a_dropdown_repeatedly_does_not_escalate_its_layer():
     """
     menu = play.new_dropdown(options=["a", "b"], x=0, y=0, layer=10)
 
-    for _ in range(5):
-        menu._set_open(True)
-        menu._set_open(False)
+    for _ in range(10):
+        click_at(0, 0, menu)
 
     assert menu.layer == 10, f"layer drifted to {menu.layer} after repeated opens"

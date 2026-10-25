@@ -1,8 +1,10 @@
 """Tests for the Dropdown widget."""
 
+import pygame
 import pytest
 import play
 from play.io.mouse import mouse
+from play.utils import color_name_to_rgb
 from tests.conftest import click_at
 
 
@@ -11,10 +13,19 @@ def setup_play(clean_play_state):
     pass
 
 
-def test_dropdown_creation():
-    dd = play.new_dropdown(options=["A", "B", "C"], selected_index=0)
-    assert dd.selected_value == "A"
-    assert dd.selected_index == 0
+def _toggle(dropdown):
+    click_at(dropdown.x, dropdown.y, dropdown)
+
+
+def _image(sprite):
+    return pygame.image.tobytes(sprite.image, "RGBA")
+
+
+@pytest.mark.parametrize("index, value", [(0, "A"), (2, "C")])
+def test_dropdown_selected_value_matches_the_selected_index(index, value):
+    dd = play.new_dropdown(options=["A", "B", "C"], selected_index=index)
+    assert dd.selected_value == value
+    assert dd.selected_index == index
 
 
 def test_dropdown_no_options():
@@ -23,30 +34,26 @@ def test_dropdown_no_options():
     assert dd.selected_index == -1
 
 
-def test_dropdown_selected_value():
-    dd = play.new_dropdown(options=["X", "Y", "Z"], selected_index=2)
-    assert dd.selected_value == "Z"
-
-
 def test_dropdown_selected_index_setter():
     dd = play.new_dropdown(options=["A", "B", "C"], selected_index=0)
     dd.selected_index = 2
     assert dd.selected_value == "C"
 
 
-def test_dropdown_options_setter():
-    import pygame
+@pytest.mark.parametrize("index, expected", [(9, 2), (-5, -1)])
+def test_an_out_of_range_selected_index_is_clamped(index, expected):
+    dd = play.new_dropdown(options=["A", "B", "C"], selected_index=1)
+    dd.selected_index = index
+    assert dd.selected_index == expected
 
+
+def test_dropdown_options_setter():
     dd = play.new_dropdown(options=["A", "B"])
-    dd._should_recompute = True
-    dd.update()
-    before = pygame.image.tobytes(dd.image, "RGBA")
+    before = _image(dd)
     dd.options = ["X", "Y", "Z"]
     assert dd.options == ["X", "Y", "Z"]
-    assert dd._should_recompute is True
     dd.update()
-    after = pygame.image.tobytes(dd.image, "RGBA")
-    assert after != before  # the closed button shows the new selected option
+    assert _image(dd) != before
 
 
 def test_dropdown_options_setter_clamps_index():
@@ -55,10 +62,15 @@ def test_dropdown_options_setter_clamps_index():
     assert dd.selected_index == 0
 
 
-def test_dropdown_open_toggles_on_click():
-    dd = play.new_dropdown(options=["A", "B"], x=0, y=0, width=160, height=40)
+def test_each_click_on_the_button_opens_or_closes_the_menu_without_choosing():
+    dd = play.new_dropdown(
+        options=["A", "B"], selected_index=1, x=0, y=0, width=160, height=40
+    )
     click_at(0, 0, dd)
     assert dd.is_open is True
+    click_at(0, 0, dd)
+    assert dd.is_open is False
+    assert dd.selected_value == "B"
 
 
 def test_dropdown_disabled_ignores_click():
@@ -69,55 +81,68 @@ def test_dropdown_disabled_ignores_click():
     assert dd.is_open is False
 
 
-def test_dropdown_when_changed_fires():
-    dd = play.new_dropdown(options=["A", "B", "C"])
-    received = []
-
-    @dd.when_changed
-    def on_change(v, i):
-        received.append((v, i))
-
-    dd._select(1)
-    assert received == [("B", 1)]
-
-
-def test_dropdown_hovers_option_row_under_mouse():
-    # With the menu open, mouse.y=-80 lands on the 2nd option row (index 1)
-    # for a dropdown at y=0 with height=40 on the 800x600 test display.
-    dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
-    click_at(0, 0, dd)  # open
-    mouse.x, mouse.y = 0, -80
-    dd.update()  # tracks hovered option
-    assert dd._hovered_option == 1
-
-
-def test_dropdown_click_option_selects_and_closes():
-    dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
-    click_at(0, 0, dd)  # open
-    assert dd.is_open is True
-
-    # Hover the 2nd option row so _hovered_option is set before the click frame.
+def test_the_option_row_under_the_mouse_is_highlighted():
+    red = color_name_to_rgb("red")
+    dd = play.new_dropdown(
+        options=["A", "B", "C"],
+        x=0,
+        y=0,
+        width=160,
+        height=40,
+        option_hover_color="red",
+    )
+    click_at(0, 0, dd)
     mouse.x, mouse.y = 0, -80
     dd.update()
-    assert dd._hovered_option == 1
+    assert dd.image.get_at((20, 100)) == red
+    assert dd.image.get_at((20, 60)) != red
+    assert dd.image.get_at((20, 140)) != red
 
-    # Click selects the hovered option and closes the menu.
-    click_at(0, -80, dd)
-    assert dd.selected_index == 1
-    assert dd.selected_value == "B"
+
+@pytest.mark.parametrize("row, value", [(0, "A"), (1, "B"), (2, "C")])
+def test_dropdown_click_option_selects_and_closes(row, value):
+    dd = play.new_dropdown(
+        options=["A", "B", "C"], selected_index=-1, x=0, y=0, width=160, height=40
+    )
+    click_at(0, 0, dd)
+    assert dd.is_open is True
+
+    click_at(0, -40 * (row + 1), dd)
+    assert dd.selected_index == row
+    assert dd.selected_value == value
     assert dd.is_open is False
+
+
+@pytest.mark.xfail(
+    strict=True, reason="the default font has no ▲/▼ glyphs, so both draw the same box"
+)
+def test_the_arrow_on_the_button_flips_when_the_menu_opens():
+    dd = play.new_dropdown(options=["A", "B"], x=0, y=0, width=160, height=40)
+    mouse.x, mouse.y = 300, 250
+    dd.update()
+    closed_button = pygame.image.tobytes(dd.image.subsurface((0, 0, 160, 40)), "RGBA")
+    click_at(0, 0, dd)
+    mouse.x, mouse.y = 300, 250
+    dd.update()
+    open_button = pygame.image.tobytes(dd.image.subsurface((0, 0, 160, 40)), "RGBA")
+    assert open_button != closed_button
 
 
 def test_dropdown_click_option_fires_when_changed():
     dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
     received = []
     dd.when_changed(lambda v, i: received.append((v, i)))
-    click_at(0, 0, dd)  # open
-    mouse.x, mouse.y = 0, -120  # 3rd option row (index 2)
-    dd.update()
-    assert dd._hovered_option == 2
+    click_at(0, 0, dd)
     click_at(0, -120, dd)
     assert received == [("C", 2)]
+
+
+def test_a_click_beside_the_open_list_closes_it_without_choosing():
+    dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
+    click_at(0, 0, dd)
+    click_at(120, -80, dd)
+    assert dd.is_open is False
+    assert dd.selected_value == "A"
 
 
 def test_dropdown_when_changed_rejects_async():
@@ -129,37 +154,37 @@ def test_dropdown_when_changed_rejects_async():
             pass
 
 
-def test_dropdown_disabled_setter():
-    dd = play.new_dropdown(options=["A"])
+def test_disabling_an_open_dropdown_closes_it():
+    dd = play.new_dropdown(options=["A", "B"], x=0, y=0)
+    click_at(0, 0, dd)
     dd.disabled = True
     assert dd.disabled is True
+    assert dd.is_open is False
 
 
-def test_dropdown_disabled_closes_when_disabled():
-    dd = play.new_dropdown(options=["A", "B"], x=0, y=0)
-    dd._dropdown_open = True
-    dd.disabled = True
-    assert dd._dropdown_open is False
+def test_a_disabled_dropdown_is_dimmed():
+    enabled = play.new_dropdown(options=["A", "B"], x=0, y=100)
+    disabled = play.new_dropdown(options=["A", "B"], x=0, y=-100, disabled=True)
+    assert _image(enabled) != _image(disabled)
 
 
-def test_dropdown_alive():
-    dd = play.new_dropdown(options=["A", "B"])
-    assert dd.alive()
+def test_a_closed_dropdown_is_one_row_of_its_width_and_height():
+    dd = play.new_dropdown(options=["A", "B"], width=160, height=40)
+    assert dd.image.get_size() == (160, 40)
 
 
-def test_dropdown_image_rendered():
-    dd = play.new_dropdown(options=["A", "B"])
-    assert dd.image is not None
-    assert dd.image.get_width() > 0 and dd.image.get_height() > 0
+def test_a_dropdown_with_nothing_selected_shows_its_placeholder():
+    nothing = play.new_dropdown(options=["A", "B"], selected_index=-1, x=0, y=100)
+    empty = play.new_dropdown(options=[], x=0, y=-100)
+    assert _image(nothing) == _image(empty)
 
 
 def test_dropdown_click_uses_current_mouse_not_stale_hover():
-    # Regression: the click must select the row under the mouse now, not the
-    # cached _hovered_option from the previous frame.
+    # Regression: the click must select the row under the mouse now, not the last hovered one.
     dd = play.new_dropdown(options=["A", "B", "C"], x=0, y=0, width=160, height=40)
-    click_at(0, 0, dd)  # open
-    # Stale hover points at row 0, but the mouse is really over row 2.
-    dd._hovered_option = 0
+    click_at(0, 0, dd)
+    mouse.x, mouse.y = 0, -40
+    dd.update()
     click_at(0, -120, dd)
     assert dd.selected_index == 2
 
@@ -172,9 +197,8 @@ def test_dropdown_anchor_rect_height_stays_closed_when_open():
     )
     dd.update()
     assert dd.rect.height == 40
-    dd._dropdown_open = True
-    dd._should_recompute = True
-    dd.update()
+    _toggle(dd)
+    assert dd.is_open is True
     assert dd.image.get_height() > 40  # the drawn image did expand
     assert dd.rect.height == 40  # but the anchor rect did not
 
@@ -189,26 +213,25 @@ def test_dropdown_open_image_taller_than_closed():
     assert dd.image.get_height() > closed_h
 
 
-def test_dropdown_clone():
-    dd = play.new_dropdown(options=["A", "B", "C"], selected_index=1)
+def test_a_cloned_dropdown_looks_like_the_original():
+    dd = play.new_dropdown(
+        options=["A", "B", "C"],
+        selected_index=1,
+        color="yellow",
+        text_color="red",
+        border_color="green",
+        placeholder="Pick",
+    )
     c = dd.clone()
     assert c.options == ["A", "B", "C"]
     assert c.selected_index == 1
+    assert _image(c) == _image(dd)
 
 
-def test_dropdown_when_changed_value_signature():
-    dd = play.new_dropdown(options=["A", "B", "C"])
-    values = []
-    indices = []
-
-    @dd.when_changed
-    def on_change(v, i):
-        values.append(v)
-        indices.append(i)
-
-    dd._select(2)
-    assert values == ["C"]
-    assert indices == [2]
+def test_a_dropdown_cloned_while_open_rests_at_the_original_layer():
+    dd = play.new_dropdown(options=["A", "B"], x=0, y=0, layer=20)
+    click_at(0, 0, dd)
+    assert dd.clone().layer == 20
 
 
 def test_dropdown_constructor_clamps_selected_index():
@@ -227,11 +250,11 @@ def test_dropdown_constructor_clamps_negative_selected_index():
 def test_dropdown_open_hoists_layer():
     # Regression: the open option list drew at the closed layer, so covered
     # rows were invisible yet still took clicks.
-    dd = play.new_dropdown(options=["a"], layer=20)
-    dd._set_open(True)
+    dd = play.new_dropdown(options=["a"], x=0, y=0, layer=20)
+    click_at(0, 0, dd)
     assert dd.is_open
     assert dd.layer > 20
-    dd._set_open(False)
+    click_at(0, 0, dd)
     assert not dd.is_open
     assert dd.layer == 20
 
@@ -268,25 +291,35 @@ def test_an_unturned_dropdown_at_a_fractional_x_keeps_its_place():
     assert dropdown.rect.x == int(play.screen.width / 2 + 1.5 - 121 / 2)
 
 
-def test_a_dropdown_turned_a_full_turn_in_small_steps_keeps_its_closed_height_when_open():
-    full_turn_in_steps = 0.0
+def _a_full_turn_in_small_steps():
+    angle = 0.0
     for _ in range(3600):
-        full_turn_in_steps += 0.1
+        angle += 0.1
+    return angle
+
+
+@pytest.mark.parametrize(
+    "angle", [360, _a_full_turn_in_small_steps()], ids=["360", "3600_steps_of_0.1"]
+)
+def test_a_dropdown_turned_a_full_turn_keeps_its_closed_height_when_open(angle):
     dropdown = play.new_dropdown(options=["a", "bb", "ccc"], height=40)
-    dropdown.angle = full_turn_in_steps
-    dropdown._set_open(True)
-    dropdown.update()
+    dropdown.angle = angle
+    _toggle(dropdown)
+    assert dropdown.is_open is True
 
     assert dropdown.rect.height == 40
 
 
-def test_a_dropdown_turned_a_full_turn_keeps_its_closed_height_when_open():
-    dropdown = play.new_dropdown(options=["a", "bb", "ccc"], height=40)
-    dropdown.angle = 360
-    dropdown._set_open(True)
+@pytest.mark.parametrize("angle", [0, 30, 90])
+def test_an_anchored_turned_dropdown_sits_at_its_anchor(angle):
+    dropdown = play.new_dropdown(
+        options=["a", "bb", "ccc"], width=120, anchor="bottom-left", x=10, y=10
+    )
+    dropdown.angle = angle
     dropdown.update()
-
-    assert dropdown.rect.height == 40
+    dropdown.update()
+    assert dropdown.rect.left == pytest.approx(10, abs=1)
+    assert dropdown.rect.bottom == pytest.approx(play.screen.height - 10, abs=1)
 
 
 @pytest.mark.parametrize("angle", [30, 90])
@@ -295,12 +328,12 @@ def test_an_anchored_turned_dropdown_stays_put_when_it_opens(angle):
         options=["a", "bb", "ccc"], width=120, anchor="bottom-left", x=10, y=10
     )
     dropdown.angle = angle
-    places = []
-    for opened in (False, True, False):
-        dropdown._set_open(opened)
-        # anchoring uses the size drawn in the frame before
-        dropdown.update()
-        dropdown.update()
+    dropdown.update()
+    dropdown.update()
+    places = [(dropdown.x, dropdown.y)]
+    for opened in (True, False):
+        _toggle(dropdown)
+        assert dropdown.is_open is opened
         places.append((dropdown.x, dropdown.y))
 
     assert places[0] == places[1] == places[2]
@@ -311,9 +344,22 @@ def test_a_dropdown_turned_a_quarter_turn_folds_its_list_out_sideways():
     dropdown.angle = 90
     dropdown.update()
     closed = dropdown.rect.center
-    dropdown._set_open(True)
-    dropdown.update()
+    _toggle(dropdown)
+    assert dropdown.is_open is True
     opened = dropdown.rect.center
 
     assert opened[1] == pytest.approx(closed[1], abs=1)
     assert opened[0] > closed[0] + 40
+
+
+@pytest.mark.xfail(
+    strict=True, reason="option clicks on a turned open dropdown use unrotated rows"
+)
+def test_clicking_an_option_of_a_turned_open_dropdown_selects_it():
+    dropdown = play.new_dropdown(
+        options=["a", "bb", "ccc"], selected_index=2, width=160, height=40
+    )
+    dropdown.angle = 90
+    _toggle(dropdown)
+    click_at(40, 0, dropdown)
+    assert dropdown.selected_value == "a"

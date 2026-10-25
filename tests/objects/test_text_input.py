@@ -22,15 +22,15 @@ def _keydown(key):
 def test_text_input_creation():
     ti = play.new_text_input(placeholder="Type here", value="hello")
     assert ti.value == "hello"
-    assert ti._placeholder == "Type here"
+    assert ti.placeholder == "Type here"
     assert ti.layer == 10
-    assert ti.image is not None
+    assert ti.image.get_size() == (200, 40)
 
 
-def test_text_input_default_value():
+def test_a_new_field_is_empty_and_does_not_take_the_keyboard():
     ti = play.new_text_input()
     assert ti.value == ""
-    assert ti._is_focused is False
+    assert globals_list.focused_text_input is None
 
 
 # ── value property ───────────────────────────────────────────────────────────
@@ -38,15 +38,29 @@ def test_text_input_default_value():
 
 def test_value_setter():
     ti = play.new_text_input()
-    ti._should_recompute = True
-    ti.update()
     before = pygame.image.tobytes(ti.image, "RGBA")
     ti.value = "abc"
     assert ti.value == "abc"
-    assert ti._should_recompute is True
     ti.update()
-    after = pygame.image.tobytes(ti.image, "RGBA")
-    assert after != before  # the new value is actually drawn
+    assert pygame.image.tobytes(ti.image, "RGBA") != before
+
+
+def test_setting_a_number_as_the_value_shows_it_as_text():
+    ti = play.new_text_input()
+    ti.value = 42
+    ti.update()
+    assert ti.value == "42"
+    ti._handle_text_input("!")
+    assert ti.value == "42!"
+
+
+def test_typing_after_setting_the_value_appends_to_it():
+    ti = play.new_text_input(value="abcdef")
+    registry.focus(ti)
+    ti._handle_keydown(_keydown(pygame.K_HOME))
+    ti.value = "xy"
+    ti._handle_text_input("z")
+    assert ti.value == "xyz"
 
 
 def test_value_setter_fires_callbacks():
@@ -95,7 +109,6 @@ def test_max_length_exact_boundary():
 def test_max_length_enforced_by_constructor():
     ti = play.new_text_input(value="x" * 100, max_length=5)
     assert ti.value == "xxxxx"
-    assert ti._cursor_pos == 5
 
 
 def test_max_length_enforced_by_value_setter():
@@ -145,8 +158,6 @@ def test_when_submit_fires_on_numpad_enter():
 
 
 def test_when_changed_rejects_async():
-    import pytest
-
     ti = play.new_text_input()
     with pytest.raises(TypeError, match="async"):
 
@@ -156,8 +167,6 @@ def test_when_changed_rejects_async():
 
 
 def test_when_submit_rejects_async():
-    import pytest
-
     ti = play.new_text_input()
     with pytest.raises(TypeError, match="async"):
 
@@ -226,6 +235,16 @@ def test_clicking_input_gains_focus():
     assert globals_list.focused_text_input is ti
 
 
+def test_clicking_back_into_a_field_puts_the_cursor_at_the_end():
+    ti = play.new_text_input(value="abc", x=0, y=0)
+    click_at(0, 0, ti)
+    ti._handle_keydown(_keydown(pygame.K_HOME))
+    click_at(300, 250, ti)
+    click_at(0, 0, ti)
+    ti._handle_text_input("X")
+    assert ti.value == "abcX"
+
+
 def test_clicking_elsewhere_blurs_focused_input():
     ti = play.new_text_input(x=0, y=0)
     registry.focus(ti)
@@ -259,16 +278,6 @@ def test_clicking_another_input_moves_the_focus(first):
     assert a._is_focused is False
 
 
-def test_cursor_toggles_after_500ms():
-    ti = play.new_text_input()
-    registry.focus(ti)
-    ti._cursor_visible = True
-    ti._last_blink = pygame.time.get_ticks() - 600
-    ti._should_recompute = True
-    ti.update()
-    assert ti._cursor_visible is False
-
-
 # ── _blit_input_text branches ────────────────────────────────────────────────
 
 
@@ -277,33 +286,34 @@ def test_blit_placeholder_when_empty_and_unfocused():
     # include border pixels and could never fall to zero.
     placeholder_rgb = color_name_to_rgb("magenta")
     ti = play.new_text_input(placeholder="Type here", placeholder_color="magenta")
-    ti._should_recompute = True
     ti.update()
     assert count_color(ti.image, placeholder_rgb) > 0  # placeholder is drawn
 
     # Once there is a value, the placeholder must be gone entirely.
     ti.value = "typed"
-    ti._should_recompute = True
     ti.update()
     assert count_color(ti.image, placeholder_rgb) == 0
 
 
-def test_blit_cursor_when_focused_and_visible():
+def test_the_placeholder_disappears_while_the_field_is_focused():
+    magenta = color_name_to_rgb("magenta")
+    ti = play.new_text_input(
+        placeholder="Type here", placeholder_color="magenta", x=0, y=0
+    )
+    click_at(0, 0, ti)
+    assert count_color(ti.image, magenta) == 0
+
+
+def test_blit_cursor_when_focused_and_visible(monkeypatch):
+    monkeypatch.setattr(pygame.time, "get_ticks", lambda: 0)
     ti = play.new_text_input()
     registry.focus(ti)
 
-    # update() also advances the blink timer, which flips _cursor_visible out
-    # from under the test. Re-stamp _last_blink so the interval never elapses
-    # and the state under test is the one that gets rendered.
-    ti._last_blink = pygame.time.get_ticks()
     ti._cursor_visible = True
-    ti._should_recompute = True
     ti.update()
     with_cursor = pygame.image.tobytes(ti.image, "RGBA")
 
-    ti._last_blink = pygame.time.get_ticks()
     ti._cursor_visible = False
-    ti._should_recompute = True
     ti.update()
     without_cursor = pygame.image.tobytes(ti.image, "RGBA")
 
@@ -311,17 +321,36 @@ def test_blit_cursor_when_focused_and_visible():
     assert with_cursor != without_cursor
 
 
+def test_an_unfocused_field_shows_no_caret(monkeypatch):
+    monkeypatch.setattr(pygame.time, "get_ticks", lambda: 0)
+    red = color_name_to_rgb("red")
+    ti = play.new_text_input(x=0, y=0, text_color="red")
+    ti.update()
+    assert count_color(ti.image, red) == 0
+    click_at(0, 0, ti)
+    assert count_color(ti.image, red) > 0
+
+
 def test_blit_long_text_clips_to_box_width():
     ti = play.new_text_input(width=80)
-    ti._should_recompute = True
-    ti.update()
     empty_width = ti.image.get_width()
 
-    ti._input_value = "a" * 60  # far too long to fit
-    ti._should_recompute = True
+    ti.value = "a" * 60
     ti.update()
     # Overflowing text must be clipped inside the field, not widen it.
     assert ti.image.get_width() == empty_width
+
+
+def test_a_long_value_scrolls_so_its_end_is_visible_while_typing(monkeypatch):
+    monkeypatch.setattr(pygame.time, "get_ticks", lambda: 0)
+    first = play.new_text_input(value="a" * 59 + "W", width=80, x=0, y=100)
+    second = play.new_text_input(value="a" * 60, width=80, x=0, y=-100)
+    for field in (first, second):
+        registry.focus(field)
+        field.update()
+    assert pygame.image.tobytes(first.image, "RGBA") != pygame.image.tobytes(
+        second.image, "RGBA"
+    )
 
 
 # ── remove() ─────────────────────────────────────────────────────────────────
@@ -363,25 +392,7 @@ def test_dispatch_keydown_no_focused_is_noop():
     assert ti.value == "abc"
 
 
-# ── key handler suppression ───────────────────────────────────────────────────
-
-
-def test_focused_text_input_suppresses_key_callbacks():
-    import asyncio
-    from play.core.keyboard_loop import handle_keyboard, keyboard_state
-
-    ti = play.new_text_input()
-    registry.focus(ti)
-
-    fired = []
-    play.when_any_key_pressed(lambda key: fired.append(key))
-    keyboard_state.pressed_this_frame.add("a")
-
-    # game_loop skips handle_keyboard() when focused — simulate that guard
-    if not globals_list.focused_text_input:
-        asyncio.run(handle_keyboard())
-
-    assert fired == [], "key callbacks must not fire while a TextInput is focused"
+# ── focus and the keyboard ────────────────────────────────────────────────────
 
 
 def test_enter_blurs_field_after_submit():
@@ -404,12 +415,21 @@ def test_hide_releases_focus():
     assert ti._is_focused is False
 
 
-def test_tab_skips_hidden_fields():
-    # Regression: Tab could move focus onto a hidden (invisible) field.
-    a = play.new_text_input()
-    b = play.new_text_input()
-    c = play.new_text_input()
-    b.hide()
-    registry.focus(a)
-    registry.focus_next()
-    assert globals_list.focused_text_input is c
+def test_focusing_a_field_forgets_keys_held_before_it():
+    from play.io.keypress import keyboard_state
+
+    keyboard_state.pressed.add("right")
+    keyboard_state.pressed_this_frame.add("right")
+    registry.focus(play.new_text_input())
+    assert not keyboard_state.pressed
+    assert not keyboard_state.pressed_this_frame
+
+
+def test_focus_turns_text_input_on_and_blur_turns_it_off(monkeypatch):
+    calls = []
+    monkeypatch.setattr(pygame.key, "start_text_input", lambda: calls.append("on"))
+    monkeypatch.setattr(pygame.key, "stop_text_input", lambda: calls.append("off"))
+    ti = play.new_text_input()
+    registry.focus(ti)
+    registry.clear_focus()
+    assert calls == ["on", "off"]

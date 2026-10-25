@@ -56,13 +56,31 @@ WIDGETS = {
     ),
 }
 
+TEXT_OF = {
+    "button": lambda w: w.text,
+    "checkbox": lambda w: w.label,
+    "dropdown": lambda w: w.options[0],
+    "radio_button": lambda w: w.label,
+    "text": lambda w: w.words,
+    "text_input": lambda w: w.value,
+    "tooltip": lambda w: w.text,
+}
+
+
+def _render(widget_name, text):
+    """Build the widget with *text* under the mouse and return it after one frame."""
+    widget = WIDGETS[widget_name](text)
+    widget.update()
+    assert TEXT_OF[widget_name](widget) == text
+    assert widget.image.get_height() > 0
+    return widget
+
 
 @pytest.mark.parametrize("widget_name", sorted(WIDGETS))
 @pytest.mark.parametrize("case_name", sorted(AWKWARD))
 def test_awkward_text_renders(widget_name, case_name):
     """Unusual but well-formed text must render without taking the game down."""
-    widget = WIDGETS[widget_name](AWKWARD[case_name])
-    widget.update()
+    _render(widget_name, AWKWARD[case_name])
 
 
 @pytest.mark.parametrize("widget_name", sorted(WIDGETS))
@@ -75,5 +93,6 @@ def test_zero_width_text_does_not_crash(widget_name, case_name):
     in a label ended the program. They now go through utils.render_text,
     which returns an empty surface of the right height instead.
     """
-    widget = WIDGETS[widget_name](ZERO_WIDTH[case_name])
-    widget.update()
+    widget = _render(widget_name, ZERO_WIDTH[case_name])
+    blank = _render(widget_name, "")
+    assert widget.image.get_height() == blank.image.get_height()

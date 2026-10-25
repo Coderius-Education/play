@@ -108,7 +108,7 @@ def test_dropdown_opens_once():
 
     menu, calls = _run_one_click(build)
 
-    assert menu._dropdown_open is True, "one click should leave the menu open"
+    assert menu.is_open is True, "one click should leave the menu open"
     assert not calls, "opening a menu is not choosing an option"
 
 

@@ -1,14 +1,26 @@
 """Tests for the Tooltip widget."""
 
+import pygame
 import pytest
 import play
 from play.io.mouse import mouse
+from play.io.screen import screen
+from play.objects.sprite import point_touching_sprite
 from play.physics import physics_space
+from play.utils import load_font
 
 
 @pytest.fixture(autouse=True)
 def setup_play(clean_play_state):
     pass
+
+
+def _make(text="Hi", target_x=200):
+    # Target sits away from the origin so the tooltip is hidden by default
+    # (the fixture resets the mouse to (0, 0)).
+    target = play.new_box(color="red", x=target_x, y=0, width=100, height=100)
+    tip = play.new_tooltip(text, target=target)
+    return target, tip
 
 
 def test_tooltip_text_change_does_not_leak_bodies():
@@ -25,19 +37,11 @@ def test_tooltip_text_change_does_not_leak_bodies():
 def test_tooltip_is_sensor_and_hidden_leaves_space():
     _target, tip = _make()
     # Hidden by default: its body should not be in the physics space.
-    assert tip._is_hidden is True
+    assert tip.is_hidden is True
     assert tip.physics._pymunk_body not in physics_space.bodies
     # And it is a sensor so it never blocks other sprites when shown.
     tip.show()
     assert tip.physics.sensor is True
-
-
-def _make(text="Hi", target_x=200):
-    # Target sits away from the origin so the tooltip is hidden by default
-    # (the fixture resets the mouse to (0, 0)).
-    target = play.new_box(color="red", x=target_x, y=0, width=100, height=100)
-    tip = play.new_tooltip(text, target=target)
-    return target, tip
 
 
 def test_tooltip_text_and_target_stored():
@@ -46,73 +50,72 @@ def test_tooltip_text_and_target_stored():
     assert tip.target is target
 
 
-def test_tooltip_hidden_by_default():
+def test_a_tooltip_shows_only_while_the_mouse_is_over_its_target():
     _target, tip = _make()
-    # Mouse at (0, 0), target at (200, 0) — not hovering.
-    assert tip._is_hidden is True
-
-
-def test_tooltip_shows_on_hover():
-    _target, tip = _make()
+    assert tip.is_hidden is True
     mouse.x, mouse.y = 200, 0
     tip.update()
-    assert tip._is_hidden is False
-
-
-def test_tooltip_hides_when_mouse_leaves():
-    _target, tip = _make()
-    mouse.x, mouse.y = 200, 0
-    tip.update()
-    assert tip._is_hidden is False
+    assert tip.is_hidden is False
     mouse.x, mouse.y = 0, 0
     tip.update()
-    assert tip._is_hidden is True
+    assert tip.is_hidden is True
 
 
-def test_tooltip_follows_mouse_with_offset():
+def test_the_bubble_hangs_above_right_of_the_mouse_by_its_offset():
     _target, tip = _make()
     mouse.x, mouse.y = 200, 0
     tip.update()
-    assert tip._x == 200 + tip._offset_x
-    assert tip._y == 0 + tip._offset_y
+    assert (tip.x, tip.y) == (200 + 12, 0 - 12)
+    assert tip.rect.left == screen.width / 2 + 200 + 12
+    assert tip.rect.bottom == screen.height / 2 + 12
+
+
+def test_the_bubble_follows_the_mouse_up_and_down():
+    _target, tip = _make()
+    mouse.x, mouse.y = 200, 0
+    tip.update()
+    mouse.y = 30
+    tip.update()
+    assert tip.y == 30 - 12
+    assert tip.rect.bottom == screen.height / 2 - 30 + 12
 
 
 def test_tooltip_no_target_stays_hidden():
     tip = play.new_tooltip("orphan")
     tip.update()
-    assert tip._is_hidden is True
+    assert tip.is_hidden is True
 
 
-def test_tooltip_text_setter_triggers_recompute():
-    import pygame
-
+def test_tooltip_text_setter_redraws_the_bubble():
     _target, tip = _make()
     mouse.x, mouse.y = 200, 0
-    tip.update()  # visible and rendered
+    tip.update()
     before = pygame.image.tobytes(tip.image, "RGBA")
-    tip._should_recompute = False
     tip.text = "Updated"
     assert tip.text == "Updated"
-    assert tip._should_recompute is True
     tip.update()
-    after = pygame.image.tobytes(tip.image, "RGBA")
-    assert after != before  # the new text is actually drawn
+    assert pygame.image.tobytes(tip.image, "RGBA") != before
 
 
-def test_tooltip_target_setter():
+def test_a_tooltip_moved_to_another_target_follows_that_target():
     _target, tip = _make()
     other = play.new_box(color="blue", x=-200, y=0)
     tip.target = other
     assert tip.target is other
+    mouse.x, mouse.y = 200, 0
+    tip.update()
+    assert tip.is_hidden is True
+    mouse.x, mouse.y = -200, 0
+    tip.update()
+    assert tip.is_hidden is False
 
 
-def test_tooltip_renders_when_visible():
+def test_a_visible_bubble_is_its_text_plus_the_padding_on_each_side():
     _target, tip = _make()
     mouse.x, mouse.y = 200, 0
     tip.update()
-    assert tip.image is not None
-    assert tip.image.get_width() > 0
-    assert tip.image.get_height() > 0
+    text_w, text_h = load_font(None, 15).size("Hi")
+    assert tip.image.get_size() == (text_w + 12, text_h + 12)
 
 
 def test_tooltip_multiline_taller_than_single_line():
@@ -123,36 +126,39 @@ def test_tooltip_multiline_taller_than_single_line():
     single.update()
     multi.update()
     assert multi.image.get_height() > single.image.get_height()
-    # The hit-rect and the drawn bubble come from the same rendered label, so
-    # the physics shape can never be a different size from what is on screen.
-    assert multi._bubble_size() == multi.image.get_size()
+
+
+def test_a_visible_tooltip_is_hit_where_it_is_drawn():
+    _target, tip = _make("Hello there")
+    mouse.x, mouse.y = 200, 0
+    tip.update()
+    centre_x = tip.rect.centerx - screen.width / 2
+    centre_y = screen.height / 2 - tip.rect.centery
+    assert point_touching_sprite((centre_x, centre_y), tip)
+    assert not point_touching_sprite((centre_x + 100, centre_y), tip)
 
 
 def test_tooltip_stays_a_sensor_after_stop_physics():
     # The tooltip used to set its sensor flag by hand after construction, so
     # stop_physics() rebuilt a solid body under it.
-    target, tip = _make()
+    _target, tip = _make()
     tip.stop_physics()
     assert tip.physics.sensor is True
 
 
-def test_tooltip_alive():
-    _target, tip = _make()
-    assert tip.alive()
-
-
-def test_tooltip_hit_shape_not_degenerate():
-    # Regression: the tooltip must not carry a 0x0 point hit-shape.
-    tip = play.new_tooltip("Hello there")
-    bb = tip.physics._pymunk_shape.bb
-    assert (bb.right - bb.left) > 0
-    assert (bb.top - bb.bottom) > 0
-
-
-def test_tooltip_clone():
+def test_a_cloned_tooltip_shows_the_same_bubble_in_the_same_place():
     # Regression: the inherited Sprite.clone() passed an unsupported image= kwarg.
-    target, tip = _make()
+    target = play.new_box(color="red", x=200, y=0, width=100, height=100)
+    tip = play.new_tooltip(
+        "Hi", target=target, offset_x=30, offset_y=20, color="yellow", text_color="red"
+    )
     c = tip.clone()
-    assert c is not tip
     assert c.text == tip.text
     assert c.target is target
+    mouse.x, mouse.y = 200, 0
+    tip.update()
+    c.update()
+    assert c.rect == tip.rect
+    assert pygame.image.tobytes(c.image, "RGBA") == pygame.image.tobytes(
+        tip.image, "RGBA"
+    )

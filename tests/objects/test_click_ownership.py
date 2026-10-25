@@ -7,6 +7,7 @@ alone: every sprite under the cursor still receives the click, as before.
 
 import pytest
 import play
+from play.globals import globals_list
 from play.io.mouse import mouse
 from play.core.mouse_loop import mouse_state
 from tests.conftest import click_at
@@ -100,3 +101,20 @@ def test_open_dropdown_closes_on_click_over_empty_space():
     assert dd.is_open is True
     click_at(350, 250, dd)
     assert dd.is_open is False
+
+
+@pytest.mark.parametrize(
+    "make_under",
+    [
+        lambda: play.new_radio_button("under", value="u", x=0, y=0, layer=5),
+        lambda: play.new_text_input(x=0, y=0, width=60, layer=5),
+    ],
+    ids=["radio_button", "text_input"],
+)
+def test_a_widget_under_another_widget_does_not_react_to_its_click(make_under):
+    under = make_under()
+    over = play.new_checkbox(x=0, y=0, size_px=40, layer=20)
+    click_at(0, 0, under, over)
+    assert over.checked is True
+    assert getattr(under, "selected", False) is False
+    assert globals_list.focused_text_input is None
