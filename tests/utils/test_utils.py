@@ -203,3 +203,85 @@ def test_scale_to_percent_multiplies_before_dividing():
 
     assert scale_to_percent(pygame.Surface((25, 25)), 218).get_size() == (54, 54)
     assert scale_to_percent(pygame.Surface((45, 45)), 70).get_size() == (32, 32)
+
+
+def test_run_once_runs_the_function_only_the_first_time():
+    from play.utils import run_once
+
+    calls = []
+
+    @run_once
+    def start():
+        calls.append(1)
+        return "started"
+
+    assert start() == "started"
+    assert start() is None
+    assert calls == [1]
+
+    start.has_run = False
+    assert start() == "started"
+    assert calls == [1, 1]
+
+
+def _text_width(font, text):
+    return font.render(text, True, (0, 0, 0)).get_width()
+
+
+def test_load_font_uses_the_font_file_it_is_given():
+    import pygame
+    from play.utils import load_font
+
+    path = pygame.font.match_font("dejavusansmono") or pygame.font.match_font(
+        "freemono"
+    )
+    if path is None:
+        pytest.skip("no monospaced system font to tell apart from the default")
+
+    font = load_font(path, 30)
+
+    assert _text_width(font, "iiii") == _text_width(font, "MMMM")
+    default = load_font(None, 30)
+    assert _text_width(default, "iiii") < _text_width(default, "MMMM")
+
+
+@pytest.mark.parametrize("name", [None, "default", "missing.ttf", "empty.ttf"])
+def test_load_font_falls_back_to_the_default_font(tmp_path, monkeypatch, name):
+    import pygame
+    from play.utils import load_font
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "empty.ttf").write_bytes(b"")
+
+    font = load_font(name, 30)
+
+    default = pygame.font.SysFont(None, 30)
+    assert font.get_height() == default.get_height()
+    assert _text_width(font, "Score: 10") == _text_width(default, "Score: 10")
+
+
+def test_an_async_widget_callback_is_rejected_by_name():
+    import functools
+    from play.utils import reject_async_callback
+
+    async def on_click():
+        pass
+
+    reject_async_callback(lambda: None, "when_clicked")
+    with pytest.raises(TypeError, match="on_click is async. when_clicked callbacks"):
+        reject_async_callback(on_click, "when_clicked")
+    with pytest.raises(TypeError, match="is async. when_changed callbacks"):
+        reject_async_callback(functools.partial(on_click), "when_changed")
+
+
+def test_text_that_renders_to_nothing_keeps_the_line_height():
+    import pygame
+    from play.utils import render_text
+
+    font = pygame.font.SysFont(None, 30)
+
+    empty = render_text(font, "​", True, (0, 0, 0))
+    word = render_text(font, "Hi", True, (0, 0, 0))
+
+    assert empty.get_size() == (0, font.get_height())
+    assert word.get_width() > 0

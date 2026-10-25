@@ -80,8 +80,9 @@ def test_klikspelletje():
 
     # --- assertions --------------------------------------------------------
     assert (
-        score[0] >= target_score
+        score[0] == target_score
     ), f"expected score to reach {target_score}, but got {score[0]}"
+    assert score_text.words == f"Score: {target_score}"
 
 
 if __name__ == "__main__":

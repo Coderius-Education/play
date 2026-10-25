@@ -14,8 +14,13 @@ MAX_FRAMES = 80
 def test_fade_effect():
     import play
 
+    from play.globals import globals_list
+    from play.io.screen import screen
+
     frames_run = [0]
     transparency_values = []
+    shown_flags = []
+    centre_pixels = {}
 
     # --- sprites ---
     ghost = play.new_circle(color="purple", x=0, y=0, radius=30)
@@ -42,9 +47,14 @@ def test_fade_effect():
             message.transparency = t
             transparency_values.append(ghost.transparency)
 
-            # Verify is_shown reads correctly (sprite is visible even at low transparency)
-            assert ghost.is_shown, "Ghost should still be shown (not hidden)"
-            assert not ghost.is_hidden, "Ghost should not be hidden"
+            shown_flags.append((ghost.is_shown, ghost.is_hidden))
+
+        centre = (int(screen.width / 2), int(screen.height / 2))
+        for t in (100, 20):
+            ghost.transparency = t
+            await play.animate()
+            await play.animate()
+            centre_pixels[t] = tuple(globals_list.display.get_at(centre))[:3]
 
         play.stop_program()
 
@@ -61,8 +71,13 @@ def test_fade_effect():
         max(transparency_values) >= 90
     ), f"Max transparency was {max(transparency_values)}, expected >= 90"
 
-    # Verify both sprite and text have transparency set
-    assert ghost.transparency == transparency_values[-1]
+    assert set(shown_flags) == {(True, False)}, "a faded ghost is still shown"
+    assert message.transparency == transparency_values[-1]
+
+    assert centre_pixels[100] == (160, 32, 240), "fully opaque: plain purple"
+    faded = centre_pixels[20]
+    assert faded != centre_pixels[100], "a faded ghost should be drawn see-through"
+    assert faded[1] > 150, f"at 20% the white backdrop should show through, got {faded}"
 
 
 if __name__ == "__main__":

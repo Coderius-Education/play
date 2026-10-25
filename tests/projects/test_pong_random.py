@@ -60,6 +60,7 @@ def test_pong_random():
 
         color = play.random_color()
         colors_used.append(color)
+        ball.color = color
 
         # Alternate serve direction
         direction = 1 if serves[0] % 2 == 0 else -1
@@ -114,6 +115,9 @@ def test_pong_random():
         assert len(color) == 3, f"random_color should return 3-tuple, got {color}"
         for channel in color:
             assert 0 <= channel <= 255, f"color channel out of range: {channel}"
+    assert (
+        tuple(ball.color[:3]) == colors_used[-1]
+    ), "the ball should wear its serve color"
 
 
 if __name__ == "__main__":

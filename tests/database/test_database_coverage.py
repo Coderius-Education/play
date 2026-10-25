@@ -1,9 +1,10 @@
 """Coverage tests for the Database class — nested keys, fallbacks, edge cases."""
 
-import pytest
-import os
-import tempfile
 import json
+import os
+
+import pytest
+
 import play
 
 
@@ -13,21 +14,17 @@ def setup_play(clean_play_state):
 
 
 @pytest.fixture
-def db_path():
-    """Provide a temporary database file path, cleaned up after the test."""
-    fd, path = tempfile.mkstemp(suffix=".json")
-    os.close(fd)
-    os.remove(path)
-    yield path
-    if os.path.exists(path):
-        os.remove(path)
+def db_path(tmp_path):
+    """A database file path that does not exist yet."""
+    return str(tmp_path / "scores.json")
 
 
 def test_database_creates_file(db_path):
     """Database should create a new JSON file if it doesn't exist."""
     assert not os.path.exists(db_path)
-    db = play.new_database(db_filename=db_path)
-    assert os.path.exists(db_path)
+    play.new_database(db_filename=db_path)
+    with open(db_path) as f:
+        assert json.load(f) == {}
 
 
 def test_database_loads_existing_data(db_path):
@@ -100,3 +97,20 @@ def test_database_set_nested_key_creates_intermediate_dicts(db_path):
     db = play.new_database(db_filename=db_path)
     db.set_data("player:stats:score", 100)
     assert db.get_data("player:stats:score") == 100
+
+
+def test_setting_a_nested_key_keeps_the_keys_beside_it(db_path):
+    db = play.new_database(db_filename=db_path)
+    db.set_data("player:name", "Bo")
+    db.set_data("player:score", 3)
+
+    reopened = play.new_database(db_filename=db_path)
+    assert reopened.get_data("player") == {"name": "Bo", "score": 3}
+
+
+def test_setting_a_key_again_replaces_its_value(db_path):
+    db = play.new_database(db_filename=db_path)
+    db.set_data("highscore", 5)
+    db.set_data("highscore", 8)
+
+    assert play.new_database(db_filename=db_path).get_data("highscore") == 8

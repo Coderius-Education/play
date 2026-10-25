@@ -3,26 +3,25 @@
 import pytest
 
 
-def test_set_backdrop_color():
+def test_set_backdrop_color_fills_the_screen():
     """Test setting backdrop color."""
     import play
     from play.globals import globals_list
 
-    box = play.new_box()
-    box.start_physics()
-
     result = []
 
     @play.when_program_starts
-    def check():
+    async def check():
         play.set_backdrop("red")
+        await play.animate()
+        await play.animate()
         result.append(globals_list.backdrop)
+        result.append(tuple(globals_list.display.get_at((1, 1))))
         play.stop_program()
 
     play.start_program()
 
-    # Should be RGB tuple for red
-    assert result[0] == (255, 0, 0, 255)
+    assert result == [(255, 0, 0, 255), (255, 0, 0, 255)]
 
 
 def test_set_backdrop_rgb():
@@ -46,25 +45,31 @@ def test_set_backdrop_rgb():
     assert result[0] == (100, 150, 200)
 
 
-def test_key_is_pressed_false():
-    """Test key_is_pressed returns False when no key pressed."""
+def test_key_is_pressed_only_while_the_key_is_held():
+    import pygame
     import play
-
-    box = play.new_box()
-    box.start_physics()
+    from tests.conftest import post_key_down, post_key_up
 
     result = []
 
     @play.when_program_starts
-    def check():
+    async def check():
         result.append(play.key_is_pressed("space"))
-        print("hello")
+        post_key_down(pygame.K_SPACE)
+        for _ in range(10):
+            await play.animate()
+        result.append(play.key_is_pressed("space"))
+        result.append(play.key_is_pressed("a", "space"))
+        result.append(play.key_is_pressed("a"))
+        post_key_up(pygame.K_SPACE)
+        for _ in range(3):
+            await play.animate()
+        result.append(play.key_is_pressed("space"))
         play.stop_program()
 
     play.start_program()
 
-    print(result)
-    assert result[0] is False
+    assert result == [False, True, True, False, False]
 
 
 def test_set_physics_simulation_steps():
@@ -90,48 +95,46 @@ def test_set_physics_simulation_steps():
     assert result[1] == 20
 
 
-def test_timer_async():
-    """Test timer async function."""
+def test_timer_waits_the_given_number_of_seconds():
+    import time
     import play
-
-    box = play.new_box()
-    box.start_physics()
 
     result = []
 
     @play.when_program_starts
     async def check():
-        result.append("before")
-        await play.timer(0.1)
-        result.append("after")
+        started = time.monotonic()
+        result.append(await play.timer(0.1))
+        result.append(time.monotonic() - started)
         play.stop_program()
 
     play.start_program()
 
-    assert result == ["before", "after"]
+    assert result[0] is True
+    assert result[1] >= 0.1
 
 
-def test_animate_async():
-    """Test animate async function (wait for next frame)."""
+def test_animate_waits_for_the_next_frame():
     import play
 
-    box = play.new_box()
-    box.start_physics()
-
+    frames = [0]
     result = []
+
+    @play.repeat_forever
+    def count():
+        frames[0] += 1
 
     @play.when_program_starts
     async def check():
-        result.append("frame1")
-        await play.animate()
-        result.append("frame2")
-        await play.animate()
-        result.append("frame3")
+        before = frames[0]
+        for _ in range(10):
+            await play.animate()
+        result.append(frames[0] - before)
         play.stop_program()
 
     play.start_program()
 
-    assert result == ["frame1", "frame2", "frame3"]
+    assert result[0] in (9, 10)
 
 
 def test_set_gravity():

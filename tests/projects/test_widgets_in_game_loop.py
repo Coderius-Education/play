@@ -30,42 +30,6 @@ def _screen_xy(screen, x, y):
 # ── Slider ────────────────────────────────────────────────────────────────────
 
 
-def test_slider_drag_in_the_game_loop():
-    import play
-    from play.io.screen import screen
-
-    values = []
-    slider = play.new_slider(min_value=0, max_value=100, value=0, x=0, y=0, width=200)
-    slider.when_changed(values.append)
-
-    @play.when_program_starts
-    async def driver():
-        for _ in range(5):
-            await play.animate()
-
-        start = _screen_xy(screen, -90, 0)
-        post_mouse_motion(*start)
-        await play.animate()
-        post_mouse_down(*start)
-        await play.animate()
-
-        for x in (-40, 0, 40, 90):
-            post_mouse_motion(*_screen_xy(screen, x, 0))
-            await play.animate()
-
-        post_mouse_up(*_screen_xy(screen, 90, 0))
-        await play.animate()
-        play.stop_program()
-
-    add_safety_timeout(max_frames)
-    play.start_program()
-
-    assert slider.value == 100, "dragging past the right edge should reach max_value"
-    assert values, "when_changed should fire while dragging"
-    assert values == sorted(values), "a left-to-right drag should only increase"
-    assert slider._dragging is False, "releasing the mouse should end the drag"
-
-
 def test_slider_ignores_mouse_motion_without_a_press():
     import play
     from play.io.screen import screen

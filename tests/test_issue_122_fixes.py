@@ -1,69 +1,47 @@
 """Comprehensive tests for all 7 bug fixes from issue #122."""
 
-import pytest
-import sys
 import math
 
+import pytest
 
-def test_image_rotation_from_physics():
-    """Test that Image rotation reads from physics body angle like Box/Circle do."""
-    import play
+
+def _picture(tmp_path, width, height):
     import pygame
 
-    # Create an image sprite with physics using an actual test image
-    image = play.new_image(image="tests/objects_attributes/yellow.jpg", x=100, y=100)
-
-    # Verify physics is initialized
-    assert image.physics is not None
-    assert hasattr(image.physics, "_pymunk_body")
-
-    # Store original angle from physics body
-    original_angle = image.physics._pymunk_body.angle
-
-    # Set a specific angle on the physics body (90 degrees for clear visual difference)
-    new_angle = math.radians(90)
-    image.physics._pymunk_body.angle = new_angle
-
-    # Trigger recompute by setting an image property
-    image._should_recompute = True
-
-    # Update should read from physics body and rotate the visual
-    image.update()
-
-    # Verify that the image update() method reads from the physics body angle
-    # by checking that it used the physics body's angle (not the sprite's _angle property)
-    assert image.physics._pymunk_body.angle == new_angle
-
-    # The key test: verify the code path in image.py:46 is executed
-    # This is tested by ensuring the image was rotated at all (dimensions changed)
-    # Since the update() reads from physics._pymunk_body.angle, it proves the fix works
-    assert image.image is not None
+    path = tmp_path / "picture.png"
+    pygame.image.save(pygame.Surface((width, height)), str(path))
+    return str(path)
 
 
-def test_image_sizing_with_round():
-    """Test that Image sizing uses round() with max(1) instead of // truncation."""
+def test_an_image_turns_with_its_physics_body(tmp_path):
     import play
 
-    # Create a small image that would truncate to 0 with //
-    image = play.new_image(
-        image="tests/objects_attributes/yellow.jpg", x=100, y=100, size=5
-    )
+    image = play.new_image(image=_picture(tmp_path, 40, 30), x=100, y=100)
+    image.update()
+    assert image.rect.size == (40, 30)
 
-    # With round() and max(1), dimensions should be at least 1
-    assert image.width >= 1
-    assert image.height >= 1
+    image.physics._pymunk_body.angle = math.radians(90)
+    image._should_recompute = True
+    image.update()
 
-    # Test with larger size to verify rounding works correctly
-    image2 = play.new_image(
-        image="tests/objects_attributes/yellow.jpg", x=100, y=100, size=50
-    )
-
-    # Should have reasonable dimensions
-    assert image2.width > 0
-    assert image2.height > 0
+    assert image.rect.size == (30, 40)
 
 
-def test_keyboard_state_instance_isolation():
+@pytest.mark.parametrize(
+    "picture_size, size, expected",
+    [((40, 30), 50, (20, 15)), ((3, 3), 10, (1, 1)), ((25, 25), 218, (54, 54))],
+)
+def test_an_image_size_is_rounded_and_never_below_one_pixel(
+    tmp_path, picture_size, size, expected
+):
+    import play
+
+    image = play.new_image(image=_picture(tmp_path, *picture_size), size=size)
+
+    assert (image.width, image.height) == expected
+
+
+def test_two_keyboard_states_do_not_share_their_keys():
     """Test that KeyboardState instances don't share pressed/released lists."""
     from play.io.keypress import KeyboardState
 
@@ -84,58 +62,37 @@ def test_keyboard_state_instance_isolation():
     assert kb1.released is not kb2.released
 
 
-def test_callback_validation_hasattr_check():
-    """Test that callback validation checks hasattr before accessing is_running."""
-    from play.callback import callback_manager, CallbackType
+def test_a_plain_async_function_can_repeat_forever():
+    import play
 
-    # Create a simple async callable without is_running attribute
+    runs = []
+
     async def simple_callback():
-        pass
+        runs.append(1)
+        if len(runs) == 3:
+            play.stop_program()
 
-    # This should not raise AttributeError when checking is_running
-    # The fix adds hasattr check before accessing is_running in play/callback/__init__.py:175
-    try:
-        callback_manager.add_callback(CallbackType.REPEAT_FOREVER, simple_callback)
-        success = True
-    except AttributeError as e:
-        # If AttributeError is raised, it should not be about is_running
-        success = "is_running" not in str(e)
+    play.repeat_forever(simple_callback)
+    play.start_program()
 
-    assert success, "Callback validation should not raise AttributeError for is_running"
-
-    # Clean up
-    callback_manager.remove_callbacks(CallbackType.REPEAT_FOREVER)
+    assert runs == [1, 1, 1]
 
 
-def test_nan_validation_uses_isnan():
-    """Test that NaN validation uses math.isnan() instead of string comparison."""
+def test_a_nan_physics_coordinate_is_ignored_and_the_other_one_still_follows():
+    import asyncio
+
     import play
     from play.core.sprites_loop import update_sprites
 
-    # Create a sprite with physics
     sprite = play.new_box(x=100, y=100)
+    sprite.physics._pymunk_body.position = (float("nan"), 70)
 
-    # Verify the sprite has physics
-    assert sprite.physics is not None
+    asyncio.run(update_sprites())
 
-    # Set position to NaN
-    sprite.physics._pymunk_body.position = (float("nan"), 100)
-
-    # The update_sprites function should handle NaN gracefully using math.isnan()
-    # This should not raise an exception and should skip updating the x position
-    import asyncio
-
-    try:
-        asyncio.run(update_sprites())
-        success = True
-    except Exception as e:
-        # If it raises, it shouldn't be due to string comparison
-        success = "nan" not in str(e).lower() or "isnan" in str(e).lower()
-
-    assert success, "NaN validation should use math.isnan() not string comparison"
+    assert (sprite.x, sprite.y) == (100, 70)
 
 
-def test_box_border_radius_in_clone():
+def test_a_cloned_box_keeps_its_rounded_corners():
     """Test that Box.clone() includes border_radius parameter."""
     import play
 

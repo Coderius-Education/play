@@ -64,10 +64,10 @@ def test_a_color_can_be_a_list():
 def test_a_font_size_with_decimals_is_rounded():
     text = play.new_text("hi", font_size=20.5)
     text.font_size = 30.4
-    assert (
-        text._pygame_font.get_height()
-        == play.new_text("hi", font_size=30)._pygame_font.get_height()
-    )
+    whole = play.new_text("hi", font_size=30)
+    text.update()
+    whole.update()
+    assert text.image.get_size() == whole.image.get_size()
 
 
 def test_no_font_means_the_default_font():

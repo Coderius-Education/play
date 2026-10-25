@@ -28,6 +28,7 @@ def test_pong_mouse():
     score_left = [0]
     score_right = [0]
     mouse_updates = [0]
+    paddle_heights = set()
 
     ball, paddle_left, paddle_right, score_text = setup_pong()
 
@@ -36,6 +37,7 @@ def test_pong_mouse():
     def track_mouse():
         paddle_left.y = play.mouse.y
         mouse_updates[0] += 1
+        paddle_heights.add(round(paddle_left.y))
 
     # --- collisions --------------------------------------------------------
     @ball.when_stopped_touching(paddle_left)
@@ -65,6 +67,10 @@ def test_pong_mouse():
 
     assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert mouse_updates[0] > 0, "repeat_forever should have run (mouse tracking)"
+    assert {100, -100} <= paddle_heights, (
+        "the paddle should follow the mouse up to y=100 and down to y=-100, "
+        f"it was at {sorted(paddle_heights)}"
+    )
 
 
 if __name__ == "__main__":

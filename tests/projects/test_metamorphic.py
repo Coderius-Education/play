@@ -73,11 +73,9 @@ def test_scoring_is_independent_of_simulation_steps(sim_steps):
 @pytest.mark.parametrize("size", SCREEN_SIZES)
 def test_scoring_is_independent_of_screen_size(size):
     """A wider screen means a longer flight, not a different winner."""
-    from play.io.screen import screen, create_walls
+    from play.io.screen import screen
 
     screen.width, screen.height = size
-    screen.update_display()
-    create_walls()
 
     scored = _run_scoring_game()
 

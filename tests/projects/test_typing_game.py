@@ -91,13 +91,14 @@ def test_typing_game():
 
     # --- assertions ---
     assert frames_run[0] >= 1, "Game loop never ran"
-    assert score[0] >= TARGET_SCORE, f"Expected score >= {TARGET_SCORE}, got {score[0]}"
-    assert keys_released[0] >= 1, "when_any_key_released never fired"
-    assert specific_released[0] >= 1, "when_key_released('a') never fired"
-    assert score_text.color in (
-        "green",
-        "red",
-    ), f"text.color was never set, got {score_text.color}"
+    assert score[0] == TARGET_SCORE, f"Expected score {TARGET_SCORE}, got {score[0]}"
+    assert frames_run[0] < MAX_FRAMES, "the game should end on its target score"
+    assert score_text.words == f"Score: {TARGET_SCORE}"
+    assert score_text.color == "green", "the last key typed was right"
+    assert letter_display.words == "a", "after a, b and c the letters start over"
+    assert keys_released[0] == 2, "a and b were released before c ended the game"
+    assert status_text.words == "Released: b"
+    assert specific_released[0] == 1, "when_key_released('a') fires for a only"
 
 
 if __name__ == "__main__":

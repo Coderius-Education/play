@@ -104,10 +104,11 @@ def test_pong_highscore():
             0
         ], "high score should have been updated (started at 0)"
         assert os.path.exists(db_path), "database file should exist on disk"
-        stored = db.get_data("high_score", fallback=0)
+        stored = play.new_database(db_filename=db_path).get_data("high_score")
         assert (
-            stored >= winning_score
-        ), f"stored high score should be >= {winning_score}, got {stored}"
+            stored == winning_score
+        ), f"the saved high score should be {winning_score}, got {stored}"
+        assert highscore_text.words == f"High Score: {winning_score}"
 
     finally:
         if os.path.exists(db_path):

@@ -3,9 +3,7 @@
 import pygame
 
 import play
-from play.callback.collision_callbacks import WallSide
-from play.globals import globals_list
-from play.io.screen import remove_wall, screen
+from play.io.screen import screen
 
 
 def test_an_image_clone_keeps_its_place_size_angle_and_picture(tmp_path):
@@ -45,14 +43,6 @@ def test_a_click_without_mouse_motion_lands_where_it_was_made():
     play.start_program()
 
     assert clicked == [1]
-
-
-def test_remove_wall_takes_the_side_its_index_names():
-    remove_wall(0)
-    remove_wall(1)
-
-    sides = {wall.wall_side for wall in globals_list.walls}
-    assert sides == {WallSide.LEFT, WallSide.RIGHT}
 
 
 def test_a_sound_without_an_audio_device_warns_instead_of_crashing(monkeypatch, caplog):

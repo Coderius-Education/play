@@ -72,6 +72,7 @@ def test_pong_singleplayer():
     assert bottom_hits[0] > 0, "ball should have hit the bottom wall at least once"
     assert lives[0] < starting_lives, "player should have lost at least one life"
     assert lives[0] >= 0, "lives should never go negative"
+    assert lives_text.words == f"Lives: {lives[0]}"
     assert bottom_hits[0] <= 10, (
         f"too many bottom hits ({bottom_hits[0]}); "
         "when_stopped_touching_wall callback may be firing twice per collision"
