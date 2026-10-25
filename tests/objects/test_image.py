@@ -3,14 +3,8 @@ import pygame
 from play.objects.image import Image
 
 
-@pytest.fixture(autouse=True)
-def setup_play(clean_play_state):
-    pass
-
-
 @pytest.fixture
 def mock_image_file(tmp_path):
-    # Create a dummy image file using pygame
     img_path = tmp_path / "test_image.png"
     surface = pygame.Surface((50, 50))
     surface.fill((255, 0, 0))
@@ -18,59 +12,70 @@ def mock_image_file(tmp_path):
     return str(img_path)
 
 
-def test_image_initialization_valid_file(mock_image_file):
-    img = Image(mock_image_file, x=10, y=20, angle=45, size=50, transparency=80)
-    assert img.x == 10
-    assert img.y == 20
-    assert img.angle == 45
-    assert img.size == 50
-    assert img.transparency == 80
-    assert img._source_image.get_width() == 50
-    assert img._source_image.get_height() == 50
-    assert img.image is not None
+def test_an_image_from_a_file_is_drawn_with_its_settings(mock_image_file):
+    img = Image(mock_image_file, x=10, y=20, size=50, transparency=80)
+
+    assert (img.x, img.y, img.size, img.transparency) == (10, 20, 50, 80)
+    assert img.image_filename == mock_image_file
+    assert img.image.get_size() == (25, 25)
+    assert tuple(img.image.get_at((12, 12)))[:3] == (255, 0, 0)
+    assert img.image.get_alpha() == 204
 
 
-def test_image_initialization_invalid_file():
-    with pytest.raises(FileNotFoundError):
+def test_a_missing_image_file_is_named_in_the_error():
+    with pytest.raises(
+        FileNotFoundError, match="Image file .non_existent_file_12345.png. not found"
+    ):
         Image("non_existent_file_12345.png")
 
 
-def test_image_initialization_surface():
-    surface = pygame.Surface((10, 10))
-    img = Image(surface)
-    assert img._source_image.get_width() == 10
-    assert img.image is not None
+def test_an_image_can_be_made_from_a_surface():
+    img = Image(pygame.Surface((10, 20)))
+
+    assert img.image_filename is None
+    assert img.image.get_size() == (10, 20)
 
 
-def test_image_filename_setter(mock_image_file, tmp_path):
+def test_a_new_image_file_is_drawn_and_touched_at_its_own_size(
+    mock_image_file, tmp_path
+):
     img = Image(mock_image_file)
-
-    # Test setting new valid file
     new_path = tmp_path / "new_image.png"
-    new_surface = pygame.Surface((30, 30))
-    pygame.image.save(new_surface, str(new_path))
+    pygame.image.save(pygame.Surface((120, 30)), str(new_path))
+    assert not img.is_touching((55, 0))
 
     img.image_filename = str(new_path)
-    assert img._source_image.get_width() == 30
+
     assert img.image_filename == str(new_path)
-
-    # Test setting invalid file
-    with pytest.raises(FileNotFoundError):
-        img.image_filename = "invalid_path.png"
+    assert img.image.get_size() == (120, 30)
+    assert img.is_touching((55, 0))
 
 
-def test_image_update_transformations(mock_image_file):
+def test_a_missing_new_image_file_is_refused_and_the_old_picture_stays(
+    mock_image_file,
+):
     img = Image(mock_image_file)
 
-    # Modify properties to trigger `_should_recompute` inside update
+    with pytest.raises(FileNotFoundError, match="invalid_path.png"):
+        img.image_filename = "invalid_path.png"
+
+    assert img.image_filename == mock_image_file
+    assert img.image.get_size() == (50, 50)
+
+
+def test_growing_and_shrinking_back_does_not_wear_the_picture_down(mock_image_file):
+    img = Image(mock_image_file)
+
     img.size = 200
     img.angle = 90
-    img.transparency = 50
+    img.update()
+    assert img.image.get_size() == (100, 100)
 
+    img.size = 10
+    img.update()
+    img.size = 100
+    img.angle = 0
     img.update()
 
-    # Size 200 of a 50x50 image should be roughly 100x100
-    assert img.rect.width == 100
-    assert img.rect.height == 100
-    # Original image width should remain unmodified
-    assert img._source_image.get_width() == 50
+    assert img.image.get_size() == (50, 50)
+    assert tuple(img.image.get_at((0, 0)))[:3] == (255, 0, 0)

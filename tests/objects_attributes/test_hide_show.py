@@ -137,102 +137,81 @@ def test_show_inside_callback():
     assert visible_after_show[0] == True, "Box should be visible after show()"
 
 
-def test_multiple_hide_calls():
-    """Test that multiple hide() calls don't cause errors."""
+def test_hiding_a_hidden_box_again_keeps_it_hidden():
     import play
 
     num_frames = [0]
-    error_occurred = [False]
+    visible = [None]
 
     box = play.new_box(x=0, y=0, width=50, height=50, color="red")
 
     @play.repeat_forever
     def check():
         num_frames[0] += 1
-        try:
-            if num_frames[0] == 5:
-                box.hide()
-            if num_frames[0] == 6:
-                box.hide()  # Second hide should not error
-            if num_frames[0] == 7:
-                box.hide()  # Third hide should not error
-        except Exception as e:
-            error_occurred[0] = True
-            print(f"Error: {e}")
-
+        if num_frames[0] in (5, 6, 7):
+            box.hide()
         if num_frames[0] == 20:
+            visible[0] = has_non_white_pixels_in_region(0, 0, 60, 60)
             play.stop_program()
 
     play.start_program()
 
-    assert error_occurred[0] == False, "Multiple hide() calls should not cause errors"
+    assert box.is_hidden is True
+    assert visible[0] is False
 
 
-def test_multiple_show_calls():
-    """Test that multiple show() calls don't cause errors."""
+def test_showing_a_shown_box_again_keeps_it_visible():
     import play
 
     num_frames = [0]
-    error_occurred = [False]
+    visible = [None]
 
     box = play.new_box(x=0, y=0, width=50, height=50, color="red")
 
     @play.repeat_forever
     def check():
         num_frames[0] += 1
-        try:
-            if num_frames[0] == 5:
-                box.show()  # Already shown, should not error
-            if num_frames[0] == 6:
-                box.show()
-            if num_frames[0] == 7:
-                box.show()
-        except Exception as e:
-            error_occurred[0] = True
-            print(f"Error: {e}")
-
+        if num_frames[0] in (5, 6, 7):
+            box.show()
         if num_frames[0] == 20:
+            visible[0] = has_non_white_pixels_in_region(0, 0, 60, 60)
             play.stop_program()
 
     play.start_program()
 
-    assert error_occurred[0] == False, "Multiple show() calls should not cause errors"
+    assert box.is_shown is True
+    assert visible[0] is True
 
 
-def test_hide_then_change_physics_property():
-    """Test that changing physics properties after hide() doesn't cause errors."""
+def test_physics_changed_while_hidden_still_applies_once_shown():
     import play
 
     num_frames = [0]
-    error_occurred = [False]
-    error_message = [None]
+    visible = [None]
 
     box = play.new_box(x=0, y=0, width=50, height=50, color="red")
 
     @play.repeat_forever
     def check():
         num_frames[0] += 1
-        try:
-            if num_frames[0] == 5:
-                box.hide()
-            if num_frames[0] == 10:
-                box.physics.can_move = False  # This should not error
-            if num_frames[0] == 15:
-                box.physics.stable = True  # This should not error
-            if num_frames[0] == 20:
-                box.show()  # Show should work after property changes
-        except Exception as e:
-            error_occurred[0] = True
-            error_message[0] = str(e)
-
+        if num_frames[0] == 5:
+            box.hide()
+        if num_frames[0] == 10:
+            box.physics.can_move = False
+        if num_frames[0] == 15:
+            box.physics.stable = True
+        if num_frames[0] == 20:
+            box.show()
         if num_frames[0] == 30:
+            visible[0] = has_non_white_pixels_in_region(0, 0, 60, 60)
             play.stop_program()
 
     play.start_program()
 
-    assert (
-        error_occurred[0] == False
-    ), f"Changing physics properties after hide() should not error: {error_message[0]}"
+    assert box.physics.can_move is False
+    assert box.physics.stable is True
+    assert visible[0] is True
+    assert box.is_touching((0, 0))
 
 
 def test_circle_hide_show():
@@ -268,8 +247,7 @@ def test_circle_hide_show():
     assert visible_after_show[0] == True, "Circle should be visible after show()"
 
 
-def test_text_hide_show():
-    """Test hide/show on text sprites."""
+def test_hidden_text_leaves_the_screen_and_comes_back():
     import play
 
     num_frames = [0]

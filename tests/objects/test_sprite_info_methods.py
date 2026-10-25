@@ -1,169 +1,112 @@
-"""Tests for sprite info() and physics_info() methods."""
+"""What info() and physics_info() print for a student."""
 
 import pytest
-import sys
-from io import StringIO
+
+import play
+from play.objects.sprite import Sprite
 
 
-def test_info_method_runs():
-    """Test that info() method runs without error."""
-    import play
+def test_info_describes_a_box(capsys):
+    play.new_box(color="blue", width=100, height=50).info()
 
-    box = play.new_box(color="blue", width=100, height=50)
-    box.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        # Capture stdout
-        import sys
-        from io import StringIO
-
-        captured = StringIO()
-        old_stdout = sys.stdout
-        sys.stdout = captured
-
-        box.info()
-
-        sys.stdout = old_stdout
-        output = captured.getvalue()
-        result.append(output)
-        play.stop_program()
-
-    play.start_program()
-
-    assert "Box" in result[0]
-    assert "blue" in result[0]
+    assert capsys.readouterr().out == (
+        "Hi, I'm a Box!\n"
+        "  Color: blue\n"
+        "  Position: x=0, y=0\n"
+        "  Size: width=100, height=50\n"
+        "  Angle: 0°\n"
+    )
 
 
-def test_info_method_circle():
-    """Test info() method for circle."""
-    import play
+def test_info_gives_a_circle_its_radius(capsys):
+    play.new_circle(color="red", radius=25, x=10, y=-20, angle=30).info()
 
-    circle = play.new_circle(color="red", radius=25)
-    circle.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        import sys
-        from io import StringIO
-
-        captured = StringIO()
-        old_stdout = sys.stdout
-        sys.stdout = captured
-
-        circle.info()
-
-        sys.stdout = old_stdout
-        output = captured.getvalue()
-        result.append(output)
-        play.stop_program()
-
-    play.start_program()
-
-    assert "Circle" in result[0]
-    assert "red" in result[0]
-    assert "radius" in result[0]
+    assert capsys.readouterr().out == (
+        "Hi, I'm a Circle!\n"
+        "  Color: red\n"
+        "  Position: x=10, y=-20\n"
+        "  Size: radius=25\n"
+        "  Angle: 30°\n"
+    )
 
 
-def test_physics_info_method_runs():
-    """Test that physics_info() method runs without error."""
-    import play
+def test_info_says_when_a_sprite_is_hidden(capsys):
+    box = play.new_box()
+    box.hide()
 
+    box.info()
+
+    assert capsys.readouterr().out.splitlines()[-1] == "  Angle: 0° (hidden)"
+
+
+def test_info_on_a_sprite_without_a_colour_says_unknown(capsys):
+    Sprite().info()
+
+    assert "  Color: unknown\n" in capsys.readouterr().out
+
+
+COLLIDES_WITH_ALL = (
+    "  ✓ Collides with DYNAMIC (VRIJ)\n"
+    "  ✓ Collides with KINEMATIC (GESTUURD)\n"
+    "  ✓ Collides with STATIC (VAST)\n"
+)
+COLLIDES_WITH_DYNAMIC_ONLY = (
+    "  ✓ Collides with DYNAMIC (VRIJ)\n"
+    "  ✗ Passes through KINEMATIC (GESTUURD)\n"
+    "  ✗ Passes through STATIC (VAST)\n"
+)
+
+
+@pytest.mark.parametrize(
+    "physics, heading, settings, collisions",
+    [
+        (
+            {"can_move": True, "stable": False},
+            "Physics: DYNAMIC (VRIJ)",
+            "can_move=True,stable=False,obeys_gravity=True",
+            COLLIDES_WITH_ALL,
+        ),
+        (
+            {"can_move": True, "stable": True, "obeys_gravity": False},
+            "Physics: KINEMATIC (GESTUURD)",
+            "can_move=True,stable=True,obeys_gravity=False",
+            COLLIDES_WITH_DYNAMIC_ONLY,
+        ),
+        (
+            {"can_move": False},
+            "Physics: STATIC (VAST)",
+            "can_move=False,stable=False,obeys_gravity=True",
+            COLLIDES_WITH_DYNAMIC_ONLY,
+        ),
+    ],
+    ids=["dynamic", "kinematic", "static"],
+)
+def test_physics_info_names_the_body_type_and_what_it_collides_with(
+    capsys, physics, heading, settings, collisions
+):
+    box = play.new_box()
+    box.start_physics(bounciness=0.5, mass=4, **physics)
+
+    box.physics_info()
+
+    assert capsys.readouterr().out == (
+        f"{heading}\n"
+        f"{settings}\n"
+        "  Speed: x=0, y=0\n"
+        "  Mass: 4, Bounciness: 0.5\n"
+        "\n"
+        "Collision behavior:\n" + collisions
+    )
+
+
+def test_physics_info_after_stop_physics_shows_the_starting_body(capsys):
     box = play.new_box()
     box.start_physics(can_move=True, stable=False)
 
-    result = []
+    box.stop_physics()
+    box.physics_info()
 
-    @play.when_program_starts
-    def check():
-        import sys
-        from io import StringIO
-
-        captured = StringIO()
-        old_stdout = sys.stdout
-        sys.stdout = captured
-
-        box.physics_info()
-
-        sys.stdout = old_stdout
-        output = captured.getvalue()
-        result.append(output)
-        play.stop_program()
-
-    play.start_program()
-
-    assert "DYNAMIC" in result[0]
-    assert "can_move=True" in result[0]
-
-
-def test_physics_info_static():
-    """Test physics_info() for STATIC body."""
-    import play
-
-    box = play.new_box()
-    box.start_physics(can_move=False)
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        import sys
-        from io import StringIO
-
-        captured = StringIO()
-        old_stdout = sys.stdout
-        sys.stdout = captured
-
-        box.physics_info()
-
-        sys.stdout = old_stdout
-        output = captured.getvalue()
-        result.append(output)
-        play.stop_program()
-
-    play.start_program()
-
-    assert "STATIC" in result[0]
-    assert "VAST" in result[0]
-
-
-def test_physics_info_kinematic():
-    """Test physics_info() for KINEMATIC body."""
-    import play
-    from play.physics import set_gravity
-
-    set_gravity(-100)
-
-    box = play.new_box()
-    box.start_physics(can_move=True, stable=True, obeys_gravity=False)
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        import sys
-        from io import StringIO
-
-        captured = StringIO()
-        old_stdout = sys.stdout
-        sys.stdout = captured
-
-        box.physics_info()
-
-        sys.stdout = old_stdout
-        output = captured.getvalue()
-        result.append(output)
-        play.stop_program()
-
-    play.start_program()
-
-    assert "KINEMATIC" in result[0]
-    assert "GESTUURD" in result[0]
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    assert capsys.readouterr().out.startswith(
+        "Physics: KINEMATIC (GESTUURD)\n"
+        "can_move=True,stable=True,obeys_gravity=False\n"
+    )

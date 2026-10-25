@@ -1,62 +1,22 @@
 import pytest
 import play
-import pygame
 
 
-@pytest.fixture(autouse=True)
-def setup_play(clean_play_state):
-    pass
+def test_size_scales_a_box_and_what_can_be_touched():
+    box = play.new_box(width=200, height=150, size=200)
+    assert box.image.get_size() == (400, 300)
+    assert box.is_touching((190, 0))
 
-
-def test_box_initialization():
-    box = play.new_box(
-        color="red",
-        x=10,
-        y=20,
-        width=50,
-        height=60,
-        border_color="blue",
-        border_width=2,
-        border_radius=5,
-    )
-
-    assert box.x == 10
-    assert box.y == 20
-    assert box.width == 50
-    assert box.height == 60
-    assert box.color == "red"
-    assert box.border_color == "blue"
-    assert box.border_width == 2
-    assert box.border_radius == 5
-
-
-def test_box_setters_and_rendering():
-    box = play.new_box(color="black", x=0, y=0, width=100, height=100)
-
-    # Trigger missing lines: 95-99, 112-116, 129, 142, 155, 168
-    box.width = 200
-    assert box.width == 200
-
-    box.height = 150
-    assert box.height == 150
-
-    box.color = "yellow"
-    assert box.color == "yellow"
-
-    box.border_color = "black"
-    assert box.border_color == "black"
-
-    box.border_width = 10
-    assert box.border_width == 10
-
-    box.border_radius = 5
-    assert box.border_radius == 5
-
-    # Trigger lines 68-70 scale logic
-    box.size = 200
-
-    # Call update manually to force the image rendering logic (Lines 47, 68-70)
+    box.size = 50
     box.update()
 
-    assert box.rect.width == 400  # 200 scaled by 200%
-    assert box.rect.height == 300  # 150 scaled by 200%
+    assert box.image.get_size() == (100, 75)
+    assert not box.is_touching((60, 0))
+
+
+@pytest.mark.parametrize("width, height", [(-10, 20), (20, -10), (0, 20)])
+def test_a_side_of_zero_or_less_draws_nothing_instead_of_crashing(width, height):
+    box = play.new_box(width=width, height=height)
+
+    assert 0 in box.image.get_size()
+    assert not box.is_touching((0, 0))

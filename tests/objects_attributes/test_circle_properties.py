@@ -1,129 +1,93 @@
-"""Tests for Circle sprite properties."""
+"""What changing a circle's properties does to the circle on screen."""
 
+import pygame
 import pytest
 
+import play
 
-def test_circle_color_getter():
-    """Test getting circle color."""
-    import play
-
-    circle = play.new_circle(color="red")
-    circle.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(circle.color)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == "red"
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+WHITE = (255, 255, 255)
 
 
-def test_circle_color_setter():
-    """Test setting circle color."""
-    import play
-
-    circle = play.new_circle(color="red")
-    circle.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        circle.color = "blue"
-        result.append(circle.color)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == "blue"
+def colour_at(sprite, x, y):
+    """The RGB of the sprite's own picture at pixel (x, y)."""
+    return tuple(sprite.image.get_at((x, y)))[:3]
 
 
-def test_circle_radius_getter():
-    """Test getting circle radius."""
-    import play
+def test_a_new_circle_colour_is_drawn_on_the_next_frame():
+    circle = play.new_circle(color="red", radius=20)
+    assert colour_at(circle, 20, 20) == RED
 
+    circle.color = "blue"
+    circle.update()
+
+    assert circle.color == "blue"
+    assert colour_at(circle, 20, 20) == BLUE
+
+
+@pytest.mark.parametrize("prop", ["color", "border_color"])
+def test_a_mistyped_circle_colour_is_refused_where_it_is_set(prop):
+    circle = play.new_circle(color="red", border_color="red")
+
+    with pytest.raises(ValueError, match="blu"):
+        setattr(circle, prop, "blu")
+
+    assert getattr(circle, prop) == "red"
+
+
+def test_the_border_is_a_ring_in_its_own_colour():
+    circle = play.new_circle(
+        color="white", radius=20, border_color="red", border_width=5
+    )
+
+    assert colour_at(circle, 2, 20) == RED
+    assert colour_at(circle, 20, 2) == RED
+    assert colour_at(circle, 20, 20) == WHITE
+
+
+def test_a_circle_border_set_later_is_drawn_too():
+    circle = play.new_circle(color="white", radius=20)
+    assert colour_at(circle, 2, 20) == WHITE
+
+    circle.border_width = 5
+    circle.border_color = "blue"
+    circle.update()
+
+    assert (circle.border_width, circle.border_color) == (5, "blue")
+    assert colour_at(circle, 2, 20) == BLUE
+    assert colour_at(circle, 20, 20) == WHITE
+
+
+def test_a_new_radius_changes_what_is_drawn_and_what_can_be_touched():
     circle = play.new_circle(radius=50)
-    circle.start_physics()
+    assert not circle.is_touching((90, 0))
 
-    result = []
+    circle.radius = 100
+    circle.update()
 
-    @play.when_program_starts
-    def check():
-        result.append(circle.radius)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == 50
+    assert circle.radius == 100
+    assert circle.image.get_size() == (200, 200)
+    assert circle.is_touching((90, 0))
 
 
-def test_circle_radius_setter():
-    """Test setting circle radius."""
-    import play
+def test_a_cloned_circle_looks_exactly_like_the_original():
+    circle = play.new_circle(
+        color="green",
+        x=-40,
+        y=25,
+        radius=30,
+        border_color="red",
+        border_width=6,
+        transparency=60,
+        size=150,
+        angle=90,
+    )
 
-    circle = play.new_circle(radius=50)
-    circle.start_physics()
+    clone = circle.clone()
 
-    result = []
-
-    @play.when_program_starts
-    def check():
-        circle.radius = 100
-        result.append(circle.radius)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == 100
-
-
-def test_circle_border_color():
-    """Test circle border_color property."""
-    import play
-
-    circle = play.new_circle(border_color="green", border_width=2)
-    circle.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(circle.border_color)
-        circle.border_color = "yellow"
-        result.append(circle.border_color)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == "green"
-    assert result[1] == "yellow"
-
-
-def test_circle_border_width():
-    """Test circle border_width property."""
-    import play
-
-    circle = play.new_circle(border_width=5)
-    circle.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(circle.border_width)
-        circle.border_width = 10
-        result.append(circle.border_width)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == 5
-    assert result[1] == 10
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    assert clone is not circle
+    assert clone.rect == circle.rect
+    assert pygame.image.tobytes(clone.image, "RGBA") == pygame.image.tobytes(
+        circle.image, "RGBA"
+    )

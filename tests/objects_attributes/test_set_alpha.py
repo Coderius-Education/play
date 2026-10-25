@@ -1,44 +1,49 @@
+"""Transparency (0 to 100) becomes the alpha (0 to 255) of what is drawn."""
+
+import pygame
 import pytest
 
+import play
 
-def test_set_alpha():
-    import play
-
-    num_frames = [0]
-    max_frames = 100
-    expected = [0, 128, 255]
-    actual = [None]
-
-    image1 = play.new_image(
-        image="tests/objects_attributes/yellow.jpg", size=10, transparency=0
-    )
-    image2 = play.new_image(
-        image="tests/objects_attributes/yellow.jpg", size=10, transparency=50
-    )
-    image3 = play.new_image(
-        image="tests/objects_attributes/yellow.jpg", size=10, transparency=100
-    )
-
-    @play.repeat_forever
-    def move():
-        num_frames[0] += 1
-
-        if num_frames[0] == max_frames:
-            actual[0] = [
-                image1.image.get_alpha(),
-                image2.image.get_alpha(),
-                image3.image.get_alpha(),
-            ]
-            play.stop_program()
-
-    play.start_program()
-
-    for expected_value, actual_value in zip(expected, actual[0]):
-        if expected_value != actual_value:
-            pytest.fail(
-                f"expected alpha to be {expected_value} but the actual value is {actual_value}"
-            )
+SPRITES = {
+    "image": lambda **kw: play.new_image(image=pygame.Surface((20, 10)), **kw),
+    "box": lambda **kw: play.new_box(**kw),
+    "text": lambda **kw: play.new_text("Hi", **kw),
+}
 
 
-if __name__ == "__main__":
-    test_set_alpha()
+@pytest.mark.parametrize("make", SPRITES.values(), ids=SPRITES.keys())
+@pytest.mark.parametrize("transparency, alpha", [(0, 0), (50, 128), (100, 255)])
+def test_transparency_sets_the_alpha_of_the_drawing(make, transparency, alpha):
+    assert make(transparency=transparency).image.get_alpha() == alpha
+
+
+def test_a_new_transparency_is_drawn_on_the_next_frame():
+    box = play.new_box()
+
+    box.transparency = 25
+    box.update()
+
+    assert box.transparency == 25
+    assert box.image.get_alpha() == 64
+
+
+@pytest.mark.parametrize("wanted, kept, alpha", [(150, 100, 255), (-20, 0, 0)])
+def test_a_transparency_outside_0_to_100_warns_and_is_clamped(wanted, kept, alpha):
+    box = play.new_box()
+
+    with pytest.warns(UserWarning, match="between 0 and 100"):
+        box.transparency = wanted
+    box.update()
+
+    assert box.transparency == kept
+    assert box.image.get_alpha() == alpha
+
+
+def test_a_transparency_that_is_not_a_number_is_refused():
+    box = play.new_box()
+
+    with pytest.raises(ValueError, match="isn't a number"):
+        box.transparency = "half"
+
+    assert box.transparency == 100
