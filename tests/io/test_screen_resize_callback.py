@@ -1,32 +1,32 @@
-import pytest
-import play
+"""screen.when_resized runs when the player resizes the window."""
+
+import pygame
+
 from play.io.screen import screen
-from play.callback import callback_manager, CallbackType
+from tests.events.frames import play_frames
 
 
-@pytest.fixture(autouse=True)
-def setup_play(clean_play_state):
-    pass
+def _resize(width, height):
+    """A VIDEORESIZE event, as the window sends when the player drags its edge."""
+    return pygame.event.Event(pygame.VIDEORESIZE, {"w": width, "h": height})
 
 
-def test_when_resized_registers_callback():
-    """screen.when_resized() should register a WHEN_RESIZED callback."""
-
-    @screen.when_resized
-    def on_resize():
-        pass
-
-    callbacks = callback_manager.get_callbacks(CallbackType.WHEN_RESIZED)
-    assert len(callbacks) >= 1
-
-
-def test_when_resized_leaves_the_function_callable():
-    ran = []
+def test_when_resized_runs_with_the_new_size_in_place():
+    sizes = []
 
     @screen.when_resized
     def layout():
-        ran.append(True)
+        sizes.append(screen.size)
+
+    play_frames([_resize(1000, 700)], [], [_resize(640, 480)])
+
+    assert sizes == [(1000, 700), (640, 480)]
+    assert pygame.display.get_surface().get_size() == (640, 480)
+
+
+def test_when_resized_leaves_the_function_callable():
+    @screen.when_resized
+    def layout():
         return "laid out"
 
     assert layout() == "laid out"
-    assert ran == [True]

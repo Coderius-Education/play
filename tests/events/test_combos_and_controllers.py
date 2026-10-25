@@ -4,31 +4,16 @@ import pygame
 import pytest
 
 import play
+from play.core.controller_loop import controller_state
 from play.io.controllers import controllers
+from tests.events.frames import key_down as _down, key_up as _up, play_frames
 
 
-def _run(steps):
-
-    @play.when_program_starts
-    async def driver():
-        await play.animate()
-        for events in steps:
-            for event in events:
-                pygame.event.post(event)
-            await play.animate()
-        for _ in range(3):
-            await play.animate()
-        play.stop_program()
-
-    play.start_program()
-
-
-def _down(key):
-    return pygame.event.Event(pygame.KEYDOWN, {"key": key})
-
-
-def _up(key):
-    return pygame.event.Event(pygame.KEYUP, {"key": key})
+@pytest.fixture(autouse=True)
+def no_buttons_held():
+    controller_state.buttons_pressed.clear()
+    yield
+    controller_state.buttons_pressed.clear()
 
 
 def test_a_key_combination_fires_when_its_last_key_goes_down():
@@ -97,6 +82,10 @@ def test_a_held_key_combination_fires_every_frame_with_another_key_held_too():
     assert len(frames) == held_frames
 
 
+def _run(steps):
+    play_frames(*steps)
+
+
 def _joy(event_type, **attributes):
     return pygame.event.Event(event_type, attributes)
 
@@ -112,7 +101,7 @@ def test_when_any_axis_moved_fires():
 
 def test_an_axis_callback_hears_its_own_controller_only():
     moved = []
-    controllers.when_axis_moved(0, 1)(lambda axis, value: moved.append(value))
+    controllers.when_axis_moved(1, 1)(lambda axis, value: moved.append(value))
 
     _run(
         [
@@ -121,7 +110,7 @@ def test_an_axis_callback_hears_its_own_controller_only():
         ]
     )
 
-    assert moved == [-1]
+    assert moved == [1]
 
 
 class _FakeJoystick:
@@ -193,7 +182,13 @@ def test_an_unplugged_controller_reads_as_untouched(fake_joysticks):
     assert controllers.get_axis(0, 1) == 0.0
     assert controllers.get_button(0, 0) is False
     assert controllers.get_hat(0, 0) == (0, 0)
-    assert controllers.get_num_axes(0) == 0
+    assert controllers.get_ball(0, 0) == (0, 0)
+    assert [
+        controllers.get_num_axes(0),
+        controllers.get_num_buttons(0),
+        controllers.get_num_hats(0),
+        controllers.get_num_balls(0),
+    ] == [0, 0, 0, 0]
 
 
 def test_a_controller_gone_before_it_opens_is_skipped(monkeypatch):

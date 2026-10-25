@@ -3,61 +3,6 @@
 import pytest
 
 
-def test_collision_registry_exists():
-    """Test that collision_registry exists."""
-    import play
-    from play.callback.collision_callbacks import collision_registry
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(collision_registry is not None)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] is True
-
-
-def test_wall_side_enum():
-    """Test WallSide enum has all sides."""
-    import play
-    from play.callback.collision_callbacks import WallSide
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(hasattr(WallSide, "TOP"))
-        result.append(hasattr(WallSide, "BOTTOM"))
-        result.append(hasattr(WallSide, "LEFT"))
-        result.append(hasattr(WallSide, "RIGHT"))
-        play.stop_program()
-
-    play.start_program()
-
-    assert all(result)
-
-
-def test_collision_type_enum():
-    """Test CollisionType enum exists."""
-    import play
-    from play.callback.collision_callbacks import CollisionType
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(hasattr(CollisionType, "SPRITE"))
-        result.append(hasattr(CollisionType, "WALL"))
-        play.stop_program()
-
-    play.start_program()
-
-    assert all(result)
-
-
 def test_when_touching_callback_fires():
     """Test when_touching callback fires on collision."""
     import play
@@ -244,81 +189,40 @@ def test_duplicate_callback_error_message_is_user_friendly():
     assert "single function" in error_message.lower()
 
 
-def test_collision_attributes_preserved_after_can_move_change():
-    """Test that collision attributes survive when can_move recreates the physics shape."""
+@pytest.mark.parametrize(
+    "change",
+    [
+        lambda mover, target: setattr(target.physics, "can_move", False),
+        lambda mover, target: setattr(mover.physics, "stable", True),
+    ],
+    ids=["can_move", "stable"],
+)
+def test_when_touching_still_fires_after_a_physics_setting_changes(change):
     import play
 
-    box1 = play.new_box(x=-100)
-    box1.start_physics()
+    mover = play.new_box(x=-100, width=40, height=40)
+    mover.start_physics(x_speed=300, obeys_gravity=False)
+    target = play.new_box(x=100, width=40, height=40)
+    target.start_physics(obeys_gravity=False)
+    touched = []
 
-    box2 = play.new_box(x=100)
-    box2.start_physics()
-
-    @box1.when_touching(box2)
+    @mover.when_touching(target)
     def on_touch():
-        pass
+        touched.append(True)
+        play.stop_program()
 
-    old_collision_type = box1.physics._pymunk_shape.collision_type
-    old_collision_id = box1.physics._pymunk_shape.collision_id
+    change(mover, target)
+    frames = []
 
-    # Changing can_move recreates the shape
-    box1.physics.can_move = False
+    @play.repeat_forever
+    def give_up():
+        frames.append(1)
+        if len(frames) == 120:
+            play.stop_program()
 
-    assert box1.physics._pymunk_shape.collision_type == old_collision_type
-    assert box1.physics._pymunk_shape.collision_id == old_collision_id
+    play.start_program()
 
-
-def test_collision_attributes_preserved_after_stable_change():
-    """Test that collision attributes survive when stable recreates the physics shape."""
-    import play
-
-    box1 = play.new_box(x=-100)
-    box1.start_physics()
-
-    box2 = play.new_box(x=100)
-    box2.start_physics()
-
-    @box1.when_touching(box2)
-    def on_touch():
-        pass
-
-    old_collision_type = box1.physics._pymunk_shape.collision_type
-    old_collision_id = box1.physics._pymunk_shape.collision_id
-
-    # Changing stable recreates the shape
-    box1.physics.stable = True
-
-    assert box1.physics._pymunk_shape.collision_type == old_collision_type
-    assert box1.physics._pymunk_shape.collision_id == old_collision_id
-
-
-def test_collision_registry_valid_after_can_move_change():
-    """Test that the collision registry can still find the callback after can_move change."""
-    import play
-    from play.callback.collision_callbacks import collision_registry
-
-    box1 = play.new_box(x=-100)
-    box1.start_physics()
-
-    box2 = play.new_box(x=100)
-    box2.start_physics()
-
-    @box1.when_touching(box2)
-    def on_touch():
-        pass
-
-    shape = box1.physics._pymunk_shape
-    other = box2.physics._pymunk_shape
-    callback = collision_registry._callback(True, shape, other)
-    assert callback is not None
-
-    # can_move retypes the body in place; the shape, its sprite and the
-    # callback registered for the pair all have to survive it.
-    box1.physics.can_move = False
-
-    assert box1.physics._pymunk_shape is shape
-    assert shape._play_sprite is box1
-    assert collision_registry._callback(True, shape, other) is callback
+    assert touched == [True]
 
 
 if __name__ == "__main__":

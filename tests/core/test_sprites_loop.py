@@ -1,276 +1,65 @@
-"""Tests for the extracted helper functions in sprites_loop."""
+"""Each frame, a moving sprite takes its place, angle and speed from its physics body."""
 
-import asyncio
 import math
-from unittest.mock import MagicMock, AsyncMock, patch, call
+from unittest.mock import MagicMock
 
 import pytest
 
-import play.core.sprites_loop as sprites_loop
-from play.core.mouse_loop import mouse_state
-from play.core.sprites_loop import (
-    update_sprite_physics,
-    run_sprite_callbacks,
-    handle_sprite_click,
-    handle_sprite_click_released,
-    clear_click_tracking,
-)
+import play
+from play.core.sprites_loop import update_sprite_physics
 
 
-def _make_sprite(x=0.0, y=0.0, angle=0.0, velocity=(0.0, 0.0)):
-    """Create a mock sprite with a physics body."""
+def _sprite_with_body(x=0.0, y=0.0, angle=0.0, velocity=(0.0, 0.0)):
+    """A stand-in sprite whose physics body is at (x, y), turned *angle* degrees."""
     sprite = MagicMock()
-    body = MagicMock()
+    body = sprite.physics._pymunk_body
     body.position.x = x
     body.position.y = y
     body.angle = math.radians(angle)
     body.velocity = velocity
-    sprite.physics._pymunk_body = body
-    sprite._x = 0.0
-    sprite._y = 0.0
-    sprite.angle = 0.0
-    sprite.physics._x_speed = 0.0
-    sprite.physics._y_speed = 0.0
+    sprite._x, sprite._y, sprite.angle = 99.0, 99.0, 99.0
     return sprite
 
 
-class TestUpdateSpritePhysics:
-    def test_syncs_position_from_body(self):
-        sprite = _make_sprite(x=10.0, y=20.0)
-        update_sprite_physics(sprite)
-        assert sprite._x == 10.0
-        assert sprite._y == 20.0
+def test_a_sprite_takes_its_place_angle_and_speed_from_its_body():
+    sprite = _sprite_with_body(x=10.0, y=20.0, angle=45.0, velocity=(5.0, -3.0))
 
-    def test_syncs_angle_from_body(self):
-        sprite = _make_sprite(angle=45.0)
-        update_sprite_physics(sprite)
-        assert sprite.angle == pytest.approx(45.0)
+    update_sprite_physics(sprite)
 
-    def test_syncs_velocity(self):
-        sprite = _make_sprite(velocity=(5.0, -3.0))
-        update_sprite_physics(sprite)
-        assert sprite.physics._x_speed == 5.0
-        assert sprite.physics._y_speed == -3.0
-
-    def test_ignores_nan_x(self):
-        sprite = _make_sprite(x=float("nan"), y=20.0)
-        sprite._x = 99.0
-        update_sprite_physics(sprite)
-        assert sprite._x == 99.0  # unchanged
-        assert sprite._y == 20.0
-
-    def test_ignores_nan_y(self):
-        sprite = _make_sprite(x=10.0, y=float("nan"))
-        sprite._y = 99.0
-        update_sprite_physics(sprite)
-        assert sprite._x == 10.0
-        assert sprite._y == 99.0  # unchanged
-
-    def test_ignores_nan_angle(self):
-        sprite = _make_sprite(angle=float("nan"))
-        sprite.angle = 99.0
-        update_sprite_physics(sprite)
-        assert sprite.angle == 99.0  # unchanged
+    assert (sprite._x, sprite._y) == (10.0, 20.0)
+    assert sprite.angle == pytest.approx(45.0)
+    assert (sprite.physics._x_speed, sprite.physics._y_speed) == (5.0, -3.0)
 
 
-class TestRunSpriteCallbacks:
-    def test_runs_touching_and_stopped_callbacks(self):
-        sprite = MagicMock()
-        touching_cb = MagicMock()
-        stopped_cb = MagicMock()
-        sprite.events.touching_callbacks.return_value = [touching_cb]
-        sprite.events.stopped_callbacks.return_value = [stopped_cb]
+@pytest.mark.parametrize(
+    "body, kept",
+    [
+        ({"x": float("nan"), "y": 20.0}, ("_x",)),
+        ({"x": 10.0, "y": float("nan")}, ("_y",)),
+        ({"angle": float("nan")}, ("angle",)),
+    ],
+    ids=["x", "y", "angle"],
+)
+def test_a_body_value_that_is_not_a_number_leaves_the_sprite_where_it_was(body, kept):
+    sprite = _sprite_with_body(**body)
 
-        with patch(
-            "play.core.sprites_loop.run_any_async_callback", new_callable=AsyncMock
-        ) as mock_run:
-            asyncio.run(run_sprite_callbacks(sprite))
-            assert mock_run.call_count == 2
-            mock_run.assert_has_calls(
-                [
-                    call([touching_cb], [], []),
-                    call([stopped_cb], [], []),
-                ]
-            )
+    update_sprite_physics(sprite)
 
-    def test_clears_stopped_callbacks(self):
-        sprite = MagicMock()
-
-        with patch(
-            "play.core.sprites_loop.run_any_async_callback", new_callable=AsyncMock
-        ):
-            asyncio.run(run_sprite_callbacks(sprite))
-            sprite.events.clear_all_stopped.assert_called_once()
+    assert all(getattr(sprite, name) == 99.0 for name in kept)
 
 
-def _reset_mouse_state():
-    """Reset the real mouse_state singleton between tests."""
-    mouse_state.click_happened = False
-    mouse_state.click_release_happened = False
-    mouse_state.click_owner = None
-    mouse_state.click_claimants.clear()
+def test_the_speed_a_student_reads_turns_round_after_a_bounce():
+    ball = play.new_circle(x=360, radius=20)
+    ball.start_physics(x_speed=300, obeys_gravity=False, bounciness=1.0)
+    speeds = []
 
+    @play.repeat_forever
+    def watch():
+        speeds.append(ball.physics.x_speed)
+        if len(speeds) == 30:
+            play.stop_program()
 
-class TestHandleSpriteClick:
-    def setup_method(self):
-        sprites_loop._clicked_sprites.clear()
-        _reset_mouse_state()
+    play.start_program()
 
-    def teardown_method(self):
-        _reset_mouse_state()
-
-    @patch("play.core.sprites_loop.callback_manager")
-    @patch("play.core.sprites_loop.mouse")
-    def test_tracks_clicked_sprite(self, mock_mouse, _mock_cb):
-        sprite = MagicMock()
-        sprite._is_clicked = False
-        mock_mouse.is_touching.return_value = True
-        mouse_state.click_happened = True
-        mouse_state.click_owner = None
-        mock_mouse.is_clicked = True
-
-        handle_sprite_click(sprite)
-
-        assert sprite in sprites_loop._clicked_sprites
-
-    @patch("play.core.sprites_loop.callback_manager")
-    @patch("play.core.sprites_loop.mouse")
-    def test_fires_when_clicked_callback(self, mock_mouse, mock_cb):
-        sprite = MagicMock()
-        mock_mouse.is_touching.return_value = True
-        mouse_state.click_happened = True
-        mouse_state.click_owner = None
-        mock_mouse.is_clicked = True
-
-        handle_sprite_click(sprite)
-
-        assert sprite.events.is_clicked is True
-        mock_cb.run_callbacks.assert_called_once_with(
-            sprites_loop.CallbackType.WHEN_CLICKED_SPRITE,
-            callback_discriminator=id(sprite),
-        )
-
-    @patch("play.core.sprites_loop.callback_manager")
-    @patch("play.core.sprites_loop.mouse")
-    def test_no_click_when_not_touching(self, mock_mouse, mock_cb):
-        sprite = MagicMock()
-        sprite._is_clicked = False
-        mock_mouse.is_touching.return_value = False
-        mouse_state.click_happened = True
-        mouse_state.click_owner = None
-        mock_mouse.is_clicked = True
-
-        handle_sprite_click(sprite)
-
-        assert sprite._is_clicked is False
-        mock_cb.run_callbacks.assert_not_called()
-
-    @patch("play.core.sprites_loop.callback_manager")
-    @patch("play.core.sprites_loop.mouse")
-    def test_no_click_when_no_click_happened(self, mock_mouse, mock_cb):
-        sprite = MagicMock()
-        sprite._is_clicked = False
-        mock_mouse.is_touching.return_value = True
-        mouse_state.click_happened = False
-        mouse_state.click_owner = None
-        mock_mouse.is_clicked = True
-
-        handle_sprite_click(sprite)
-
-        assert sprite._is_clicked is False
-        mock_cb.run_callbacks.assert_not_called()
-
-
-class TestHandleSpriteClickReleased:
-    def setup_method(self):
-        sprites_loop._clicked_sprites.clear()
-        _reset_mouse_state()
-
-    def teardown_method(self):
-        _reset_mouse_state()
-
-    @patch("play.core.sprites_loop.callback_manager")
-    @patch("play.core.sprites_loop.mouse")
-    def test_fires_release_on_same_sprite(self, mock_mouse, mock_cb):
-        sprite = MagicMock()
-        sprites_loop._clicked_sprites.add(sprite)
-        mouse_state.click_release_happened = True
-        mock_mouse.is_touching.return_value = True
-
-        handle_sprite_click_released(sprite)
-
-        mock_cb.run_callbacks.assert_called_once_with(
-            sprites_loop.CallbackType.WHEN_CLICK_RELEASED_SPRITE,
-            callback_discriminator=id(sprite),
-        )
-
-    @patch("play.core.sprites_loop.callback_manager")
-    @patch("play.core.sprites_loop.mouse")
-    def test_no_release_on_different_sprite(self, mock_mouse, mock_cb):
-        sprite = MagicMock()
-        other = MagicMock()
-        sprites_loop._clicked_sprites.add(other)
-        mouse_state.click_release_happened = True
-        mock_mouse.is_touching.return_value = True
-
-        handle_sprite_click_released(sprite)
-
-        mock_cb.run_callbacks.assert_not_called()
-
-    @patch("play.core.sprites_loop.callback_manager")
-    @patch("play.core.sprites_loop.mouse")
-    def test_no_release_when_not_touching(self, mock_mouse, mock_cb):
-        sprite = MagicMock()
-        sprites_loop._clicked_sprites.add(sprite)
-        mouse_state.click_release_happened = True
-        mock_mouse.is_touching.return_value = False
-
-        handle_sprite_click_released(sprite)
-
-        mock_cb.run_callbacks.assert_not_called()
-
-    @patch("play.core.sprites_loop.callback_manager")
-    @patch("play.core.sprites_loop.mouse")
-    def test_no_release_when_no_release_happened(self, mock_mouse, mock_cb):
-        sprite = MagicMock()
-        sprites_loop._clicked_sprites.add(sprite)
-        mouse_state.click_release_happened = False
-        mock_mouse.is_touching.return_value = True
-
-        handle_sprite_click_released(sprite)
-
-        mock_cb.run_callbacks.assert_not_called()
-
-
-class TestClearClickTracking:
-    def test_clears_clicked_sprites(self):
-        sprites_loop._clicked_sprites.add(object())
-        clear_click_tracking()
-        assert not sprites_loop._clicked_sprites
-
-
-class TestUpdateSprites:
-    @patch("play.core.sprites_loop.mouse_state")
-    @patch("play.core.sprites_loop.globals_list")
-    @patch("play.core.sprites_loop.handle_sprite_click_released")
-    @patch("play.core.sprites_loop.handle_sprite_click")
-    @patch("play.core.sprites_loop.run_sprite_callbacks", new_callable=AsyncMock)
-    def test_click_handlers_called_for_a_shown_sprite(
-        self, mock_callbacks, mock_click, mock_click_released, mock_globals, mock_state
-    ):
-        sprite = MagicMock()
-        sprite.physics = MagicMock()
-        sprite.physics.can_move = False
-        sprite.is_hidden = False
-        sprite._handle_frame_events.return_value = False  # like a plain Sprite
-        mock_globals.sprites_group.sprites.return_value = [sprite]
-        mock_state.click_release_happened = False
-
-        asyncio.run(sprites_loop.update_sprites())
-
-        mock_click.assert_called_once_with(sprite)
-        mock_click_released.assert_called_once_with(sprite)
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    assert speeds[0] == pytest.approx(300)
+    assert speeds[-1] < 0

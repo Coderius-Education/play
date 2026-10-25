@@ -1,49 +1,76 @@
-"""Tests for the event loop module.
-
-Verifies that get_loop() returns a working asyncio event loop on all
-platforms (including Windows where ProactorEventLoop is the default).
-"""
+"""play's event loop: one per process, and it reports what goes wrong in its tasks."""
 
 import asyncio
 import logging
-import sys
 
 import pytest
 
 import play.loop
+from play.globals import globals_list, ProgramState
 
 
-def test_get_loop_returns_running_loop():
-    """get_loop() should return a non-closed event loop."""
+def _criticals(caplog):
+    return [r.getMessage() for r in caplog.records if r.levelno >= logging.CRITICAL]
+
+
+def test_get_loop_hands_out_one_open_loop():
     loop = play.loop.get_loop()
-    assert loop is not None
+
     assert not loop.is_closed()
+    assert play.loop.get_loop() is loop
 
 
-def test_get_loop_returns_same_loop():
-    """Repeated calls should return the same loop instance."""
-    loop1 = play.loop.get_loop()
-    loop2 = play.loop.get_loop()
-    assert loop1 is loop2
-
-
-def test_loop_can_run_coroutine():
-    """The loop should be able to run a simple coroutine to completion."""
-    loop = play.loop.get_loop()
-
+def test_the_loop_runs_a_coroutine_to_its_end():
     async def add(a, b):
+        await asyncio.sleep(0)
         return a + b
 
-    result = loop.run_until_complete(add(2, 3))
-    assert result == 5
+    assert play.loop.get_loop().run_until_complete(add(2, 3)) == 5
 
 
-def test_loop_has_exception_handler():
-    """The loop should have a custom exception handler installed."""
+def test_a_forked_process_gets_a_loop_of_its_own(monkeypatch):
+    parents = play.loop.get_loop()
+    monkeypatch.setattr(play.loop, "_loop", parents)
+    monkeypatch.setattr(play.loop, "_creator_pid", play.loop._creator_pid)
+    monkeypatch.setattr(play.loop.os, "getpid", lambda: -12345)
+
+    childs = play.loop.get_loop()
+
+    try:
+        assert childs is not parents
+        assert play.loop.get_loop() is childs
+    finally:
+        childs.close()
+
+
+def _raised(message):
+    """A ValueError that was really raised, so it has a traceback."""
+    try:
+        raise ValueError(message)
+    except ValueError as error:
+        return error
+
+
+def test_an_error_in_a_task_is_shown_once_with_its_traceback_and_stops_the_program(
+    caplog,
+):
+    globals_list.program_state = ProgramState.RUNNING
     loop = play.loop.get_loop()
-    # asyncio stores the handler internally; we verify it's set by checking
-    # it's not the default (None).
-    assert loop.get_exception_handler() is not None
+
+    with caplog.at_level(logging.CRITICAL, logger="play"):
+        for message in ("first typo", "second typo"):
+            loop.call_exception_handler(
+                {
+                    "message": "Task exception was never retrieved",
+                    "exception": _raised(message),
+                }
+            )
+
+    shown = _criticals(caplog)
+    assert len(shown) == 1
+    assert "Traceback" in shown[0]
+    assert "ValueError: first typo" in shown[0]
+    assert globals_list.program_state is ProgramState.STOPPED
 
 
 def test_destroyed_pending_task_is_not_reported_as_critical(caplog):
@@ -56,42 +83,35 @@ def test_destroyed_pending_task_is_not_reported_as_critical(caplog):
     loop = play.loop.get_loop()
 
     with caplog.at_level(logging.DEBUG, logger="play"):
-        play.loop._handle_exception(
-            loop, {"message": "Task was destroyed but it is pending!"}
+        loop.call_exception_handler(
+            {"message": "Task was destroyed but it is pending!"}
         )
 
-    assert not [r for r in caplog.records if r.levelno >= logging.CRITICAL]
+    assert _criticals(caplog) == []
 
 
-def test_real_async_failures_are_still_reported_as_critical(caplog):
+def test_real_async_failures_are_still_reported_and_stop_the_program(caplog):
     """The quiet path above must not swallow genuine errors."""
-    loop = play.loop.get_loop()
+    globals_list.program_state = ProgramState.RUNNING
 
     with caplog.at_level(logging.DEBUG, logger="play"):
-        play.loop._handle_exception(
-            loop, {"message": "Some other asyncio problem", "future": None}
+        play.loop.get_loop().call_exception_handler(
+            {"message": "Some other asyncio problem", "future": None}
         )
 
-    assert [r for r in caplog.records if r.levelno >= logging.CRITICAL]
-
-
-def test_a_real_async_failure_marks_the_program_as_stopped():
-    from play.globals import globals_list, ProgramState
-
-    globals_list.program_state = ProgramState.RUNNING
-    play.loop._handle_exception(
-        play.loop.get_loop(), {"message": "Some other asyncio problem", "future": None}
-    )
-
+    assert _criticals(caplog) == ["Some other asyncio problem"]
     assert globals_list.program_state is ProgramState.STOPPED
 
 
-def test_loop_type_on_windows():
-    """On Windows, the loop should be a ProactorEventLoop (or SelectorEventLoop
-    on Python 3.14+ where the default policy changed)."""
-    if sys.platform != "win32":
-        pytest.skip("not Windows")
+def test_a_task_made_after_the_program_stopped_never_runs():
+    ran = []
 
-    loop = play.loop.get_loop()
-    # Just verify it's a valid asyncio event loop that works
-    assert isinstance(loop, asyncio.AbstractEventLoop)
+    async def late():
+        ran.append(True)
+
+    globals_list.program_state = ProgramState.STOPPED
+    task = play.loop.create_task(late())
+
+    with pytest.raises(asyncio.CancelledError):
+        play.loop.get_loop().run_until_complete(task)
+    assert ran == []

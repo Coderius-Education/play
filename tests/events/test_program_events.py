@@ -1,135 +1,93 @@
-"""Tests for program event decorators like when_program_starts and repeat_forever."""
+"""when_program_starts and repeat_forever, through the real game loop."""
+
+import logging
 
 import pytest
 
-
-def test_when_program_starts_decorator():
-    """Test play.when_program_starts decorator."""
-    import play
-
-    callback_called = []
-
-    @play.when_program_starts
-    def on_start():
-        callback_called.append(True)
-
-    # Verify callback was registered
-    from play.callback import callback_manager, CallbackType
-
-    callbacks = list(callback_manager.get_callback([CallbackType.WHEN_PROGRAM_START]))
-    assert len(callbacks) > 0
+import play
 
 
-def test_repeat_forever_decorator():
-    """Test play.repeat_forever decorator."""
-    import play
-
-    callback_called = []
+def _stop_after(frames):
+    """Register a repeat_forever that stops the program in its *frames*-th frame."""
+    counted = []
 
     @play.repeat_forever
-    def loop():
-        callback_called.append(True)
-
-    # Verify callback was registered
-    from play.callback import callback_manager, CallbackType
-
-    callbacks = list(callback_manager.get_callback([CallbackType.REPEAT_FOREVER]))
-    assert len(callbacks) > 0
+    def stopper():
+        counted.append(1)
+        if len(counted) == frames:
+            play.stop_program()
 
 
-def test_when_program_starts_returns_function():
-    """Test that when_program_starts returns the original function."""
-    import play
+def test_when_program_starts_runs_once_before_the_first_frame():
+    log = []
+    play.when_program_starts(lambda: log.append("start"))
+    play.repeat_forever(lambda: log.append("frame"))
+    _stop_after(3)
 
-    def my_function():
-        return "test"
+    play.start_program()
 
-    decorated = play.when_program_starts(my_function)
-
-    # Should return the original function
-    assert decorated == my_function
+    assert log == ["start", "frame", "frame", "frame"]
 
 
-def test_repeat_forever_returns_function():
-    """Test that repeat_forever returns the original function."""
-    import play
-
-    def my_function():
-        return "test"
-
-    decorated = play.repeat_forever(my_function)
-
-    # Should return the original function
-    assert decorated == my_function
-
-
-def test_when_program_starts_multiple_callbacks():
-    """Test that multiple when_program_starts callbacks can be registered."""
-    import play
-
-    callback_called = []
+def test_an_async_when_program_starts_runs_its_setup_before_the_first_frame():
+    log = []
 
     @play.when_program_starts
-    def first():
-        callback_called.append(1)
+    async def setup():
+        log.append("setup")
+        await play.timer(0)
+        log.append("after the wait")
+
+    play.repeat_forever(lambda: log.append("frame"))
+    _stop_after(3)
+
+    play.start_program()
+
+    assert log[0] == "setup"
+    assert "after the wait" in log
+
+
+def test_several_start_and_frame_callbacks_run_in_the_order_they_were_written():
+    log = []
+    play.when_program_starts(lambda: log.append("start 1"))
+    play.when_program_starts(lambda: log.append("start 2"))
+    play.repeat_forever(lambda: log.append("frame 1"))
+    play.repeat_forever(lambda: log.append("frame 2"))
+    _stop_after(2)
+
+    play.start_program()
+
+    assert log == ["start 1", "start 2", "frame 1", "frame 2", "frame 1", "frame 2"]
+
+
+@pytest.mark.parametrize("decorator", [play.when_program_starts, play.repeat_forever])
+def test_the_decorated_function_can_still_be_called(decorator):
+    @decorator
+    def greet():
+        return "hello"
+
+    assert greet() == "hello"
+
+
+def test_a_callback_that_takes_an_argument_it_will_never_get_is_reported(caplog):
+    @play.repeat_forever
+    def move(sprite):
+        pass
+
+    with caplog.at_level(logging.CRITICAL, logger="play"):
+        play.start_program()
+
+    assert "must not take in any arguments" in caplog.text
+
+
+def test_timer_returns_true_once_the_time_has_passed():
+    results = []
 
     @play.when_program_starts
-    def second():
-        callback_called.append(2)
+    async def wait():
+        results.append(await play.timer(0.01))
+        play.stop_program()
 
-    # Verify both callbacks were registered
-    from play.callback import callback_manager, CallbackType
+    play.start_program()
 
-    callbacks = list(callback_manager.get_callback([CallbackType.WHEN_PROGRAM_START]))
-    assert len(callbacks) >= 2
-
-
-def test_repeat_forever_multiple_callbacks():
-    """Test that multiple repeat_forever callbacks can be registered."""
-    import play
-
-    callback_called = []
-
-    @play.repeat_forever
-    def first():
-        callback_called.append(1)
-
-    @play.repeat_forever
-    def second():
-        callback_called.append(2)
-
-    # Verify both callbacks were registered
-    from play.callback import callback_manager, CallbackType
-
-    callbacks = list(callback_manager.get_callback([CallbackType.REPEAT_FOREVER]))
-    assert len(callbacks) >= 2
-
-
-def test_when_program_starts_with_async_function():
-    """Test when_program_starts with an async function."""
-    import play
-
-    @play.when_program_starts
-    async def async_start():
-        return "async"
-
-    # Should still register the callback
-    from play.callback import callback_manager, CallbackType
-
-    callbacks = list(callback_manager.get_callback([CallbackType.WHEN_PROGRAM_START]))
-    assert len(callbacks) > 0
-
-
-def test_repeat_forever_with_async_function():
-    """Test repeat_forever with an async function."""
-    import play
-
-    @play.repeat_forever
-    async def async_loop():
-        return "async"
-
-    # Should still register the callback
-    from play.callback import callback_manager, CallbackType
-
-    callbacks = list(callback_manager.get_callback([CallbackType.REPEAT_FOREVER]))
-    assert len(callbacks) > 0
+    assert results == [True]

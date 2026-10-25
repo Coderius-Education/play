@@ -1,211 +1,194 @@
-"""Tests for callback manager."""
+"""The callback manager keeps every event callback, sorted by type and key."""
+
+import asyncio
 
 import pytest
 
-
-def test_callback_manager_exists():
-    """Test that callback_manager exists."""
-    import play
-    from play.callback import callback_manager
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(callback_manager is not None)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] is True
+import play
+from play.callback import CallbackManager, CallbackType
 
 
-def test_callback_type_enum():
-    """Test that all CallbackType enums exist."""
-    import play
-    from play.callback import CallbackType
+async def _noop():
+    pass
 
-    result = []
 
-    @play.when_program_starts
-    def check():
-        expected_types = [
-            "REPEAT_FOREVER",
-            "WHEN_PROGRAM_START",
-            "PRESSED_KEYS",
-            "RELEASED_KEYS",
-            "WHEN_CLICKED",
-            "WHEN_CLICK_RELEASED",
-            "WHEN_CLICKED_SPRITE",
-            "WHEN_TOUCHING",
-            "WHEN_STOPPED_TOUCHING",
-            "WHEN_TOUCHING_WALL",
-            "WHEN_STOPPED_TOUCHING_WALL",
-            "WHEN_CONTROLLER_BUTTON_PRESSED",
-            "WHEN_CONTROLLER_BUTTON_RELEASED",
-            "WHEN_CONTROLLER_AXIS_MOVED",
-            "WHEN_RESIZED",
-            "WHEN_CLICK_RELEASED_SPRITE",
+async def _other():
+    pass
+
+
+@pytest.fixture
+def manager():
+    return CallbackManager()
+
+
+def _run(coroutine):
+    """Run *coroutine* to the end on a loop of its own."""
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coroutine)
+    finally:
+        loop.close()
+
+
+def test_callbacks_are_kept_per_type_and_key(manager):
+    manager.add_callback(CallbackType.PRESSED_KEYS, _noop, "space")
+    manager.add_callback(CallbackType.PRESSED_KEYS, _other, "a")
+    manager.add_callback(CallbackType.REPEAT_FOREVER, _other)
+
+    assert manager.get_callback(CallbackType.PRESSED_KEYS, "space") == [_noop]
+    assert manager.get_callback(CallbackType.PRESSED_KEYS, "b") is None
+    assert manager.get_callback(CallbackType.REPEAT_FOREVER) == [_other]
+    assert manager.get_callbacks(CallbackType.PRESSED_KEYS) == {
+        "space": [_noop],
+        "a": [_other],
+    }
+    assert manager.get_callbacks(CallbackType.WHEN_RESIZED) is None
+
+
+def test_get_callback_of_several_types_lists_them_all_in_order(manager):
+    manager.add_callback(CallbackType.WHEN_PROGRAM_START, _noop)
+    manager.add_callback(CallbackType.REPEAT_FOREVER, _other)
+
+    callbacks = manager.get_callback(
+        [
+            CallbackType.WHEN_PROGRAM_START,
+            CallbackType.WHEN_RESIZED,
+            CallbackType.REPEAT_FOREVER,
         ]
-        for type_name in expected_types:
-            result.append((type_name, hasattr(CallbackType, type_name)))
-        play.stop_program()
+    )
 
-    play.start_program()
-
-    for type_name, exists in result:
-        assert exists is True, f"CallbackType missing: {type_name}"
+    assert callbacks == [_noop, _other]
 
 
-def test_add_callback():
-    """Test adding a callback to the manager."""
-    import play
-    from play.callback import callback_manager, CallbackType
+def test_a_callback_is_marked_with_its_type(manager):
+    manager.add_callback(CallbackType.WHEN_CLICKED, _noop)
 
-    result = []
-
-    def my_callback():
-        pass
-
-    @play.when_program_starts
-    def check():
-        # Add a custom callback
-        callback_manager.add_callback(CallbackType.REPEAT_FOREVER, my_callback)
-        callbacks = callback_manager.get_callbacks(CallbackType.REPEAT_FOREVER)
-        result.append(callbacks is not None)
-        result.append(len(callbacks) > 0)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] is True
-    assert result[1] is True
+    assert _noop.type is CallbackType.WHEN_CLICKED
 
 
-def test_add_callback_with_discriminator():
-    """Test adding a callback with discriminator."""
-    import play
-    from play.callback import callback_manager, CallbackType
+def test_the_first_callback_tells_the_manager_owner(manager):
+    told = []
+    manager.on_first_callback = lambda: told.append(True)
 
-    result = []
+    manager.add_callback(CallbackType.REPEAT_FOREVER, _noop)
 
-    def my_callback():
-        pass
-
-    @play.when_program_starts
-    def check():
-        callback_manager.add_callback(CallbackType.PRESSED_KEYS, my_callback, "space")
-        callbacks = callback_manager.get_callback(CallbackType.PRESSED_KEYS, "space")
-        result.append(callbacks is not None)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] is True
+    assert told == [True]
 
 
-def test_get_callbacks():
-    """Test getting all callbacks of a type."""
-    import play
-    from play.callback import callback_manager, CallbackType
+def test_remove_callbacks_empties_one_key_and_leaves_the_others(manager):
+    manager.add_callback(CallbackType.PRESSED_KEYS, _noop, "space")
+    manager.add_callback(CallbackType.PRESSED_KEYS, _other, "a")
 
-    result = []
+    manager.remove_callbacks(CallbackType.PRESSED_KEYS, "space")
+    manager.remove_callbacks(CallbackType.WHEN_RESIZED)
 
-    @play.when_program_starts
-    def check():
-        # WHEN_PROGRAM_START should have at least this callback
-        callbacks = callback_manager.get_callbacks(CallbackType.WHEN_PROGRAM_START)
-        result.append(callbacks is not None)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] is True
+    assert manager.get_callback(CallbackType.PRESSED_KEYS, "space") == []
+    assert manager.get_callback(CallbackType.PRESSED_KEYS, "a") == [_other]
 
 
-def test_get_callback_with_list():
-    """Test getting callbacks with list of types."""
-    import play
-    from play.callback import callback_manager, CallbackType
+def test_take_callbacks_on_removes_only_those_aimed_at_the_target(manager):
+    target, bystander = object(), object()
+    manager.add_callback(CallbackType.WHEN_TOUCHING, (_noop, target), "key")
+    manager.add_callback(CallbackType.WHEN_TOUCHING, (_other, bystander), "key")
 
-    result = []
+    taken = manager.take_callbacks_on(CallbackType.WHEN_TOUCHING, "key", target)
 
-    @play.when_program_starts
-    def check():
-        callbacks = callback_manager.get_callback(
-            [CallbackType.WHEN_PROGRAM_START, CallbackType.REPEAT_FOREVER]
-        )
-        result.append(isinstance(callbacks, list))
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] is True
+    assert taken == [_noop]
+    assert manager.get_callback(CallbackType.WHEN_TOUCHING, "key") == [
+        (_other, bystander)
+    ]
 
 
-def test_run_callbacks():
-    """Test running callbacks."""
-    import play
-    from play.callback import callback_manager, CallbackType
+def test_run_callbacks_inline_runs_them_in_order_before_returning(manager):
+    order = []
 
-    callback_ran = [False]
+    async def first():
+        order.append("first")
 
-    async def test_callback():
-        callback_ran[0] = True
+    async def second():
+        order.append("second")
+
+    manager.add_callback(CallbackType.REPEAT_FOREVER, first)
+    manager.add_callback(CallbackType.REPEAT_FOREVER, second)
+    manager.add_callback(CallbackType.WHEN_PROGRAM_START, second)
+
+    _run(manager.run_callbacks_inline(CallbackType.REPEAT_FOREVER))
+
+    assert order == ["first", "second"]
+
+
+def test_run_callbacks_inline_of_a_type_without_callbacks_runs_nothing(manager):
+    ran = []
+
+    async def other_type():
+        ran.append(True)
+
+    manager.add_callback(CallbackType.REPEAT_FOREVER, other_type)
+
+    _run(manager.run_callbacks_inline(CallbackType.WHEN_RESIZED))
+
+    assert ran == []
+
+
+def test_run_callbacks_inline_skips_a_callback_that_is_still_running(manager):
+    ran = []
+
+    async def busy():
+        ran.append(True)
+
+    busy.is_running = True
+    manager.add_callback(CallbackType.REPEAT_FOREVER, busy)
+
+    _run(manager.run_callbacks_inline(CallbackType.REPEAT_FOREVER))
+
+    assert ran == []
+
+
+def test_a_callback_added_while_the_game_runs_runs_in_the_next_frames():
+    ran = []
+
+    async def added_later():
+        ran.append(True)
 
     @play.when_program_starts
     def setup():
-        callback_manager.add_callback(CallbackType.REPEAT_FOREVER, test_callback)
+        play.callback.callback_manager.add_callback(
+            CallbackType.REPEAT_FOREVER, added_later
+        )
 
-    frame_count = [0]
+    frames = []
 
     @play.repeat_forever
-    def check():
-        frame_count[0] += 1
-        if frame_count[0] > 5:
+    def count():
+        frames.append(1)
+        if len(frames) == 5:
             play.stop_program()
 
     play.start_program()
 
-    assert callback_ran[0] is True
+    assert ran == [True] * 5
 
 
-def test_run_callbacks_inline():
-    """Test that run_callbacks_inline awaits callbacks directly (not as tasks)."""
-    import asyncio
-    from play.callback import CallbackManager, CallbackType
+def test_run_callbacks_starts_each_callback_but_skips_one_still_running():
+    ran = []
 
-    cm = CallbackManager()
-    execution_order = []
+    async def listener():
+        ran.append("listener")
 
-    async def cb_a():
-        execution_order.append("a")
+    async def busy():
+        ran.append("busy")
 
-    async def cb_b():
-        execution_order.append("b")
+    busy.is_running = True
+    manager = play.callback.callback_manager
+    manager.add_callback(CallbackType.WHEN_RESIZED, listener)
+    manager.add_callback(CallbackType.WHEN_RESIZED, busy)
 
-    cm.add_callback(CallbackType.REPEAT_FOREVER, cb_a)
-    cm.add_callback(CallbackType.REPEAT_FOREVER, cb_b)
+    @play.when_program_starts
+    async def fire():
+        manager.run_callbacks(CallbackType.WHEN_RESIZED)
+        await play.animate()
+        play.stop_program()
 
-    loop = asyncio.new_event_loop()
-    loop.run_until_complete(cm.run_callbacks_inline(CallbackType.REPEAT_FOREVER))
-    loop.close()
+    play.start_program()
 
-    # Both callbacks ran in order, synchronously within the same coroutine
-    assert execution_order == ["a", "b"]
-
-
-def test_run_callbacks_inline_skips_missing_type():
-    """Test that run_callbacks_inline returns immediately for unregistered types."""
-    import asyncio
-    from play.callback import CallbackManager, CallbackType
-
-    cm = CallbackManager()
-    loop = asyncio.new_event_loop()
-    # Should not raise — just returns immediately
-    loop.run_until_complete(cm.run_callbacks_inline(CallbackType.WHEN_RESIZED))
-    loop.close()
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    assert ran == ["listener"]

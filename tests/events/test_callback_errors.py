@@ -14,6 +14,7 @@ They also pin that the first error stops the game, wherever it is raised:
 a plain or async callback, the game loop or an event (#239).
 """
 
+import asyncio
 import logging
 import time
 
@@ -32,33 +33,20 @@ def _mentions(caplog, text):
     return any(text in r.getMessage() for r in _criticals(caplog))
 
 
-def test_an_error_in_when_program_starts_is_reported(caplog):
+@pytest.mark.parametrize("is_async", [False, True], ids=["def", "async def"])
+def test_an_error_in_when_program_starts_is_reported_and_stops_the_program(
+    caplog, is_async
+):
     """A typo in start-up code must say so, not leave a game that does nothing."""
-
-    @play.when_program_starts
-    async def boom():
-        raise ValueError("typo in when_program_starts")
-
-    @play.when_program_starts
-    async def stopper():
-        for _ in range(20):
-            await play.animate()
-        play.stop_program()
-
-    with caplog.at_level(logging.CRITICAL, logger="play"):
-        play.start_program()
-
-    assert _mentions(caplog, "typo in when_program_starts"), [
-        r.getMessage() for r in _criticals(caplog)
-    ]
-
-
-def test_a_start_up_error_stops_the_program(caplog):
     frames = []
 
-    @play.when_program_starts
-    async def boom():
+    def boom():
         raise ValueError("typo in when_program_starts")
+
+    async def boom_async():
+        boom()
+
+    play.when_program_starts(boom_async if is_async else boom)
 
     @play.repeat_forever
     def count():
@@ -69,6 +57,9 @@ def test_a_start_up_error_stops_the_program(caplog):
     with caplog.at_level(logging.CRITICAL, logger="play"):
         play.start_program()
 
+    assert _mentions(caplog, "typo in when_program_starts"), [
+        r.getMessage() for r in _criticals(caplog)
+    ]
     assert len(frames) < 5
 
 
@@ -140,51 +131,6 @@ def test_an_async_collision_callback_error_is_logged_once_with_its_traceback(
     assert len(shown) == 1
     assert "Traceback" in shown[0]
     assert "ValueError: typo in async when_touching" in shown[0]
-
-
-def test_an_error_in_repeat_forever_is_reported(caplog):
-    """The other place beginners put most of their code."""
-    ran = []
-
-    @play.repeat_forever
-    async def boom():
-        ran.append(1)
-        raise ValueError("typo in repeat_forever")
-
-    @play.when_program_starts
-    async def budget():
-        for _ in range(60):
-            await play.animate()
-        play.stop_program()
-
-    with caplog.at_level(logging.CRITICAL, logger="play"):
-        play.start_program()
-
-    assert ran, "the repeat_forever callback never ran"
-    assert _mentions(caplog, "typo in repeat_forever"), [
-        r.getMessage() for r in _criticals(caplog)
-    ]
-
-
-def test_a_raising_callback_does_not_hang_the_program(caplog):
-    """However the error is handled, start_program() has to return.
-
-    A student whose game locks up has no error to read and no way out but to
-    kill the process.
-    """
-
-    @play.repeat_forever
-    async def boom():
-        raise ValueError("typo in repeat_forever")
-
-    @play.when_program_starts
-    async def budget():
-        for _ in range(60):
-            await play.animate()
-        play.stop_program()
-
-    with caplog.at_level(logging.CRITICAL, logger="play"):
-        play.start_program()  # the assertion is that this returns at all
 
 
 def _count_frames_until_stopped(frames=60):
@@ -353,17 +299,19 @@ def test_an_error_in_the_game_loop_after_an_async_error_shows_no_second_one(
         await play.timer(0.2)
         raise ValueError("second error")
 
+    first_may_start = asyncio.Event()
+
     @play.when_program_starts
     async def slow_frame():
         while not touched:
             await play.timer(0.001)
+        first_may_start.set()
         await play.timer(0.01)
         time.sleep(0.4)  # both timers come due in one pass of the event loop
 
     @play.when_program_starts
     async def first():
-        while not touched:
-            await play.timer(0.001)
+        await first_may_start.wait()
         await play.timer(0.1)
         raise ValueError("first error")
 

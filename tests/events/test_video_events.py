@@ -155,9 +155,9 @@ def test_when_video_frame_changes_receives_the_time(video_file, fake_clock):
 
     video.play()
     for _ in range(4):
+        wait_for_frames(video)
         fake_clock.advance(0.2)
         video._tick()
-        time.sleep(0.02)
     pump()
 
     assert seen, "expected at least one frame event"
