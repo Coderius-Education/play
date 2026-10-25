@@ -283,3 +283,25 @@ def test_sprites_are_synced_once_per_frame_when_nothing_touches(sim_steps, monke
     _run_frames([])
 
     assert len(syncs) == 3 * FRAMES
+
+
+def test_sprites_are_synced_again_only_in_sub_steps_where_a_contact_changes(
+    monkeypatch,
+):
+    play.set_physics_simulation_steps(10)
+    for x in (-200, 0, 200):
+        ball = play.new_circle(x=x, y=250, radius=10)
+        ball.start_physics(y_speed=600, obeys_gravity=False)
+        ball.when_touching_wall(lambda: None)
+    syncs = []
+    original = play.core.sprites_loop.update_sprite_physics
+
+    def counting_sync(sprite):
+        syncs.append(sprite)
+        original(sprite)
+
+    monkeypatch.setattr(play.core.sprites_loop, "update_sprite_physics", counting_sync)
+
+    _run_frames([])
+
+    assert 3 * FRAMES < len(syncs) <= 3 * FRAMES + 3 * 4

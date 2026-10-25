@@ -1,152 +1,94 @@
-"""Tests for wall side parameter in when_touching_wall and when_stopped_touching_wall."""
+"""The wall parameter of when_touching_wall and when_stopped_touching_wall."""
 
 import pytest
 
+import play
+from play.callback.collision_callbacks import WallSide
 
-def test_wallside_enum_exists():
-    """Test that WallSide enum is accessible from play module."""
-    import play
-
-    assert hasattr(play, "WallSide")
-    assert hasattr(play.WallSide, "TOP")
-    assert hasattr(play.WallSide, "BOTTOM")
-    assert hasattr(play.WallSide, "LEFT")
-    assert hasattr(play.WallSide, "RIGHT")
+ALL_WALLS = [WallSide.RIGHT, WallSide.TOP, WallSide.LEFT, WallSide.BOTTOM]
 
 
-def test_wallside_enum_values():
-    """Test WallSide enum values."""
-    import play
-
-    assert play.WallSide.TOP.value == "top"
-    assert play.WallSide.BOTTOM.value == "bottom"
-    assert play.WallSide.LEFT.value == "left"
-    assert play.WallSide.RIGHT.value == "right"
+def _ball_round_the_screen():
+    """A ball that touches the right, top, left and bottom wall, in that order."""
+    ball = play.new_circle(x=300, y=200, radius=10)
+    ball.start_physics(x_speed=600, y_speed=300, obeys_gravity=False)
+    return ball
 
 
-def test_walls_have_wall_side_attribute():
-    """Test that walls have wall_side attribute."""
-    import play
-    from play.globals import globals_list
+def _run_frames(frames=150):
+    counted = [0]
 
-    # There should be 4 walls
-    assert len(globals_list.walls) == 4
+    @play.repeat_forever
+    def step():
+        counted[0] += 1
+        if counted[0] == frames:
+            play.stop_program()
 
-    # Each wall should have a wall_side attribute
-    wall_sides = [wall.wall_side for wall in globals_list.walls]
-    assert play.WallSide.TOP in wall_sides
-    assert play.WallSide.BOTTOM in wall_sides
-    assert play.WallSide.LEFT in wall_sides
-    assert play.WallSide.RIGHT in wall_sides
+    play.start_program()
 
 
-def test_when_touching_wall_no_filter():
-    """Test when_touching_wall without wall filter registers for all walls."""
-    import play
-    from play.callback import callback_manager, CallbackType
+def test_wall_sides_are_play_wall_side_with_readable_values():
+    assert play.WallSide is WallSide
+    assert {side.name: side.value for side in play.WallSide} == {
+        "TOP": "top",
+        "BOTTOM": "bottom",
+        "LEFT": "left",
+        "RIGHT": "right",
+    }
 
-    box = play.new_box(color="red", x=0, y=0, width=50, height=50)
 
-    callback_called = []
+@pytest.mark.parametrize(
+    "wall, expected",
+    [
+        (None, ALL_WALLS),
+        (WallSide.LEFT, [WallSide.LEFT]),
+        ([WallSide.LEFT, WallSide.RIGHT], [WallSide.RIGHT, WallSide.LEFT]),
+        ([WallSide.BOTTOM, WallSide.TOP], [WallSide.TOP, WallSide.BOTTOM]),
+    ],
+    ids=["every wall", "one wall", "two walls", "top and bottom"],
+)
+@pytest.mark.parametrize("event", ["when_touching_wall", "when_stopped_touching_wall"])
+def test_a_wall_callback_runs_only_for_the_walls_it_names(event, wall, expected):
+    ball = _ball_round_the_screen()
+    touched = []
 
-    @box.when_touching_wall
+    def on_wall(wall):
+        touched.append(wall)
+
+    getattr(ball, event)(on_wall, wall=wall)
+
+    _run_frames()
+
+    assert touched == expected
+
+
+def test_a_wall_callback_may_leave_out_the_wall_parameter():
+    ball = _ball_round_the_screen()
+    touched = []
+
+    @ball.when_touching_wall
     def on_wall():
-        callback_called.append(True)
+        touched.append("touched")
 
-    # Verify callbacks were registered for all 4 walls
-    callbacks = list(
-        callback_manager.get_callback([CallbackType.WHEN_TOUCHING_WALL], id(box))
-    )
-    assert len(callbacks) == 4
+    _run_frames()
+
+    assert touched == ["touched"] * 4
 
 
-def test_when_touching_wall_with_single_wall_filter():
-    """Test when_touching_wall with single wall filter."""
-    import play
-    from play.callback import callback_manager, CallbackType
+@pytest.mark.xfail(
+    strict=True,
+    reason="a second when_touching_wall on a sprite silently replaces the first",
+)
+@pytest.mark.parametrize("event", ["when_touching_wall", "when_stopped_touching_wall"])
+def test_a_second_wall_callback_does_not_silently_replace_the_first(event):
+    ball = _ball_round_the_screen()
+    left, every = [], []
+    getattr(ball, event)(lambda: left.append("left"), wall=WallSide.LEFT)
+    try:
+        getattr(ball, event)(lambda: every.append("any"))
+    except ValueError:
+        return
 
-    box = play.new_box(color="blue", x=0, y=0, width=50, height=50)
+    _run_frames()
 
-    callback_called = []
-
-    @box.when_touching_wall(wall=play.WallSide.LEFT)
-    def on_left_wall():
-        callback_called.append(True)
-
-    # Verify callback was registered only for LEFT wall
-    callbacks = list(
-        callback_manager.get_callback([CallbackType.WHEN_TOUCHING_WALL], id(box))
-    )
-    assert len(callbacks) == 1
-
-    # Verify the wall_side is LEFT
-    wrapper, wall_side = callbacks[0]
-    assert wall_side == play.WallSide.LEFT
-
-
-def test_when_touching_wall_with_multiple_wall_filter():
-    """Test when_touching_wall with multiple walls filter."""
-    import play
-    from play.callback import callback_manager, CallbackType
-
-    box = play.new_box(color="green", x=0, y=0, width=50, height=50)
-
-    callback_called = []
-
-    @box.when_touching_wall(wall=[play.WallSide.LEFT, play.WallSide.RIGHT])
-    def on_side_walls():
-        callback_called.append(True)
-
-    # Verify callbacks were registered for LEFT and RIGHT walls only
-    callbacks = list(
-        callback_manager.get_callback([CallbackType.WHEN_TOUCHING_WALL], id(box))
-    )
-    assert len(callbacks) == 2
-
-    wall_sides = [cb[1] for cb in callbacks]
-    assert play.WallSide.LEFT in wall_sides
-    assert play.WallSide.RIGHT in wall_sides
-    assert play.WallSide.TOP not in wall_sides
-    assert play.WallSide.BOTTOM not in wall_sides
-
-
-def test_when_stopped_touching_wall_with_filter():
-    """Test when_stopped_touching_wall with wall filter."""
-    import play
-    from play.callback import callback_manager, CallbackType
-
-    box = play.new_box(color="yellow", x=0, y=0, width=50, height=50)
-
-    callback_called = []
-
-    @box.when_stopped_touching_wall(wall=play.WallSide.TOP)
-    def on_stopped_top():
-        callback_called.append(True)
-
-    # Verify callback was registered for TOP wall
-    callbacks = list(
-        callback_manager.get_callback(
-            [CallbackType.WHEN_STOPPED_TOUCHING_WALL], id(box)
-        )
-    )
-    assert len(callbacks) == 1
-
-    wrapper, wall_side = callbacks[0]
-    assert wall_side == play.WallSide.TOP
-
-
-def test_when_touching_wall_callback_receives_wall_parameter():
-    """Test that callback can optionally receive wall parameter."""
-    import play
-
-    box = play.new_box(color="purple", x=0, y=0, width=50, height=50)
-
-    # This should work without errors - callback takes wall parameter
-    @box.when_touching_wall
-    def on_wall_with_param(wall):
-        pass
-
-    # This should also work - callback takes no parameter
-    @box.when_touching_wall
-    def on_wall_no_param():
-        pass
+    assert (left, every) == (["left"], ["any"] * 4)

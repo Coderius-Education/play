@@ -360,6 +360,23 @@ def test_a_sprite_growing_back_on_the_floor_stops_touching_it_when_it_leaves():
     assert log.count("stopped") == 1
 
 
+def test_a_sprite_restarted_without_area_gets_no_wall_callbacks_when_it_leaves_the_floor():
+    box = play.new_box(y=-280, width=20, height=20)
+    box.start_physics(bounciness=0)
+
+    def shrink_restart_then_jump(frame):
+        if frame == 30:
+            box.size = 0
+            box.start_physics(bounciness=0)
+        if frame == 90:
+            box.physics.y_speed = 300
+
+    log = _wall_callbacks_of(box, shrink_restart_then_jump, frames=150)
+
+    assert log == ["touching"] * len(log)
+    assert len(log) < 31
+
+
 @pytest.mark.parametrize(
     "make",
     [_Flag, _shown_tooltip, play.new_slider, WIDGETS["dropdown"]],
