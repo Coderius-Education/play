@@ -63,3 +63,17 @@ def test_the_speed_a_student_reads_turns_round_after_a_bounce():
 
     assert speeds[0] == pytest.approx(300)
     assert speeds[-1] < 0
+
+
+def test_a_nan_physics_coordinate_is_ignored_and_the_other_one_still_follows():
+    import asyncio
+
+    import play
+    from play.core.sprites_loop import update_sprites
+
+    sprite = play.new_box(x=100, y=100)
+    sprite.physics._pymunk_body.position = (float("nan"), 70)
+
+    asyncio.run(update_sprites())
+
+    assert (sprite.x, sprite.y) == (100, 70)

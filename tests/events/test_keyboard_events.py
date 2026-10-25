@@ -196,3 +196,14 @@ class _KeyEvent:  # pylint: disable=too-few-public-methods
 )
 def test_keys_are_named_as_students_write_them(key, name):
     assert key_num_to_name(_KeyEvent(key)) == name
+
+
+def test_two_keyboard_states_do_not_share_their_keys():
+    from play.io.keypress import KeyboardState
+
+    first, second = KeyboardState(), KeyboardState()
+    first.pressed.add("a")
+    first.released.add("b")
+
+    assert "a" not in second.pressed
+    assert "b" not in second.released

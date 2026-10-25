@@ -154,3 +154,19 @@ def test_frames_render_during_when_key_released_timer():
         f"Expected at least 1 flip during await, got: {flips_during_callback}. "
         "Game loop froze while @when_key_released callback was suspended."
     )
+
+
+def test_a_plain_async_function_can_repeat_forever():
+    import play
+
+    runs = []
+
+    async def simple_callback():
+        runs.append(1)
+        if len(runs) == 3:
+            play.stop_program()
+
+    play.repeat_forever(simple_callback)
+    play.start_program()
+
+    assert runs == [1, 1, 1]

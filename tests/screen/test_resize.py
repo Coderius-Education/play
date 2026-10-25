@@ -134,3 +134,21 @@ def test_dragging_the_window_bigger_runs_when_resized_with_the_new_size():
     play.start_program()
 
     assert sizes == [(1000, 700)]
+
+
+def test_a_resizable_screen_says_so_and_asks_for_a_resizable_window(monkeypatch):
+    import pygame
+    import play
+
+    flags_asked = []
+    set_mode = pygame.display.set_mode
+
+    def spy(size, flags=0, *args, **kwargs):
+        flags_asked.append(flags)
+        return set_mode(size, flags, *args, **kwargs)
+
+    monkeypatch.setattr(pygame.display, "set_mode", spy)
+    play.screen.resizable = True
+
+    assert play.screen.resizable is True
+    assert flags_asked[-1] & pygame.RESIZABLE

@@ -1,5 +1,9 @@
-import pytest
+import math
+
 import pygame
+import pytest
+
+import play
 from play.objects.image import Image
 
 
@@ -79,3 +83,57 @@ def test_growing_and_shrinking_back_does_not_wear_the_picture_down(mock_image_fi
 
     assert img.image.get_size() == (50, 50)
     assert tuple(img.image.get_at((0, 0)))[:3] == (255, 0, 0)
+
+
+def _picture(tmp_path, width, height):
+    import pygame
+
+    path = tmp_path / "picture.png"
+    pygame.image.save(pygame.Surface((width, height)), str(path))
+    return str(path)
+
+
+def test_an_image_turns_with_its_physics_body(tmp_path):
+    import play
+
+    image = play.new_image(image=_picture(tmp_path, 40, 30), x=100, y=100)
+    image.update()
+    assert image.rect.size == (40, 30)
+
+    image.physics._pymunk_body.angle = math.radians(90)
+    image._should_recompute = True
+    image.update()
+
+    assert image.rect.size == (30, 40)
+
+
+@pytest.mark.parametrize(
+    "picture_size, size, expected",
+    [((40, 30), 50, (20, 15)), ((3, 3), 10, (1, 1)), ((25, 25), 218, (54, 54))],
+)
+def test_an_image_size_is_rounded_and_never_below_one_pixel(
+    tmp_path, picture_size, size, expected
+):
+    import play
+
+    image = play.new_image(image=_picture(tmp_path, *picture_size), size=size)
+
+    assert (image.width, image.height) == expected
+
+
+def test_an_image_clone_keeps_its_place_size_angle_and_picture(tmp_path):
+    picture = tmp_path / "picture.png"
+    pygame.image.save(pygame.Surface((40, 30)), str(picture))
+    image = play.new_image(
+        image=str(picture), x=-100, y=100, size=50, angle=45, transparency=50
+    )
+
+    clone = image.clone()
+
+    assert (clone.x, clone.y) == (-100, 100)
+    assert (clone.size, clone.angle, clone.transparency) == (50, 45, 50)
+    assert clone.image_filename == str(picture)
+    clone.size = 100
+    clone.angle = 0
+    clone.update()
+    assert clone.rect.size == (40, 30)

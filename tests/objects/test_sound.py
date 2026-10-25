@@ -5,6 +5,7 @@ import struct
 import time
 import wave
 
+import pygame
 import pytest
 
 import play
@@ -257,3 +258,15 @@ def test_with_no_free_channel_play_warns_and_stays_silent(
 
     assert any("No available channels" in r.message for r in caplog.records)
     assert sound.playing is False
+
+
+def test_a_sound_without_an_audio_device_warns_instead_of_crashing(monkeypatch, caplog):
+    def no_device():
+        raise pygame.error("Audio target 'nosuchdriver' not available")
+
+    monkeypatch.setattr(pygame.mixer, "init", no_device)
+
+    sound = play.new_sound("missing.wav")
+
+    assert sound.sound is None
+    assert any("no audio device" in record.getMessage() for record in caplog.records)

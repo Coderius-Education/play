@@ -2,9 +2,11 @@
 
 import itertools
 
+import pygame
 import pytest
 
 import play
+from play.io.screen import screen
 from tests.events.frames import mouse_down, mouse_move, mouse_up, play_frames
 
 
@@ -71,3 +73,24 @@ def test_a_click_moves_the_mouse_to_where_it_happened():
     play_frames([mouse_down(-150, 75)])
 
     assert where == [(-150, 75)]
+
+
+def test_a_click_without_mouse_motion_lands_where_it_was_made():
+    box = play.new_box(x=150, y=100, width=60, height=60)
+    clicked = []
+    box.when_clicked(lambda: clicked.append(1))
+    pos = (int(screen.width / 2 + 150), int(screen.height / 2 - 100))
+
+    @play.when_program_starts
+    async def click():
+        await play.animate()
+        pygame.event.post(pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=pos, button=1))
+        await play.animate()
+        pygame.event.post(pygame.event.Event(pygame.MOUSEBUTTONUP, pos=pos, button=1))
+        for _ in range(3):
+            await play.animate()
+        play.stop_program()
+
+    play.start_program()
+
+    assert clicked == [1]
