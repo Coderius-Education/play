@@ -111,7 +111,7 @@ def test_timer_waits_the_given_number_of_seconds():
     play.start_program()
 
     assert result[0] is True
-    assert result[1] >= 0.1
+    assert result[1] >= 0.1 - time.get_clock_info("monotonic").resolution
 
 
 def test_animate_waits_for_the_next_frame():
