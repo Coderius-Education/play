@@ -206,3 +206,38 @@ def test_seek_after_the_end_resumes_decoding(video_file):
         assert timestamp >= 0.4
     finally:
         decoder.stop()
+
+
+def test_starting_a_decoder_twice_still_delivers_each_frame_once(video_file):
+    decoder = video_decoder.FrameDecoder(video_file)
+    decoder.start()
+    decoder.start()
+    try:
+        frames = _collect(decoder, 8)
+        timestamps = [frame[1] for frame in frames]
+
+        assert len(timestamps) == 8
+        assert timestamps == sorted(set(timestamps))
+    finally:
+        decoder.stop()
+
+
+class Frame:  # pylint: disable=too-few-public-methods
+    def __init__(self, time):
+        self.time = time
+
+
+def test_skipping_ahead_keeps_frames_that_carry_no_time():
+    frames = [Frame(0.0), Frame(0.5), Frame(None), Frame(1.0)]
+
+    kept = list(video_decoder.FrameDecoder._skip_until(iter(frames), 0.75))
+
+    assert [frame.time for frame in kept] == [None, 1.0]
+
+
+def test_skipping_ahead_starts_at_the_frame_on_the_requested_time():
+    frames = [Frame(t / 10) for t in range(10)]
+
+    kept = list(video_decoder.FrameDecoder._skip_until(iter(frames), 0.5))
+
+    assert [frame.time for frame in kept] == [0.5, 0.6, 0.7, 0.8, 0.9]

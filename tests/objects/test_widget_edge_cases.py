@@ -6,6 +6,7 @@ than an exotic case, and several widgets size their hit-shape from
 ``font.size(label)``.
 """
 
+import pygame
 import pytest
 import play
 from play.io.mouse import mouse
@@ -17,9 +18,6 @@ def setup_play(clean_play_state):
     pass
 
 
-# ── a slider narrower than its own thumb ──────────────────────────────────────
-
-
 def test_narrow_slider_is_still_draggable():
     # Regression: the default 12px thumb on a 20px track made track_width
     # negative, so every drag pinned the value to min_value.
@@ -27,21 +25,17 @@ def test_narrow_slider_is_still_draggable():
     click_at(0, 0, s, hold=True)
     mouse.x = 40  # well past the right edge
     s.update()
+    assert s.value == 100
+    mouse.x = -40
+    s.update()
+    assert s.value == 0
     mouse._is_clicked = False
-    assert s.value > 0
 
 
-def test_narrow_slider_thumb_fits_the_track():
-    s = play.new_slider(x=0, y=0, width=20)
-    assert s._thumb_radius * 2 < 20
-
-
-def test_normal_slider_thumb_is_untouched():
-    s = play.new_slider(x=0, y=0, width=200, thumb_radius=12)
-    assert s._thumb_radius == 12
-
-
-# ── max_length=0 ──────────────────────────────────────────────────────────────
+@pytest.mark.parametrize("width, height", [(20, 38), (200, 44)])
+def test_a_thumb_is_shrunk_only_when_it_would_not_fit_the_track(width, height):
+    s = play.new_slider(x=0, y=0, width=width, height=20, thumb_radius=12)
+    assert s.image.get_size() == (width, height)
 
 
 def test_max_length_zero_rejects_all_input():
@@ -53,9 +47,6 @@ def test_max_length_zero_rejects_all_input():
 def test_max_length_zero_truncates_the_initial_value():
     ti = play.new_text_input(value="preset", max_length=0)
     assert ti.value == ""
-
-
-# ── an empty dropdown ─────────────────────────────────────────────────────────
 
 
 def test_empty_dropdown_opens_and_closes_without_error():
@@ -84,18 +75,12 @@ def test_options_emptied_at_runtime_clears_the_selection():
     assert dd.selected_value is None
 
 
-# ── a label that shrinks back to nothing ──────────────────────────────────────
-
-
 def test_checkbox_label_cleared_shrinks_the_widget():
     cb = play.new_checkbox(label="A very long label indeed", x=0, y=0, size_px=24)
     wide = cb.width
     cb.label = ""
     assert cb.width < wide
     assert cb.width == 24  # back to the bare box
-
-
-# ── non-ASCII labels ──────────────────────────────────────────────────────────
 
 
 @pytest.mark.parametrize("label", ["Geluid aan", "Café", "Grüße", "€10", "Ω"])
@@ -107,15 +92,20 @@ def test_widgets_accept_non_ascii_labels(label):
     cb.update()
     rb.update()
     assert cb.label == label
-    # The hit-shape is sized from font.size(label), so it must be wide enough
-    # to cover the drawn widget rather than collapsing to the bare box.
-    assert cb.width >= 24
-    assert cb.image.get_width() >= 24
-    assert rb.image.get_width() >= 22
+    assert cb.image.get_width() > 24 + 10
+    assert rb.image.get_width() > 22 + 10
+    click_at(cb.image.get_width() / 2 - 2, -60, cb, rb)
+    click_at(rb.image.get_width() / 2 - 2, 60, cb, rb)
+    assert cb.checked is True
+    assert rb.selected is True
 
 
 def test_non_ascii_text_input_round_trips():
     ti = play.new_text_input(value="")
     ti._handle_text_input("Grüße")
     assert ti.value == "Grüße"
-    assert ti._cursor_pos == 5  # characters, not bytes
+    ti._handle_keydown(
+        pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_LEFT, "mod": 0})
+    )
+    ti._handle_text_input("!")
+    assert ti.value == "Grüß!e"

@@ -28,13 +28,8 @@ def pytest_collection_modifyitems(config, items):
         return
     skip_slow = pytest.mark.skip(reason="need --runslow option to run")
     for item in items:
-        if "slow" in item.keywords or "stress" in str(item.path):
+        if "slow" in item.keywords or item.path.parent.name == "stress":
             item.add_marker(skip_slow)
-
-
-# ---------------------------------------------------------------------------
-# Shared mouse-event helpers (used by tests/events/ and tests/projects/)
-# ---------------------------------------------------------------------------
 
 
 UPDATES_PER_CLICK = 10
@@ -64,6 +59,22 @@ def click_at(x, y, *widgets, hold=False):
     mouse_state.clear()
     if not hold:
         mouse._is_clicked = False
+
+
+def end_click():
+    """Finish a click: clear the frame's mouse state and release the button."""
+    from play.io.mouse import mouse
+    from play.core.mouse_loop import mouse_state
+
+    mouse_state.clear()
+    mouse._is_clicked = False
+
+
+def keydown_event(key, mod=0):
+    """A KEYDOWN event for *key* with modifier keys *mod*, as a focused text field gets it."""
+    import pygame
+
+    return pygame.event.Event(pygame.KEYDOWN, {"key": key, "mod": mod, "unicode": ""})
 
 
 def post_mouse_motion(screen_x, screen_y):
@@ -235,6 +246,18 @@ def run_script(tmp_path):
     return run
 
 
+def image_bytes(sprite):
+    """The RGBA bytes of *sprite*'s picture, to compare two pictures exactly."""
+    import pygame
+
+    return pygame.image.tobytes(sprite.image, "RGBA")
+
+
+def color_at(sprite, x, y):
+    """The RGB of *sprite*'s own picture at pixel (x, y)."""
+    return tuple(sprite.image.get_at((x, y)))[:3]
+
+
 def count_color(surface, rgb):
     """Count pixels in *surface* whose RGB matches *rgb* (alpha ignored).
 
@@ -255,6 +278,8 @@ def count_color(surface, rgb):
                 total += 1
     return total
 
+
+_PLAY_DEFAULTS = {}
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
@@ -428,6 +453,7 @@ def clean_play_state(request):
     # The width/height setters would also rebuild the walls.
     screen._width, screen._height = 800, 600
     screen._resizable = False
+    screen.caption = _PLAY_DEFAULTS.setdefault("caption", screen.caption)
     screen.update_display()
 
     # Clean Pymunk physics spaces
@@ -471,6 +497,11 @@ def clean_play_state(request):
     mouse_state.click_release_happened = False
     mouse_state.click_owner = None
     mouse_state.click_claimants.clear()
+
+    from play.core.controller_loop import controller_state
+
+    controller_state.buttons_pressed.clear()
+    controller_state.clear()
 
     from play.io.mouse import mouse
 

@@ -1,13 +1,12 @@
-"""Tests for enhanced Button features: click_color, disabled, hover callbacks."""
-
-import asyncio
-import inspect
+"""Tests for enhanced Button features: click_color, disabled, click handlers."""
 
 import pytest
 import play
 from play.io.mouse import mouse
 from play.utils import color_name_to_rgb
-from tests.conftest import count_color
+from tests.conftest import color_at, count_color
+from tests.events.frames import mouse_down, mouse_move, mouse_up, play_frames
+from tests.objects.clone_checks import BUNDLED_FONT, appearance, middle_of
 
 
 @pytest.fixture(autouse=True)
@@ -15,325 +14,116 @@ def setup_play(clean_play_state):
     pass
 
 
-# ── async click callbacks ─────────────────────────────────────────────────────
-
-
-def test_when_clicked_preserves_async_callback():
-    # Regression: the disabled-guard wrapper must stay a coroutine function for
-    # async callbacks, otherwise the game loop never awaits them.
-    btn = play.new_button()
-
-    async def cb():
-        pass
-
-    guarded = btn._guard_disabled(cb)
-    assert inspect.iscoroutinefunction(guarded)
-
-
-def test_when_clicked_sync_callback_stays_sync():
-    btn = play.new_button()
-
-    def cb():
-        pass
-
-    guarded = btn._guard_disabled(cb)
-    assert not inspect.iscoroutinefunction(guarded)
-
-
-def test_async_guard_runs_when_enabled():
-    btn = play.new_button()
+def test_a_click_handler_can_ask_for_the_button_it_belongs_to():
+    btn = play.new_button("Go", x=0, y=0, width=100, height=50)
     seen = []
+    btn.when_clicked(seen.append, call_with_sprite=True)
 
-    async def cb():
-        seen.append(1)
+    play_frames([mouse_move(0, 0)], [mouse_down(0, 0)], [mouse_up(0, 0)])
 
-    asyncio.run(btn._guard_disabled(cb)())
-    assert seen == [1]
-
-
-def test_async_guard_skips_when_disabled():
-    btn = play.new_button(disabled=True)
-    seen = []
-
-    async def cb():
-        seen.append(1)
-
-    asyncio.run(btn._guard_disabled(cb)())
-    assert seen == []
+    assert seen == [btn]
 
 
-def test_guard_preserves_callback_signature():
-    # Regression: the guard must expose the wrapped callback's signature so the
-    # dispatcher's arg-count check works with call_with_sprite=True.
+def test_registering_a_handler_without_a_readable_signature_does_not_crash():
     btn = play.new_button()
-
-    def handler(sprite):
-        pass
-
-    guarded = btn._guard_disabled(handler)
-    assert list(inspect.signature(guarded).parameters) == ["sprite"]
-
-    def noarg():
-        pass
-
-    assert list(inspect.signature(btn._guard_disabled(noarg)).parameters) == []
+    btn.when_clicked(min)
 
 
-# ── click_color ───────────────────────────────────────────────────────────────
+@pytest.mark.parametrize("how", ["constructor", "setter"])
+def test_a_held_button_shows_its_click_colour(how):
+    navy = color_name_to_rgb("navy")
+    if how == "constructor":
+        btn = play.new_button(x=0, y=0, width=100, height=50, click_color="navy")
+    else:
+        btn = play.new_button(x=0, y=0, width=100, height=50)
+        btn.click_color = "navy"
+        assert btn.click_color == "navy"
+    mouse.x, mouse.y = 0, 0
+    btn.update()
+    assert count_color(btn.image, navy) == 0
 
-
-def test_click_color_stored():
-    btn = play.new_button(click_color="navy")
-    assert btn._click_color == "navy"
-
-
-def test_click_color_shown_when_mouse_held():
-    btn = play.new_button(x=0, y=0, width=100, height=50, click_color="navy")
-    mouse.x = 0
-    mouse.y = 0
     mouse._is_clicked = True
     btn.update()
-    assert btn._color == "navy"
-    mouse._is_clicked = False
+    assert count_color(btn.image, navy) > 0
 
 
-def test_auto_darken_when_no_click_color():
-    btn = play.new_button(x=0, y=0, width=100, height=50, hover_color="steelblue")
-    mouse.x = 0
-    mouse.y = 0
+def test_holding_the_mouse_elsewhere_does_not_press_the_button():
+    btn = play.new_button(x=0, y=0, width=100, height=50, color="blue")
+    mouse.x, mouse.y = 300, 200
     mouse._is_clicked = True
     btn.update()
-    # Auto-darken should produce an RGB tuple (darker than the hover colour)
-    assert isinstance(btn._color, tuple)
-    assert len(btn._color) == 3
-    mouse._is_clicked = False
+    assert count_color(btn.image, color_name_to_rgb("blue")) > 0
 
 
-def test_hover_color_when_not_pressed():
-    btn = play.new_button(x=0, y=0, width=100, height=50, hover_color="steelblue")
-    mouse.x = 0
-    mouse.y = 0
-    mouse._is_clicked = False
+def test_without_a_click_colour_a_held_button_darkens_its_hover_colour():
+    hover = color_name_to_rgb("steelblue")
+    btn = play.new_button("", x=0, y=0, width=100, height=50, hover_color="steelblue")
+    mouse.x, mouse.y = 0, 0
+    mouse._is_clicked = True
     btn.update()
-    assert btn._color == "steelblue"
+    held = color_at(btn, 50, 25)
+    assert all(shade < channel for shade, channel in zip(held, hover))
+    assert count_color(btn.image, hover) == 0
 
 
-# ── disabled state ────────────────────────────────────────────────────────────
-
-
-def test_disabled_defaults_to_false():
-    btn = play.new_button()
-    assert btn.disabled is False
-
-
-def test_disabled_setter():
-    btn = play.new_button()
-    btn.disabled = True
-    assert btn.disabled is True
-
-
-def test_disabled_uses_disabled_color():
-    btn = play.new_button(x=0, y=0, width=100, height=50, disabled_color="gray")
-    btn.disabled = True
-    mouse.x = 0
-    mouse.y = 0
-    btn.update()
-    assert btn._color == "gray"
-
-
-def test_disabled_ignores_hover():
+def test_a_disabled_button_shows_its_disabled_colour_even_when_hovered():
     btn = play.new_button(
-        x=0, y=0, width=100, height=50, hover_color="steelblue", disabled_color="gray"
+        x=0, y=0, width=100, height=50, hover_color="steelblue", disabled_color="silver"
     )
     btn.disabled = True
-    mouse.x = 0
-    mouse.y = 0
+    mouse.x, mouse.y = 0, 0
     btn.update()
-    assert btn._color == "gray"  # Not hover_color
+    assert count_color(btn.image, color_name_to_rgb("silver")) > 0
+    assert count_color(btn.image, color_name_to_rgb("steelblue")) == 0
 
 
-def test_disabled_custom_color_stored():
-    btn = play.new_button(disabled_color="silver", disabled_text_color="dimgray")
-    assert btn._disabled_color == "silver"
-    assert btn._disabled_text_color == "dimgray"
-
-
-def test_disabled_click_callback_suppressed():
-    # The guard wrapper must swallow the callback while disabled.
-    btn = play.new_button(x=0, y=0, width=100, height=50, disabled=True)
-    fired = []
-    guarded = btn._guard_disabled(lambda: fired.append(1))
-    guarded()
-    assert fired == []
-
-
-def test_enabled_click_callback_fires():
-    btn = play.new_button(x=0, y=0, width=100, height=50)
-    fired = []
-    guarded = btn._guard_disabled(lambda: fired.append(1))
-    guarded()
-    assert fired == [1]
-
-
-# ── when_hover / when_unhover callbacks ───────────────────────────────────────
-
-
-def test_when_hover_fires_on_enter():
-    btn = play.new_button(x=0, y=0, width=100, height=50)
-    events = []
-
-    @btn.when_hover
-    def on_hover():
-        events.append("hover")
-
-    mouse.x = 999
-    mouse.y = 999
-    btn.update()  # outside → no hover
-
-    mouse.x = 0
-    mouse.y = 0
-    btn.update()  # enters hover area
-    assert "hover" in events
-
-
-def test_when_unhover_fires_on_leave():
-    btn = play.new_button(x=0, y=0, width=100, height=50)
-    events = []
-
-    @btn.when_unhover
-    def on_leave():
-        events.append("unhover")
-
-    # Enter hover first
-    mouse.x = 0
-    mouse.y = 0
-    btn.update()
-    # Now leave
-    mouse.x = 999
-    mouse.y = 999
-    btn.update()
-    assert "unhover" in events
-
-
-def test_when_hover_not_fired_twice_without_leave():
-    btn = play.new_button(x=0, y=0, width=100, height=50)
-    count = [0]
-
-    @btn.when_hover
-    def on_hover():
-        count[0] += 1
-
-    # First ensure mouse is outside so _was_hovered starts False
-    mouse.x = 999
-    mouse.y = 999
-    btn.update()
-    # Now move into hover area
-    mouse.x = 0
-    mouse.y = 0
-    btn.update()  # enters hover — should fire
-    btn.update()  # still hovering — should NOT fire again
-    assert count[0] == 1  # fired exactly once
-
-
-def test_when_hover_rejects_async():
-    btn = play.new_button()
-    with pytest.raises(TypeError):
-
-        @btn.when_hover
-        async def bad():
-            pass
-
-
-def test_when_unhover_rejects_async():
-    btn = play.new_button()
-    with pytest.raises(TypeError):
-
-        @btn.when_unhover
-        async def bad():
-            pass
-
-
-# ── clone includes new fields ─────────────────────────────────────────────────
-
-
-def test_clone_preserves_disabled():
-    btn = play.new_button(disabled=True, disabled_color="silver")
-    c = btn.clone()
-    assert c._is_disabled is True
-    assert c._disabled_color == "silver"
-
-
-def test_clone_preserves_click_color():
-    btn = play.new_button(click_color="darkblue")
-    c = btn.clone()
-    assert c._click_color == "darkblue"
-
-
-# ── public decorator registration ────────────────────────────────────────────
-
-
-def test_when_clicked_public_decorator_respects_disabled():
-    # Registration through the public API returns an async wrapper around the
-    # guarded callback; running it fires only while the button is enabled.
-    btn = play.new_button(text="Go", x=0, y=0, width=100, height=50)
-    fired = []
-    cb = btn.when_clicked(lambda: fired.append(1))
-    asyncio.run(cb())
-    assert fired == [1]
-    btn.disabled = True
-    asyncio.run(cb())
-    assert fired == [1]  # guard swallows the call while disabled
-
-
-def test_when_click_released_public_decorator_respects_disabled():
-    btn = play.new_button(text="Go", x=0, y=0, width=100, height=50)
-    fired = []
-    cb = btn.when_click_released(lambda: fired.append(1))
-    asyncio.run(cb())
-    assert fired == [1]
-    btn.disabled = True
-    asyncio.run(cb())
-    assert fired == [1]
-
-
-def test_guard_handles_unreadable_signature():
-    # Builtins like min have no inspectable signature; the guard must not crash.
-    btn = play.new_button()
-    guarded = btn._guard_disabled(min)
-    assert not hasattr(guarded, "__signature__")
-
-
-# ── rendering ────────────────────────────────────────────────────────────────
-
-
-def test_disabled_text_color_used_when_disabled():
-    from tests.conftest import count_color
-
+@pytest.mark.parametrize("disabled", [True, False])
+def test_the_disabled_text_colour_is_used_only_while_disabled(disabled):
     btn = play.new_button(
-        text="Stop",
+        text="Stop", width=120, height=50, disabled=disabled, disabled_text_color="red"
+    )
+    assert (count_color(btn.image, (255, 0, 0)) > 0) is disabled
+
+
+def test_a_cloned_button_looks_like_the_original_resting_hovered_pressed_and_disabled():
+    btn = play.new_button(
+        "Go",
+        x=30,
+        y=20,
         width=120,
-        height=50,
-        disabled=True,
+        height=40,
+        color="blue",
+        hover_color="green",
+        click_color="orange",
+        text_color="yellow",
+        font_size=26,
+        font=BUNDLED_FONT,
+        border_radius=12,
+        transparency=70,
+        size=150,
+        anchor="top-left",
+        layer=12,
+        disabled_color="silver",
         disabled_text_color="red",
     )
-    btn._should_recompute = True
-    btn.update()
-    assert count_color(btn.image, (255, 0, 0)) > 0
+    twin = btn.clone()
+    assert appearance(twin) == appearance(btn)
+    for held in (False, True):
+        mouse.x, mouse.y = middle_of(btn)
+        mouse._is_clicked = held
+        assert appearance(twin) == appearance(btn)
+
+    btn.disabled = True
+    disabled_twin = btn.clone()
+    assert disabled_twin.disabled is True
+    assert appearance(disabled_twin) == appearance(btn)
 
 
-# ── property setters ─────────────────────────────────────────────────────────
-
-
-def test_text_color_setter():
-    from play.utils import color_name_to_rgb
-    from tests.conftest import count_color
-
+def test_setting_the_text_colour_redraws_the_label():
     btn = play.new_button()
     btn.text_color = "green"
     assert btn.text_color == "green"
-    assert btn._should_recompute is True
     btn.update()
-    # The label is actually drawn in the new colour.
     assert count_color(btn.image, color_name_to_rgb("green")) > 0
 
 
@@ -352,21 +142,6 @@ def test_hover_color_setter_reaches_the_rendered_button():
     assert count_color(btn.image, yellow) > 0
 
 
-def test_click_color_setter_reaches_the_rendered_button():
-    orange = color_name_to_rgb("orange")
-    btn = play.new_button(x=0, y=0, width=120, height=50)
-    btn.click_color = "orange"
-    assert btn.click_color == "orange"
-
-    mouse.x, mouse.y = 0, 0
-    mouse._is_clicked = True
-    try:
-        btn.update()
-        assert count_color(btn.image, orange) > 0
-    finally:
-        mouse._is_clicked = False
-
-
 def test_disabled_color_setter_reaches_the_rendered_button():
     gray = color_name_to_rgb("gray")
     btn = play.new_button(x=0, y=0, width=120, height=50)
@@ -382,8 +157,27 @@ def test_disabled_color_setter_reaches_the_rendered_button():
     assert count_color(btn.image, gray) > 0
 
 
-def test_font_size_setter_reloads_font():
-    btn = play.new_button()
-    btn.font_size = 32
-    assert btn.font_size == 32
-    assert btn._button_font.get_height() > 0
+def test_a_bigger_font_size_draws_a_bigger_label():
+    red = (255, 0, 0)
+    btn = play.new_button("Go", width=200, height=80, text_color="red")
+    small = count_color(btn.image, red)
+    btn.font_size = 40
+    assert btn.font_size == 40
+    btn.update()
+    assert count_color(btn.image, red) > small
+
+
+def test_the_label_is_centred_on_the_button():
+    btn = play.new_button("I", width=120, height=60, text_color="red")
+    red_rows = [
+        y
+        for y in range(btn.image.get_height())
+        if any(btn.image.get_at((x, y))[:3] == (255, 0, 0) for x in range(120))
+    ]
+    red_columns = [
+        x
+        for x in range(btn.image.get_width())
+        if any(btn.image.get_at((x, y))[:3] == (255, 0, 0) for y in range(60))
+    ]
+    assert (min(red_rows) + max(red_rows)) / 2 == pytest.approx(30, abs=3)
+    assert (min(red_columns) + max(red_columns)) / 2 == pytest.approx(60, abs=3)

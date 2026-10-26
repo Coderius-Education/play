@@ -38,73 +38,53 @@ def test_angled_platform_collision():
     assert block.physics._pymunk_body.position.y > ramp.physics._pymunk_body.position.y
 
 
-def test_sensor_default_is_false():
-    """The sensor flag should default to False."""
-    box = play.new_box()
-    box.start_physics(can_move=False)
-    assert box.physics.sensor is False
-
-
-def test_sensor_via_start_physics():
-    """A sensor shape detects collisions but does not block movement."""
-    platform = play.new_box(y=-50, width=200, height=20)
+def _make_sensor_at_start(platform):
+    """Make *platform* an immovable sensor in start_physics()."""
     platform.start_physics(can_move=False, sensor=True)
 
-    assert platform.physics.sensor is True
-    assert platform.physics._pymunk_shape.sensor is True
+
+def _make_sensor_later(platform):
+    """Make *platform* immovable, then a sensor through the setter."""
+    platform.start_physics(can_move=False)
+    platform.physics.sensor = True
 
 
-def test_sensor_property_setter():
-    """The sensor property can be toggled at runtime."""
-    box = play.new_box()
-    box.start_physics(can_move=False)
-
-    assert box.physics.sensor is False
-    box.physics.sensor = True
-    assert box.physics.sensor is True
-    assert box.physics._pymunk_shape.sensor is True
+def _make_sensor_then_retype(platform):
+    """Make *platform* a sensor, then switch can_move on and off again."""
+    _make_sensor_later(platform)
+    platform.physics.can_move = True
+    platform.physics.can_move = False
 
 
-def test_sensor_does_not_block():
-    """A falling block should pass through a sensor platform."""
+@pytest.mark.parametrize(
+    "make_platform, passes_through",
+    [
+        (lambda platform: platform.start_physics(can_move=False), False),
+        (_make_sensor_at_start, True),
+        (_make_sensor_later, True),
+        (_make_sensor_then_retype, True),
+    ],
+    ids=["solid", "sensor", "sensor set later", "sensor set before can_move changes"],
+)
+def test_only_a_sensor_platform_lets_a_falling_block_through(
+    make_platform, passes_through
+):
     platform = play.new_box(y=-50, width=200, height=20)
-    platform.start_physics(can_move=False, sensor=True)
-
+    make_platform(platform)
     block = play.new_box(y=0, width=20, height=20)
-    block.start_physics(obeys_gravity=True)
+    block.start_physics(obeys_gravity=True, bounciness=0)
 
-    # Step until the block has fallen past the platform (120 steps = 2s at 60fps)
-    passed_through = False
-    for _ in range(120):
-        physics_space.step(1 / 60)
-        if (
-            block.physics._pymunk_body.position.y
-            < platform.physics._pymunk_body.position.y
-        ):
-            passed_through = True
-            break
+    frames = [0]
 
-    assert passed_through, "block should fall through a sensor platform"
+    @play.repeat_forever
+    def stop_later():
+        frames[0] += 1
+        if frames[0] == 120:
+            play.stop_program()
 
+    play.start_program()
 
-def test_sensor_preserved_by_clone():
-    """Cloning a physics object should preserve the sensor flag."""
-    box = play.new_box()
-    box.start_physics(can_move=False, sensor=True)
-
-    other = play.new_box(x=50)
-    cloned = box.physics.clone(other)
-
-    assert cloned.sensor is True
-
-
-def test_sensor_setter_survives_remake():
-    """Sensor flag set via property must persist when _make_pymunk() rebuilds the shape."""
-    box = play.new_box()
-    box.start_physics(can_move=False)
-    box.physics.sensor = True
-    box.physics.can_move = True  # triggers _make_pymunk()
-    assert box.physics.sensor is True
+    assert (block.y < -50) is passes_through
 
 
 def test_sleep_disabled_on_space():

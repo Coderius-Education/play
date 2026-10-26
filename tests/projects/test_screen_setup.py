@@ -57,10 +57,15 @@ def test_screen_setup():
     play.start_program()
 
     # --- assertions ---
+    import pygame
+
     assert frames_run[0] >= MAX_FRAMES
     assert score.words == str(MAX_FRAMES - 1)
-    # Edge box should be near the right edge
+    assert pygame.display.get_surface().get_size() == (640, 480)
+    assert pygame.display.get_caption()[0] == "My Game"
     assert edge_box.x == screen.right - 20
+    assert edge_box.rect.right == 640 - 15, "the edge box is drawn 15px from the edge"
+    assert player.rect.center == (320, 240), "(0, 0) is the middle of the new screen"
 
 
 if __name__ == "__main__":

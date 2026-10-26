@@ -126,8 +126,14 @@ def test_the_hint_is_shown_once_per_line_even_when_warnings_always_show(caplog):
 
 
 def test_start_program_puts_the_warning_settings_back():
-    before = warnings.showwarning, sys.get_coroutine_origin_tracking_depth()
+    original_depth = sys.get_coroutine_origin_tracking_depth()
+    sys.set_coroutine_origin_tracking_depth(3)
+    try:
+        before = warnings.showwarning, sys.get_coroutine_origin_tracking_depth()
 
-    _run_frames()
+        _run_frames()
 
-    assert (warnings.showwarning, sys.get_coroutine_origin_tracking_depth()) == before
+        after = warnings.showwarning, sys.get_coroutine_origin_tracking_depth()
+    finally:
+        sys.set_coroutine_origin_tracking_depth(original_depth)
+    assert after == before

@@ -10,7 +10,9 @@ import pygame
 import play
 from play.io.mouse import mouse
 from play.core.mouse_loop import mouse_state, handle_mouse_events
-from tests.conftest import click_at
+from play.objects.widgets import text_input_registry as registry
+from play.utils import color_name_to_rgb
+from tests.conftest import click_at, count_color, keydown_event
 
 
 @pytest.fixture(autouse=True)
@@ -18,11 +20,8 @@ def setup_play(clean_play_state):
     pass
 
 
-def _keydown(key, mod=0):
-    return pygame.event.Event(pygame.KEYDOWN, {"key": key, "mod": mod, "unicode": ""})
-
-
 def _fake_scrap(monkeypatch, clipboard=""):
+    """Replace pygame.scrap with an in-memory fake; returns the storage dict."""
     store = {"text": clipboard}
     monkeypatch.setattr(pygame.scrap, "init", lambda: None)
     monkeypatch.setattr(
@@ -30,9 +29,6 @@ def _fake_scrap(monkeypatch, clipboard=""):
     )
     monkeypatch.setattr(pygame.scrap, "get_text", lambda: store["text"])
     return store
-
-
-# ── the mouse wheel is not a click ────────────────────────────────────────────
 
 
 @pytest.mark.parametrize("wheel_button", [4, 5])
@@ -65,40 +61,32 @@ def test_real_click_still_registers():
     assert mouse_state.click_happened is True
 
 
-# ── password fields never reach the clipboard ─────────────────────────────────
-
-
 def test_password_mode_blocks_copy(monkeypatch):
     store = _fake_scrap(monkeypatch, clipboard="untouched")
     ti = play.new_text_input(value="hunter2", password_mode=True)
-    ti._selection_start, ti._selection_end = 0, 7
-    ti._handle_keydown(_keydown(pygame.K_c, mod=pygame.KMOD_CTRL))
+    ti._handle_keydown(keydown_event(pygame.K_a, mod=pygame.KMOD_CTRL))
+    ti._handle_keydown(keydown_event(pygame.K_c, mod=pygame.KMOD_CTRL))
     assert store["text"] == "untouched"
 
 
 def test_password_mode_blocks_cut(monkeypatch):
     store = _fake_scrap(monkeypatch, clipboard="untouched")
     ti = play.new_text_input(value="hunter2", password_mode=True)
-    ti._selection_start, ti._selection_end = 0, 7
-    ti._handle_keydown(_keydown(pygame.K_x, mod=pygame.KMOD_CTRL))
+    ti._handle_keydown(keydown_event(pygame.K_a, mod=pygame.KMOD_CTRL))
+    ti._handle_keydown(keydown_event(pygame.K_x, mod=pygame.KMOD_CTRL))
     assert store["text"] == "untouched"
     assert ti.value == "hunter2"  # cut must not delete either
-
-
-# ── pasted newlines are flattened ─────────────────────────────────────────────
 
 
 def test_paste_flattens_newlines(monkeypatch):
     _fake_scrap(monkeypatch, clipboard="a\nb\r\nc\rd")
     ti = play.new_text_input(value="")
-    ti._handle_keydown(_keydown(pygame.K_v, mod=pygame.KMOD_CTRL))
+    ti._handle_keydown(keydown_event(pygame.K_v, mod=pygame.KMOD_CTRL))
     assert "\n" not in ti.value
     assert "\r" not in ti.value
     assert ti.value == "a b c d"
-    assert ti._cursor_pos == len(ti.value)
-
-
-# ── decorative widgets must not swallow clicks ────────────────────────────────
+    ti._handle_text_input("!")
+    assert ti.value == "a b c d!"
 
 
 def test_progress_bar_does_not_steal_clicks_from_a_button():
@@ -132,10 +120,8 @@ def test_tooltip_does_not_steal_clicks_from_its_target():
         mouse._is_clicked = False
 
 
-# ── a disabled or hidden slider is inert ──────────────────────────────────────
-
-
 def _start_drag(slider):
+    """Press the mouse on the middle of the screen and keep it held."""
     click_at(0, 0, slider, hold=True)
 
 
@@ -169,7 +155,6 @@ def test_disabling_mid_drag_does_not_resume_on_re_enable():
     _start_drag(s)
     s.disabled = True
     s.update()
-    assert s._dragging is False
     s.disabled = False
     mouse.x = -80
     s.update()
@@ -177,50 +162,23 @@ def test_disabling_mid_drag_does_not_resume_on_re_enable():
     mouse._is_clicked = False
 
 
-# ── one action per click, however often update() runs ─────────────────────────
-
-
-def _one_frame_of_updates(widget, times=10):
-    for _ in range(times):
-        widget.update()
-
-
-def test_checkbox_toggles_once_per_click_not_once_per_update():
-    cb = play.new_checkbox(x=0, y=0, size_px=40)
-    mouse.x, mouse.y = 0, 0
-    mouse._is_clicked = True
-    mouse_state.click_happened = True
-    mouse_state.resolve_click_owner()
-    try:
-        _one_frame_of_updates(cb)
-        assert cb.checked is True
-    finally:
-        mouse_state.clear()
-        mouse._is_clicked = False
-
-
-def test_dropdown_opens_once_per_click_not_once_per_update():
-    dd = play.new_dropdown(options=["A", "B"], x=0, y=0, width=160, height=40)
-    mouse.x, mouse.y = 0, 0
-    mouse._is_clicked = True
-    mouse_state.click_happened = True
-    mouse_state.resolve_click_owner()
-    try:
-        _one_frame_of_updates(dd)
-        assert dd.is_open is True
-    finally:
-        mouse_state.clear()
-        mouse._is_clicked = False
-
-
-# ── colour setters survive the next frame ─────────────────────────────────────
-
-
 def test_text_input_color_setter_survives_update():
     ti = play.new_text_input(value="hi", x=0, y=0, color="white")
     ti.color = "pink"
     ti.update()
+    ti.update()
     assert ti.color == "pink"
+    assert count_color(ti.image, color_name_to_rgb("pink")) > 0
+
+
+def test_a_focused_field_shows_its_active_colour_until_it_is_blurred():
+    orange = color_name_to_rgb("orange")
+    ti = play.new_text_input(x=0, y=0, active_color="orange")
+    assert count_color(ti.image, orange) == 0
+    click_at(0, 0, ti)
+    assert count_color(ti.image, orange) > 0
+    click_at(300, 250, ti)
+    assert count_color(ti.image, orange) == 0
 
 
 def test_dropdown_color_setter_survives_update():
@@ -228,4 +186,30 @@ def test_dropdown_color_setter_survives_update():
     mouse.x, mouse.y = 999, 999  # keep it unhovered
     dd.color = "pink"
     dd.update()
+    dd.update()
     assert dd.color == "pink"
+    assert count_color(dd.image, color_name_to_rgb("pink")) > 0
+
+
+def test_a_dropdown_shows_its_hover_colour_only_while_closed():
+    orange = color_name_to_rgb("orange")
+    dd = play.new_dropdown(options=["A", "B"], x=0, y=0, hover_color="orange")
+    mouse.x, mouse.y = 0, 0
+    dd.update()
+    assert count_color(dd.image, orange) > 0
+    click_at(0, 0, dd)
+    assert count_color(dd.image, orange) == 0
+
+
+def test_a_disabled_field_ignores_editing_keys_even_when_focused(monkeypatch):
+    store = _fake_scrap(monkeypatch, clipboard="pasted")
+    ti = play.new_text_input(value="abc", disabled=True)
+    registry.focus(ti)
+    for key in (pygame.K_BACKSPACE, pygame.K_DELETE):
+        ti._handle_keydown(keydown_event(key))
+    ti._handle_keydown(keydown_event(pygame.K_HOME))
+    ti._handle_keydown(keydown_event(pygame.K_v, mod=pygame.KMOD_CTRL))
+    ti._handle_keydown(keydown_event(pygame.K_a, mod=pygame.KMOD_CTRL))
+    ti._handle_keydown(keydown_event(pygame.K_c, mod=pygame.KMOD_CTRL))
+    assert ti.value == "abc"
+    assert store["text"] == "pasted"

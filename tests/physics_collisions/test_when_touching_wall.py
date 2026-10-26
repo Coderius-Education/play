@@ -1,48 +1,37 @@
 import pytest
 
+import play
+from play.callback.collision_callbacks import WallSide
 
-def test_ball_movement():
-    import play
 
-    num_frames = [0]
-    max_frames = 400
-    x_speed = 60
-    num_collisions = [0]
-    expected_num_collisions = 1
-
-    ball = play.new_circle(
-        color="black",
-        x=0,
-        y=0,
-        radius=20,
-    )
-    ball.start_physics(
-        obeys_gravity=False, x_speed=x_speed, friction=0, mass=10, bounciness=1.0
-    )
+def _run_frames(frames):
+    """Run the game loop for *frames* frames, then stop it."""
+    counted = [0]
 
     @play.repeat_forever
-    def move():
-        num_frames[0] += 1
-
-        if num_frames[0] == max_frames:
+    def stop_later():
+        counted[0] += 1
+        if counted[0] == frames:
             play.stop_program()
-
-    @ball.when_touching_wall
-    def detect_collision():
-        num_collisions[0] += 1
 
     play.start_program()
 
-    if num_collisions[0] != expected_num_collisions:
-        pytest.fail(
-            f"expected exactly one collision event, but found {num_collisions[0]}"
-        )
+
+@pytest.mark.parametrize("event", ["when_touching_wall", "when_stopped_touching_wall"])
+def test_a_ball_bouncing_off_a_wall_runs_the_wall_callback_once(event):
+    ball = play.new_circle(color="black", x=300, radius=20)
+    ball.start_physics(obeys_gravity=False, x_speed=60, friction=0, bounciness=1.0)
+    walls = []
+    getattr(ball, event)(lambda wall: walls.append(wall))
+
+    _run_frames(150)
+
+    assert walls == [WallSide.RIGHT]
+    assert ball.physics.x_speed < 0
 
 
 @pytest.mark.parametrize("wall_event", ["touching", "stopped touching"])
 def test_wall_callbacks_survive_another_sprite_starting_physics_later(wall_event):
-    import play
-
     ball = play.new_circle(radius=10)
     paddle = play.new_box(x=-300, width=20, height=100)
     ball.start_physics(x_speed=300, obeys_gravity=False)
@@ -59,18 +48,6 @@ def test_wall_callbacks_survive_another_sprite_starting_physics_later(wall_event
 
     paddle.start_physics(can_move=False)
 
-    frames = [0]
+    _run_frames(120)
 
-    @play.repeat_forever
-    def stop_later():
-        frames[0] += 1
-        if frames[0] == 120:
-            play.stop_program()
-
-    play.start_program()
-
-    assert walls
-
-
-if __name__ == "__main__":
-    test_ball_movement()
+    assert walls == ["wall"]

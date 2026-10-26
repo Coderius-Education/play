@@ -129,3 +129,19 @@ def test_one_async_callback_runs_at_once_for_each_sprite_it_touches():
     _run_frames(runs)
 
     assert max(run.at_once for run in runs.seen) == 2
+
+
+def test_an_async_wall_callback_still_running_for_one_wall_runs_for_the_next():
+    ball = play.new_circle(x=300, y=200, radius=10)
+    ball.start_physics(x_speed=600, y_speed=300, obeys_gravity=False)
+    touched = []
+
+    @ball.when_touching_wall
+    async def on_wall(wall):
+        touched.append(wall)
+        for _ in range(20):
+            await play.animate()
+
+    _run_frames(_Runs())
+
+    assert touched[:2] == [play.WallSide.RIGHT, play.WallSide.TOP]

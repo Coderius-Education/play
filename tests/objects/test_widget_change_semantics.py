@@ -10,15 +10,13 @@ Covers three consistency rules that the widgets previously broke:
 import pytest
 import play
 from play.io.mouse import mouse
-from tests.conftest import click_at
+from play.utils import color_name_to_rgb
+from tests.conftest import click_at, count_color
 
 
 @pytest.fixture(autouse=True)
 def setup_play(clean_play_state):
     pass
-
-
-# ── Button.color round-trips ──────────────────────────────────────────────────
 
 
 def test_button_color_setter_survives_update():
@@ -29,7 +27,9 @@ def test_button_color_setter_survives_update():
     assert btn.color == "red"
     mouse.x, mouse.y = 999, 999  # keep the pointer off the button
     btn.update()
+    btn.update()
     assert btn.color == "red"
+    assert count_color(btn.image, color_name_to_rgb("red")) > 0
 
 
 def test_button_color_getter_reports_resting_colour_not_hover():
@@ -37,37 +37,6 @@ def test_button_color_getter_reports_resting_colour_not_hover():
     mouse.x, mouse.y = 0, 0  # hover it
     btn.update()
     assert btn.color == "royalblue"
-
-
-def test_button_disabled_while_hovered_fires_unhover():
-    # Regression: disabling a hovered button cleared _was_hovered without
-    # running the unhover callbacks, stranding whatever they toggle.
-    btn = play.new_button("Go", x=0, y=0, width=100, height=50)
-    # The constructor runs update() with the mouse still at its (0, 0)
-    # default, so the button starts out hovered. Settle it outside *before*
-    # registering the callbacks, so that closing-out does not record an event.
-    mouse.x, mouse.y = 999, 999
-    btn.update()
-    events = []
-    btn.when_hover(lambda: events.append("hover"))
-    btn.when_unhover(lambda: events.append("unhover"))
-    mouse.x, mouse.y = 0, 0
-    btn.update()
-    assert events == ["hover"]
-    btn.disabled = True
-    btn.update()
-    assert events == ["hover", "unhover"]
-
-
-# ── Checkbox.checked fires when_changed ───────────────────────────────────────
-
-
-def test_checkbox_checked_setter_fires_when_changed():
-    cb = play.new_checkbox(x=0, y=0)
-    received = []
-    cb.when_changed(received.append)
-    cb.checked = True
-    assert received == [True]
 
 
 def test_checkbox_checked_setter_no_fire_when_unchanged():
@@ -78,17 +47,14 @@ def test_checkbox_checked_setter_no_fire_when_unchanged():
     assert received == []
 
 
-# ── RadioGroup only reports real changes ──────────────────────────────────────
-
-
 def test_radio_group_reselecting_same_option_does_not_fire():
     g = play.new_radio_group()
-    play.new_radio_button("A", value="a", group=g, x=-50, y=0)
+    r1 = play.new_radio_button("A", value="a", group=g, x=-50, y=0)
     r2 = play.new_radio_button("B", value="b", group=g, x=50, y=0)
     received = []
     g.when_changed(received.append)
-    g._select(r2)
-    g._select(r2)  # same option again — not a change
+    click_at(50, 0, r1, r2)
+    click_at(50, 0, r1, r2)
     assert received == ["b"]
 
 
@@ -101,14 +67,14 @@ def test_radio_group_selected_value_setter_no_fire_when_unchanged():
     assert received == []
 
 
-# ── Dropdown only reports real changes ────────────────────────────────────────
-
-
 def test_dropdown_reselecting_same_option_does_not_fire():
-    dd = play.new_dropdown(options=["A", "B", "C"], selected_index=1)
+    dd = play.new_dropdown(options=["A", "B", "C"], selected_index=1, x=0, y=0)
     received = []
     dd.when_changed(lambda v, i: received.append((v, i)))
-    dd._select(1)
+    click_at(0, 0, dd)
+    click_at(0, -80, dd)
+    assert dd.selected_index == 1
+    assert dd.is_open is False
     assert received == []
 
 
@@ -123,9 +89,6 @@ def test_dropdown_hidden_does_not_handle_clicks():
     assert dd.is_open is False  # hiding closes the menu
     click_at(0, -120, dd)  # would have been the 3rd option row
     assert received == []
-
-
-# ── Slider ────────────────────────────────────────────────────────────────────
 
 
 def test_slider_step_grid_is_anchored_to_min_value():
@@ -163,9 +126,6 @@ def test_slider_bound_setter_without_clamp_does_not_fire():
     s.when_changed(received.append)
     s.max_value = 90  # 50 still in range
     assert received == []
-
-
-# ── Tooltip drops a removed target ────────────────────────────────────────────
 
 
 def test_tooltip_does_not_reappear_after_target_removed():

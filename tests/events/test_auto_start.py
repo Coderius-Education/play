@@ -1,13 +1,11 @@
 """Tests for auto-starting when user forgets to call play.start_program()."""
 
-import subprocess
 import sys
 from unittest.mock import patch
 
 
 def test_auto_start_flag_set_by_callback():
     """Test that adding a callback sets should_auto_start."""
-    from play.api import auto_start
     from play.callback import callback_manager, CallbackType
     from play.globals import globals_list
 
@@ -93,22 +91,15 @@ def test_start_program_clears_auto_start_flag():
     assert globals_list.should_auto_start is False
 
 
-def test_auto_start_end_to_end():
-    """End-to-end test: a script with a callback but no start_program() should auto-start."""
-    script = (
-        "import os, play\n"
-        "os.environ['SDL_VIDEODRIVER'] = 'dummy'\n"
-        "os.environ['SDL_AUDIODRIVER'] = 'dummy'\n"
+def test_a_script_with_a_callback_but_no_start_program_starts_by_itself(run_script):
+    printed = run_script(
         "@play.when_program_starts\n"
-        "async def on_start():\n"
+        "def start():\n"
+        "    print('started')\n"
         "    os._exit(0)\n"
+        "print('script done')\n",
     )
-    result = subprocess.run(
-        [sys.executable, "-c", script],
-        timeout=10,
-        capture_output=True,
-    )
-    assert result.returncode == 0, result.stderr.decode()
+    assert printed == ["script", "done", "started"]
 
 
 def test_a_helper_function_that_makes_sprites_does_not_start_the_game(run_script):

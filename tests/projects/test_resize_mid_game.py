@@ -11,7 +11,6 @@ moved with it.
 """
 
 import pygame
-import pytest
 
 import play
 from play.callback.collision_callbacks import WallSide
@@ -123,6 +122,9 @@ def test_an_anchored_widget_follows_a_resize():
     assert (
         after[0][0] > before[0][0]
     ), "a wider screen should push a right-anchored sprite further right"
+    x, y = after[0]
+    assert screen.right - (x + score.rect.width / 2) == 10
+    assert screen.top - (y + score.rect.height / 2) == 10
 
 
 def test_wall_callbacks_survive_a_resize():

@@ -28,6 +28,8 @@ def test_pong_keyboard():
     score_left = [0]
     score_right = [0]
     paddle_moves = [0]
+    left_heights = set()
+    right_heights = set()
 
     ball, paddle_left, paddle_right, score_text = setup_pong()
 
@@ -66,6 +68,11 @@ def test_pong_keyboard():
     )
 
     # --- simulate keyboard input + safety timeout --------------------------
+    @play.repeat_forever
+    def watch_paddles():
+        left_heights.add(paddle_left.y)
+        right_heights.add(paddle_right.y)
+
     @play.when_program_starts
     async def driver():
         directions = [pygame.K_w, pygame.K_s, pygame.K_UP, pygame.K_DOWN]
@@ -83,6 +90,10 @@ def test_pong_keyboard():
 
     assert_pong_winner(score_left, score_right, winning_score, scoring)
     assert paddle_moves[0] > 0, "keyboard-driven paddle movement should have occurred"
+    assert max(left_heights) > 0, "w should have moved the left paddle up"
+    assert max(right_heights) > 0, "up should have moved the right paddle up"
+    assert min(left_heights) < max(left_heights), "s should have moved it back down"
+    assert min(right_heights) < max(right_heights), "down should move it back down"
 
 
 if __name__ == "__main__":

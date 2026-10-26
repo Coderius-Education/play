@@ -1,6 +1,9 @@
+import pygame
 import pytest
 import play
 from play.io.mouse import mouse
+from play.utils import color_name_to_rgb
+from tests.conftest import count_color
 
 
 @pytest.fixture(autouse=True)
@@ -8,57 +11,50 @@ def setup_play(clean_play_state):
     pass
 
 
-def test_button_creation():
-    btn = play.new_button("OK")
+def test_a_new_button_shows_its_label_at_layer_10():
+    btn = play.new_button("OK", text_color="red")
     assert btn.text == "OK"
     assert btn.layer == 10
-    assert btn.image is not None
+    assert count_color(btn.image, color_name_to_rgb("red")) > 0
 
 
-def test_button_text_property_setter():
-    import pygame
-
+def test_changing_the_text_redraws_the_label():
     btn = play.new_button("Start")
-    btn._should_recompute = True
     btn.update()
     before = pygame.image.tobytes(btn.image, "RGBA")
     btn.text = "Stop"
     assert btn.text == "Stop"
-    # Setter must flag a redraw
-    assert btn._should_recompute is True
     btn.update()
-    after = pygame.image.tobytes(btn.image, "RGBA")
-    assert after != before  # the new label is actually drawn
+    assert pygame.image.tobytes(btn.image, "RGBA") != before
 
 
-def test_button_colors_stored():
-    btn = play.new_button(color="blue", hover_color="darkblue")
-    assert btn._base_color == "blue"
-    assert btn._hover_color == "darkblue"
-
-
-def test_button_alive():
-    btn = play.new_button()
-    assert btn.alive()
-
-
-def test_button_hover_color_when_mouse_inside():
-    btn = play.new_button(x=0, y=0, width=100, height=50)
-    mouse.x = 0
-    mouse.y = 0
+def test_changing_the_text_colour_redraws_the_label():
+    btn = play.new_button("Start", text_color="red")
     btn.update()
-    assert btn._color == btn._hover_color
-
-
-def test_button_base_color_when_mouse_outside():
-    btn = play.new_button(x=0, y=0, width=100, height=50)
-    mouse.x = 999
-    mouse.y = 999
+    btn.text_color = "green"
     btn.update()
-    assert btn._color == btn._base_color
+    assert count_color(btn.image, color_name_to_rgb("green")) > 0
+    assert count_color(btn.image, color_name_to_rgb("red")) == 0
 
 
-def test_button_image_has_nonzero_dimensions():
-    btn = play.new_button(width=160, height=50)
-    assert btn.image.get_width() > 0
-    assert btn.image.get_height() > 0
+@pytest.mark.parametrize(
+    "mouse_xy, shown, not_shown",
+    [((0, 0), "darkblue", "blue"), ((999, 999), "blue", "darkblue")],
+    ids=["hovered", "resting"],
+)
+def test_a_button_shows_its_hover_colour_only_under_the_mouse(
+    mouse_xy, shown, not_shown
+):
+    btn = play.new_button(
+        x=0, y=0, width=100, height=50, color="blue", hover_color="darkblue"
+    )
+    mouse.x, mouse.y = mouse_xy
+    btn.update()
+    assert count_color(btn.image, color_name_to_rgb(shown)) > 0
+    assert count_color(btn.image, color_name_to_rgb(not_shown)) == 0
+
+
+@pytest.mark.parametrize("size, expected", [(100, (160, 50)), (50, (80, 25))])
+def test_a_button_is_drawn_at_its_width_and_height_times_its_size(size, expected):
+    btn = play.new_button(width=160, height=50, size=size)
+    assert btn.image.get_size() == expected

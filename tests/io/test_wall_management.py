@@ -1,55 +1,50 @@
+"""Taking the screen's walls away and putting them back."""
+
 import pytest
-import play
+
+from play.callback.collision_callbacks import WallSide
 from play.globals import globals_list
-from play.io.screen import remove_walls, remove_wall, create_walls, screen
+from play.io.screen import create_walls, remove_wall, remove_walls
 from play.physics import physics_space
 
 
-@pytest.fixture(autouse=True)
-def setup_play(clean_play_state):
-    pass
-
-
-def test_remove_walls_clears_all():
-    """remove_walls() should remove all 4 wall segments from the physics space."""
-    assert len(globals_list.walls) == 4
+def test_remove_walls_takes_all_four_out_of_the_physics():
+    walls = list(globals_list.walls)
 
     remove_walls()
 
-    assert len(globals_list.walls) == 0
+    assert len(walls) == 4
+    assert globals_list.walls == []
+    assert not set(walls) & set(physics_space.shapes)
 
 
-def test_remove_walls_removes_from_physics_space():
-    """After remove_walls(), the segments should no longer be in the pymunk space."""
-    walls_before = list(globals_list.walls)
-    remove_walls()
+@pytest.mark.parametrize(
+    "index, side",
+    [
+        (0, WallSide.TOP),
+        (1, WallSide.BOTTOM),
+        (2, WallSide.LEFT),
+        (3, WallSide.RIGHT),
+    ],
+)
+def test_remove_wall_takes_out_the_side_its_index_names(index, side):
+    remove_wall(index)
 
-    for wall in walls_before:
-        assert wall not in physics_space.shapes
-
-
-def test_remove_wall_by_index():
-    """remove_wall(index) should remove one specific wall."""
-    assert len(globals_list.walls) == 4
-
-    # Wall 0 is TOP
-    top_wall = globals_list.walls[0]
-    remove_wall(0)
-
-    assert len(globals_list.walls) == 3
-    assert top_wall not in physics_space.shapes
+    left = {wall.wall_side for wall in globals_list.walls}
+    assert left == set(WallSide) - {side}
+    assert {
+        wall.wall_side for wall in physics_space.shapes if hasattr(wall, "wall_side")
+    } == left
 
 
-def test_remove_wall_out_of_range():
-    """remove_wall() with an invalid index should raise IndexError."""
+def test_remove_wall_with_an_index_beyond_the_four_walls_raises():
     with pytest.raises(IndexError):
-        remove_wall(99)
+        remove_wall(4)
 
 
-def test_create_walls_after_remove():
-    """Walls can be recreated after being removed."""
+def test_walls_can_be_put_back_after_removing_them():
     remove_walls()
-    assert len(globals_list.walls) == 0
 
     create_walls()
-    assert len(globals_list.walls) == 4
+
+    assert {wall.wall_side for wall in globals_list.walls} == set(WallSide)

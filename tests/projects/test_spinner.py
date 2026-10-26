@@ -18,9 +18,14 @@ def test_spinner():
     from play.io.screen import screen
     from play.globals import globals_list
 
+    import pygame
+    from tests.conftest import post_mouse_motion
+
     frames_run = [0]
     angles_seen = []
     distances = []
+    spinner_sizes = {}
+    backdrop_pixels = []
 
     # --- setup ---
     play.set_backdrop("lightblue")
@@ -34,9 +39,11 @@ def test_spinner():
     # --- game loop ---
     @play.when_program_starts
     async def game_loop():
+        post_mouse_motion(int(screen.width / 2 + 30), int(screen.height / 2 - 40))
         for frame in range(MAX_FRAMES):
             await play.animate()
             frames_run[0] += 1
+            spinner_sizes[spinner.angle] = spinner.rect.size
 
             # Rotate the spinner
             spinner.angle = frame * 6  # 6 degrees per frame
@@ -49,6 +56,8 @@ def test_spinner():
             # Measure distance from mouse to spinner
             dist = play.mouse.distance_to(spinner.x, spinner.y)
             distances.append(dist)
+
+            backdrop_pixels.append(tuple(globals_list.display.get_at((5, 5)))[:3])
 
         play.stop_program()
 
@@ -63,15 +72,18 @@ def test_spinner():
     assert len(set(angles_seen)) > 10, "Angle should have changed many times"
     assert angles_seen[-1] > angles_seen[0], "Angle should have increased"
 
-    # Verify backdrop was set
-    assert globals_list.backdrop_type == "color"
-    assert globals_list.backdrop is not None
+    assert set(backdrop_pixels[1:]) == {(173, 216, 230)}, "the backdrop is light blue"
 
-    # Verify caption was updated
     assert screen.caption == f"Spinner - frame {MAX_FRAMES - 1}"
+    assert pygame.display.get_caption()[0] == screen.caption
 
-    # Verify distance_to returned valid numbers
-    assert all(isinstance(d, (int, float)) for d in distances)
+    assert spinner_sizes[0] == (60, 20), "unturned, the spinner lies flat"
+    width, height = spinner_sizes[90]
+    assert (
+        height > width
+    ), f"at 90 degrees it should stand upright, got {width}x{height}"
+
+    assert distances[-1] == 50, "the mouse is 30 right and 40 up from the spinner"
 
 
 if __name__ == "__main__":

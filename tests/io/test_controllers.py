@@ -1,444 +1,184 @@
-"""Tests for controllers module."""
+"""Game controllers: reading them, and their button and axis events."""
 
+import pygame
 import pytest
 
-
-def test_controllers_object_exists():
-    """Test that controllers object exists and is accessible."""
-    import play
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(hasattr(play, "controllers"))
-        result.append(play.controllers is not None)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] is True
-    assert result[1] is True
+from play.io import controllers as controllers_module
+from play.io.controllers import controllers
+from tests.events.frames import (
+    axis_moved,
+    button_down,
+    button_up,
+    play_frames,
+)
 
 
-def test_controllers_get_count():
-    """Test getting controller count (may be 0 if no controllers connected)."""
-    import play
+class _Joystick:
+    """A joystick whose every reading tells which device and which input was read."""
 
-    result = []
+    def __init__(self, device_index):
+        self.device_index = device_index
 
-    @play.when_program_starts
-    def check():
-        count = play.controllers.get_count()
-        result.append(isinstance(count, int))
-        result.append(count >= 0)
-        play.stop_program()
+    def init(self):
+        pass
 
-    play.start_program()
+    def get_instance_id(self):
+        return 10 + self.device_index
 
-    assert result[0] is True
-    assert result[1] is True
+    def get_numaxes(self):
+        return 6 + self.device_index
 
+    def get_axis(self, axis):
+        return self.device_index + axis / 10
 
-def test_controllers_get_all_controllers():
-    """Test getting all controllers returns a list."""
-    import play
+    def get_numbuttons(self):
+        return 12 + self.device_index
 
-    result = []
+    def get_button(self, button):
+        return button == 3 + self.device_index
 
-    @play.when_program_starts
-    def check():
-        all_controllers = play.controllers.get_all_controllers()
-        result.append(isinstance(all_controllers, list))
-        play.stop_program()
+    def get_numhats(self):
+        return 1 + self.device_index
 
-    play.start_program()
+    def get_hat(self, hat):
+        return (hat, self.device_index)
 
-    assert result[0] is True
+    def get_numballs(self):
+        return 2 + self.device_index
 
-
-def test_when_button_pressed_decorator_registers():
-    """Test that when_button_pressed decorator registers callback."""
-    import play
-    from play.callback import callback_manager, CallbackType
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        # Check if callback type exists in manager
-        result.append(CallbackType.WHEN_CONTROLLER_BUTTON_PRESSED in CallbackType)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] is True
+    def get_ball(self, ball):
+        return (ball, self.device_index)
 
 
-def test_when_button_released_decorator_registers():
-    """Test that when_button_released decorator registers callback."""
-    import play
-    from play.callback import callback_manager, CallbackType
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        # Check if callback type exists in manager
-        result.append(CallbackType.WHEN_CONTROLLER_BUTTON_RELEASED in CallbackType)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] is True
+@pytest.fixture
+def two_controllers(monkeypatch):
+    """Two controllers plugged in before the game starts, SDL instance ids 10 and 11."""
+    monkeypatch.setattr(controllers_module, "_Controller", _Joystick)
+    monkeypatch.setattr(controllers_module, "_get_controller_count", lambda: 2)
+    plugged_in = controllers_module._Controllers()
+    monkeypatch.setattr(controllers, "_controllers", plugged_in._controllers)
+    return plugged_in._controllers
 
 
-def test_when_axis_moved_decorator_registers():
-    """Test that when_axis_moved decorator registers callback."""
-    import play
-    from play.callback import callback_manager, CallbackType
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        # Check if callback type exists in manager
-        result.append(CallbackType.WHEN_CONTROLLER_AXIS_MOVED in CallbackType)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] is True
+def test_controllers_plugged_in_at_the_start_are_counted_in_order(two_controllers):
+    assert controllers.get_count() == 2
+    assert controllers.get_all_controllers() == two_controllers
+    assert [controllers.get_controller(i).device_index for i in (0, 1)] == [0, 1]
 
 
-def test_controllers_has_required_methods():
-    """Test that controllers object has all required methods."""
-    import play
+def test_get_all_controllers_hands_out_a_copy(two_controllers):
+    controllers.get_all_controllers().clear()
 
-    result = []
+    assert controllers.get_count() == 2
 
-    @play.when_program_starts
-    def check():
-        methods = [
-            "get_count",
-            "get_controller",
-            "get_all_controllers",
-            "get_num_axes",
-            "get_axis",
-            "get_num_buttons",
-            "get_button",
-            "get_num_hats",
-            "get_hat",
-            "get_num_balls",
-            "get_ball",
-            "when_button_pressed",
-            "when_any_button_pressed",
-            "when_button_released",
-            "when_any_button_released",
-            "when_axis_moved",
-            "when_any_axis_moved",
-            "while_button_pressed",
-            "while_any_button_pressed",
+
+def test_each_controller_is_read_input_by_input_from_its_own_device(two_controllers):
+    def readings(index):
+        return [
+            controllers.get_num_axes(index),
+            controllers.get_axis(index, 5),
+            controllers.get_num_buttons(index),
+            [controllers.get_button(index, b) for b in (3, 4)],
+            controllers.get_num_hats(index),
+            controllers.get_hat(index, 2),
+            controllers.get_num_balls(index),
+            controllers.get_ball(index, 1),
         ]
-        for method in methods:
-            result.append((method, hasattr(play.controllers, method)))
-        play.stop_program()
 
-    play.start_program()
-
-    for method_name, has_method in result:
-        assert has_method is True, f"controllers missing method: {method_name}"
+    assert readings(0) == [6, 0.5, 12, [True, False], 1, (2, 0), 2, (1, 0)]
+    assert readings(1) == [7, 1.5, 13, [False, True], 2, (2, 1), 3, (1, 1)]
 
 
-def test_controller_state_clear():
-    """Test that clear() resets per-frame state but keeps buttons_pressed."""
-    from play.core.controller_loop import ControllerState
+def test_when_button_pressed_fires_once_per_press_with_the_button():
+    pressed = []
+    controllers.when_button_pressed(0, 1, 2)(lambda button: pressed.append(button))
 
-    state = ControllerState()
-    state.buttons_pressed[0].add(1)
-    state.buttons_released[0].add(2)
-    state.axes_moved[0].append({"axis": 0, "value": 1})
-
-    state.clear()
-
-    assert 1 in state.buttons_pressed[0], "buttons_pressed should persist after clear()"
-    assert len(state.buttons_released) == 0, "buttons_released should be cleared"
-    assert len(state.axes_moved) == 0, "axes_moved should be cleared"
-
-
-def test_controller_state_any():
-    """Test that any() returns True when buttons are pressed."""
-    from play.core.controller_loop import ControllerState
-
-    state = ControllerState()
-    assert not state.any(), "any() should be False when nothing happened"
-
-    state.buttons_pressed[0].add(1)
-    assert state.any(), "any() should be True when a button is pressed"
-
-
-def test_controller_state_any_after_release():
-    """Test that any() returns False after all buttons are released and frame clears."""
-    import pygame
-    from play.core.controller_loop import controller_state, handle_controller_events
-
-    controller_state.buttons_pressed.clear()
-    controller_state.buttons_released.clear()
-
-    # Press then release via event handler so the cleanup path runs
-    down = pygame.event.Event(pygame.JOYBUTTONDOWN, {"instance_id": 0, "button": 1})
-    handle_controller_events(down)
-    assert controller_state.any(), "any() should be True while button is held"
-
-    up = pygame.event.Event(pygame.JOYBUTTONUP, {"instance_id": 0, "button": 1})
-    handle_controller_events(up)
-
-    controller_state.clear()  # next frame — clears buttons_released
-
-    # After release + clear, the empty set key is removed from buttons_pressed,
-    # so any() correctly returns False.
-    assert (
-        not controller_state.any()
-    ), "any() should be False after button released and frame cleared"
-
-    # Clean up
-    controller_state.buttons_pressed.clear()
-
-
-def test_handle_controller_events_button_down():
-    """Test that JOYBUTTONDOWN updates controller state."""
-    import pygame
-    from play.core.controller_loop import controller_state, handle_controller_events
-
-    controller_state.buttons_pressed.clear()
-    controller_state.buttons_released.clear()
-
-    event = pygame.event.Event(pygame.JOYBUTTONDOWN, {"instance_id": 0, "button": 3})
-    handle_controller_events(event)
-
-    assert 3 in controller_state.buttons_pressed[0]
-
-
-def test_handle_controller_events_button_up():
-    """Test that JOYBUTTONUP updates controller state."""
-    import pygame
-    from play.core.controller_loop import controller_state, handle_controller_events
-
-    controller_state.buttons_pressed.clear()
-    controller_state.buttons_released.clear()
-
-    # Press then release
-    down_event = pygame.event.Event(
-        pygame.JOYBUTTONDOWN, {"instance_id": 0, "button": 5}
-    )
-    handle_controller_events(down_event)
-    assert 5 in controller_state.buttons_pressed[0]
-
-    up_event = pygame.event.Event(pygame.JOYBUTTONUP, {"instance_id": 0, "button": 5})
-    handle_controller_events(up_event)
-
-    assert (
-        5 not in controller_state.buttons_pressed[0]
-    ), "Button should be removed from pressed"
-    assert 5 in controller_state.buttons_released[0], "Button should be in released"
-
-
-def test_handle_controller_events_axis_motion():
-    """Test that JOYAXISMOTION updates controller state."""
-    import pygame
-    from play.core.controller_loop import controller_state, handle_controller_events
-
-    controller_state.axes_moved.clear()
-
-    event = pygame.event.Event(
-        pygame.JOYAXISMOTION, {"instance_id": 0, "axis": 1, "value": -0.8}
-    )
-    handle_controller_events(event)
-
-    assert len(controller_state.axes_moved[0]) == 1
-    assert controller_state.axes_moved[0][0]["axis"] == 1
-    assert controller_state.axes_moved[0][0]["value"] == -1  # round(-0.8) == -1
-
-
-def test_button_pressed_callback_fires():
-    """Test that WHEN_CONTROLLER_BUTTON_PRESSED callback fires on button press."""
-    import asyncio
-    import pygame
-    from play.core.controller_loop import (
-        controller_state,
-        handle_controller_events,
-        handle_controller,
-    )
-    from play.callback import callback_manager, CallbackType
-    from play.utils.async_helpers import make_async
-
-    controller_state.buttons_pressed.clear()
-    controller_state.buttons_released.clear()
-
-    pressed_buttons = []
-
-    async def on_press(button):
-        pressed_buttons.append(button)
-
-    on_press.is_running = False
-    on_press.controller = 0
-    callback_manager.add_callback(
-        CallbackType.WHEN_CONTROLLER_BUTTON_PRESSED, on_press, 7
+    play_frames(
+        [button_down(2)], [], [button_down(3)], [button_up(2)], [button_down(1)]
     )
 
-    # Simulate button press
-    event = pygame.event.Event(pygame.JOYBUTTONDOWN, {"instance_id": 0, "button": 7})
-    handle_controller_events(event)
-
-    from play.loop import get_loop
-
-    loop = get_loop()
-    loop.run_until_complete(handle_controller())
-    # Drain tasks scheduled by fire_async_callback
-    loop.run_until_complete(asyncio.sleep(0))
-
-    assert 7 in pressed_buttons, "Button press callback should have fired with button=7"
-
-    # Clean up
-    controller_state.buttons_pressed.clear()
-    callback_manager.remove_callbacks(CallbackType.WHEN_CONTROLLER_BUTTON_PRESSED, 7)
+    assert pressed == [2, 1]
 
 
-def test_button_released_callback_fires():
-    """Test that WHEN_CONTROLLER_BUTTON_RELEASED callback fires on button release."""
-    import asyncio
-    import pygame
-    from play.core.controller_loop import (
-        controller_state,
-        handle_controller_events,
-        handle_controller,
+def test_when_button_released_fires_on_the_release_not_the_press():
+    released = []
+    controllers.when_button_released(0, 5)(lambda button: released.append(button))
+
+    play_frames([button_down(5)], [], [], [button_up(5)])
+
+    assert released == [5]
+
+
+def test_button_callbacks_hear_their_own_controller_only(two_controllers):
+    log = []
+    controllers.when_button_pressed(1, 0, 1)(
+        lambda button: log.append(("down", button))
     )
-    from play.callback import callback_manager, CallbackType
+    controllers.when_button_released(1, 0, 1)(lambda button: log.append(("up", button)))
 
-    controller_state.buttons_pressed.clear()
-    controller_state.buttons_released.clear()
-
-    released_buttons = []
-
-    async def on_release(button):
-        released_buttons.append(button)
-
-    on_release.is_running = False
-    on_release.controller = 0
-    callback_manager.add_callback(
-        CallbackType.WHEN_CONTROLLER_BUTTON_RELEASED, on_release, 2
+    play_frames(
+        [button_down(0, instance_id=10)],
+        [button_up(0, instance_id=10)],
+        [button_down(1, instance_id=11)],
+        [button_up(1, instance_id=11)],
     )
 
-    # Simulate press then release
-    down = pygame.event.Event(pygame.JOYBUTTONDOWN, {"instance_id": 0, "button": 2})
-    up = pygame.event.Event(pygame.JOYBUTTONUP, {"instance_id": 0, "button": 2})
-    handle_controller_events(down)
-    handle_controller_events(up)
-
-    from play.loop import get_loop
-
-    loop = get_loop()
-    loop.run_until_complete(handle_controller())
-    # Drain tasks scheduled by fire_async_callback
-    loop.run_until_complete(asyncio.sleep(0))
-
-    assert (
-        2 in released_buttons
-    ), "Button release callback should have fired with button=2"
-
-    # Clean up
-    controller_state.buttons_pressed.clear()
-    controller_state.buttons_released.clear()
-    callback_manager.remove_callbacks(CallbackType.WHEN_CONTROLLER_BUTTON_RELEASED, 2)
+    assert log == [("down", 1), ("up", 1)]
 
 
-def test_button_pressed_callback_fires_once_on_press():
-    """Test that WHEN_CONTROLLER_BUTTON_PRESSED fires only on the initial press frame,
-    not every frame while held (analogous to keyboard when_key_pressed behavior)."""
-    import asyncio
-    import pygame
-    from play.core.controller_loop import (
-        controller_state,
-        handle_controller_events,
-        handle_controller,
-    )
-    from play.callback import callback_manager, CallbackType
+@pytest.mark.xfail(
+    strict=True,
+    reason="when_any_button_pressed/released reject their own 'any' with a ValueError",
+)
+@pytest.mark.parametrize("released", [False, True], ids=["pressed", "released"])
+def test_when_any_button_is_told_which_button(released):
+    heard = []
+    if released:
+        decorator = controllers.when_any_button_released(0)
+    else:
+        decorator = controllers.when_any_button_pressed(0)
+    decorator(lambda button: heard.append(button))
 
-    controller_state.buttons_pressed.clear()
-    controller_state.buttons_pressed_this_frame.clear()
-    controller_state.buttons_released.clear()
+    play_frames([button_down(7)], [button_up(7)])
 
-    press_count = [0]
+    assert heard == [7]
 
-    async def on_press(button):
-        press_count[0] += 1
 
-    on_press.is_running = False
-    on_press.controller = 0
-    callback_manager.add_callback(
-        CallbackType.WHEN_CONTROLLER_BUTTON_PRESSED, on_press, 4
+def test_when_axis_moved_reports_the_direction_as_minus_one_zero_or_one():
+    values = []
+    controllers.when_axis_moved(0, 1)(lambda axis, value: values.append(value))
+
+    play_frames(
+        [axis_moved(1, -0.8)],
+        [axis_moved(1, 0.3)],
+        [axis_moved(1, 0.6)],
+        [axis_moved(0, 1.0)],
     )
 
-    # Simulate button press (once)
-    event = pygame.event.Event(pygame.JOYBUTTONDOWN, {"instance_id": 0, "button": 4})
-    handle_controller_events(event)
-
-    from play.loop import get_loop
-
-    loop = get_loop()
-
-    # Frame 1: process the initial press (buttons_pressed_this_frame is populated)
-    loop.run_until_complete(handle_controller())
-    loop.run_until_complete(asyncio.sleep(0))
-
-    # Frames 2 and 3: clear per-frame state then run callbacks (button still held,
-    # but buttons_pressed_this_frame is empty — WHEN callback should NOT fire again)
-    for _ in range(2):
-        controller_state.clear()
-        loop.run_until_complete(handle_controller())
-        loop.run_until_complete(asyncio.sleep(0))
-
-    assert (
-        press_count[0] == 1
-    ), f"Callback should fire once (on initial press), got {press_count[0]} instead of 1"
-
-    # Clean up
-    controller_state.buttons_pressed.clear()
-    controller_state.buttons_pressed_this_frame.clear()
-    callback_manager.remove_callbacks(CallbackType.WHEN_CONTROLLER_BUTTON_PRESSED, 4)
+    assert values == [-1, 0, 1]
 
 
-def test_when_axis_moved_only_hears_its_own_controller():
-    import asyncio
-    import pygame
-    import play
-    from play.core.controller_loop import (
-        controller_state,
-        handle_controller_events,
-        handle_controller,
+def test_unplugging_a_controller_lets_go_of_its_held_buttons(two_controllers):
+    held = []
+    controllers.while_button_pressed(0, 0)(lambda button: held.append(button))
+
+    play_frames(
+        [button_down(0, instance_id=10)],
+        [],
+        [pygame.event.Event(pygame.JOYDEVICEREMOVED, {"instance_id": 10})],
+        [],
+        [],
     )
-    from play.loop import get_loop
 
-    controller_state.axes_moved.clear()
-    moved = []
-
-    @play.controllers.when_axis_moved(0, 0)
-    def player_one(axis, value):
-        moved.append(value)
-
-    for instance_id, value in ((1, -1.0), (0, 1.0)):
-        handle_controller_events(
-            pygame.event.Event(
-                pygame.JOYAXISMOTION,
-                {"instance_id": instance_id, "axis": 0, "value": value},
-            )
-        )
-    loop = get_loop()
-    loop.run_until_complete(handle_controller())
-    loop.run_until_complete(asyncio.sleep(0))
-
-    assert moved == [1]
+    assert held == [0, 0]
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+@pytest.mark.parametrize(
+    "buttons", [("A",), ([1, "B"],)], ids=["name", "name in a list"]
+)
+@pytest.mark.parametrize(
+    "decorator", [controllers.when_button_pressed, controllers.when_button_released]
+)
+def test_a_button_that_is_not_a_number_is_rejected(decorator, buttons):
+    with pytest.raises(ValueError, match="must be an integer"):
+        decorator(0, *buttons)

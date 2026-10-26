@@ -1,219 +1,64 @@
-"""Tests for sprite methods like distance_to, etc."""
+"""Tests for sprite methods: distance_to, is_touching, and the plain Sprite."""
 
+import pygame
 import pytest
-import sys
-import math
+
+import play
+from play.objects.sprite import Sprite
 
 
-def test_sprite_distance_to_coordinates():
-    """Test distance_to method with x, y coordinates."""
-    import play
+def test_distance_to_a_point():
+    sprite = play.new_box(x=10, y=0)
 
-    sprite = play.new_box(x=0, y=0)
-    distance = sprite.distance_to(3, 4)
-
-    assert abs(distance - 5.0) < 0.1  # 3-4-5 triangle
+    assert sprite.distance_to(13, 4) == 5.0
+    assert sprite.distance_to(10, 0) == 0.0
 
 
-def test_sprite_distance_to_sprite():
-    """Test distance_to method with another sprite."""
-    import play
+def test_distance_to_a_sprite_is_the_same_both_ways():
+    box = play.new_box(x=10, y=0)
+    circle = play.new_circle(x=13, y=4)
 
-    sprite1 = play.new_box(x=0, y=0)
-    sprite2 = play.new_circle(x=3, y=4)
-
-    distance = sprite1.distance_to(sprite2)
-
-    assert abs(distance - 5.0) < 0.1  # 3-4-5 triangle
+    assert box.distance_to(circle) == 5.0
+    assert circle.distance_to(box) == 5.0
 
 
-def test_sprite_distance_to_same_position():
-    """Test distance_to when sprites are at same position."""
-    import play
-
-    sprite1 = play.new_box(x=100, y=100)
-    sprite2 = play.new_circle(x=100, y=100)
-
-    distance = sprite1.distance_to(sprite2)
-
-    assert abs(distance) < 0.1
-
-
-def test_sprite_hide_show():
-    """Test hide and show methods."""
-    import play
-
+def test_distance_to_a_number_without_y_explains_what_is_missing():
     sprite = play.new_box()
 
-    assert sprite.is_hidden == False
-
-    sprite.hide()
-    assert sprite.is_hidden == True
-
-    sprite.show()
-    assert sprite.is_hidden == False
+    with pytest.raises(ValueError, match="requires a y argument"):
+        sprite.distance_to(30)
 
 
-def test_sprite_remove():
-    """Test remove method."""
-    import play
+def test_sprites_that_overlap_are_touching_and_far_apart_ones_are_not():
+    box = play.new_box(x=0, y=0, width=50, height=50)
+    near = play.new_box(x=40, y=0, width=50, height=50)
+    far = play.new_box(x=300, y=300, width=50, height=50)
 
-    sprite = play.new_box()
-
-    # Verify sprite is in the group
-    from play.globals import globals_list
-
-    assert sprite in globals_list.sprites_group
-
-    sprite.remove()
-
-    # Verify sprite is no longer in the group
-    assert sprite not in globals_list.sprites_group
-
-
-def test_sprite_position_properties():
-    """Test sprite position properties (left, right, top, bottom)."""
-    import play
-
-    sprite = play.new_box(x=0, y=0, width=100, height=100)
-
-    # Test getters
-    assert abs(sprite.left - (-50)) < 1
-    assert abs(sprite.right - 50) < 1
-    assert abs(sprite.bottom - (-50)) < 1
-    assert abs(sprite.top - 50) < 1
-
-
-def test_sprite_position_setters():
-    """Test setting sprite position properties."""
-    import play
-
-    sprite = play.new_box(x=0, y=0, width=100, height=100)
-
-    # Test setters
-    sprite.left = 0
-    assert abs(sprite.x - 50) < 1
-
-    sprite.right = 0
-    assert abs(sprite.x - (-50)) < 1
-
-    sprite.bottom = 0
-    assert abs(sprite.y - 50) < 1
-
-    sprite.top = 0
-    assert abs(sprite.y - (-50)) < 1
-
-
-def test_sprite_width_height():
-    """Test sprite width and height properties."""
-    import play
-
-    sprite = play.new_box(width=100, height=200)
-
-    assert sprite.width > 0
-    assert sprite.height > 0
-
-
-def test_box_clone():
-    """Test cloning a box sprite."""
-    import play
-
-    box1 = play.new_box(
-        x=100, y=200, width=150, height=200, color="red", angle=45, border_radius=10
-    )
-
-    box2 = box1.clone()
-
-    assert box2.x == box1.x
-    assert box2.y == box1.y
-    assert box2.width == box1.width
-    assert box2.height == box1.height
-    assert box2.color == box1.color
-    assert box2.angle == box1.angle
-    assert box2.border_radius == box1.border_radius
-
-    # Verify they are different objects
-    assert box1 is not box2
-
-
-def test_circle_clone():
-    """Test cloning a circle sprite."""
-    import play
-
-    circle1 = play.new_circle(x=100, y=200, radius=50, color="blue", angle=30)
-
-    circle2 = circle1.clone()
-
-    assert circle2.x == circle1.x
-    assert circle2.y == circle1.y
-    assert circle2.radius == circle1.radius
-    assert circle2.color == circle1.color
-    assert circle2.angle == circle1.angle
-
-    # Verify they are different objects
-    assert circle1 is not circle2
-
-
-def test_sprite_is_touching_sprite():
-    """Test is_touching method between sprites."""
-    import play
-
-    sprite1 = play.new_box(x=0, y=0, width=50, height=50)
-    sprite2 = play.new_box(x=0, y=0, width=50, height=50)
-
-    # Sprites at same position should be touching
-    assert sprite1.is_touching(sprite2) == True
-
-
-def test_sprite_not_touching():
-    """Test is_touching when sprites are far apart."""
-    import play
-
-    sprite1 = play.new_box(x=0, y=0, width=50, height=50)
-    sprite2 = play.new_box(x=1000, y=1000, width=50, height=50)
-
-    # Sprites far apart should not be touching
-    assert sprite1.is_touching(sprite2) == False
-
-
-def test_sprite_transparency_setter():
-    """Test setting sprite transparency."""
-    import play
-
-    sprite = play.new_box()
-
-    sprite.transparency = 50
-    assert sprite.transparency == 50
-
-    sprite.transparency = 100
-    assert sprite.transparency == 100
-
-
-def test_sprite_transparency_invalid():
-    """Test that invalid transparency raises ValueError."""
-    import play
-
-    sprite = play.new_box()
-
-    with pytest.raises(ValueError):
-        sprite.transparency = "not a number"
+    assert box.is_touching(near)
+    assert near.is_touching(box)
+    assert not box.is_touching(far)
 
 
 def test_a_plain_sprite_gets_the_defaults():
-    from play.objects.sprite import Sprite
-
     sprite = Sprite(x=12, y=-5)
 
     assert (sprite.x, sprite.y) == (12, -5)
     assert sprite.angle == 0
     assert sprite.transparency == 100
     assert sprite.is_hidden is False
-    assert sprite.events is not None
+
+
+def test_a_plain_sprite_clones_with_its_picture():
+    picture = pygame.Surface((10, 10))
+    sprite = Sprite(image=picture)
+
+    clone = sprite.clone()
+
+    assert clone is not sprite
+    assert clone.image is picture
 
 
 def test_changing_a_sprite_redraws_the_sprites_that_watch_it():
-    import play
-
     watcher = play.new_box()
     target = play.new_box()
     watcher.when_touching(target)(lambda: None)

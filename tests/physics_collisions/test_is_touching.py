@@ -1,51 +1,72 @@
-import pytest
+import play
 
 
-def test_ball_movement():
-    import play
-
-    num_frames = [0]
-    max_frames = 200
-    x_speed = 60
-    num_collisions_decorator = [0]
-    method_check_inside_decorator = [0]
-
-    ball = play.new_circle(
-        color="black",
-        x=0,
-        y=0,
-        radius=20,
-    )
-
-    batje = play.new_box(color="black", x=200)
-
+def _ball_and_block():
+    """A bouncy ball moving right towards an immovable block."""
+    ball = play.new_circle(color="black", radius=20)
+    block = play.new_box(color="black", x=200)
     ball.start_physics(
-        obeys_gravity=False, x_speed=x_speed, friction=0, mass=10, bounciness=1.0
+        obeys_gravity=False, x_speed=60, friction=0, mass=10, bounciness=1.0
     )
-    batje.start_physics(
+    block.start_physics(
         obeys_gravity=False, can_move=False, friction=0, mass=10, bounciness=1.0
     )
+    return ball, block
 
-    @ball.when_touching(batje)
-    def detect_collision():
-        num_collisions_decorator[0] += 1
-        if ball.is_touching(batje):
-            method_check_inside_decorator[0] += 1
+
+def _run_frames(frames):
+    """Run the game loop for *frames* frames, then stop it."""
+    counted = [0]
 
     @play.repeat_forever
-    def move():
-        num_frames[0] += 1
-
-        if num_frames[0] == max_frames:
+    def stop_later():
+        counted[0] += 1
+        if counted[0] == frames:
             play.stop_program()
 
     play.start_program()
 
-    if not (num_collisions_decorator[0] == 1 and method_check_inside_decorator[0] == 1):
-        pytest.fail(
-            f"expected one collision by the method and the decorator, but found {num_collisions_decorator[0]}, {method_check_inside_decorator[0]}"
-        )
+
+def test_a_ball_bouncing_off_a_block_touches_it_once_and_is_touching_it_then():
+    ball, block = _ball_and_block()
+    touching = []
+
+    @ball.when_touching(block)
+    def detect_collision():
+        touching.append(ball.is_touching(block))
+
+    _run_frames(200)
+
+    assert touching == [True]
 
 
-if __name__ == "__main__":
-    test_ball_movement()
+def test_a_ball_bouncing_off_a_block_stops_touching_it_once_and_is_clear_of_it_then():
+    ball, block = _ball_and_block()
+    touching = []
+
+    @ball.when_stopped_touching(block)
+    def detect_separation():
+        touching.append(ball.is_touching(block))
+
+    _run_frames(200)
+
+    assert touching == [False]
+
+
+def test_teleporting_a_ball_away_in_when_touching_ends_the_contact():
+    ball, block = _ball_and_block()
+    log = []
+
+    @ball.when_touching(block)
+    def teleport():
+        log.append("touching")
+        ball.x = 0
+
+    @ball.when_stopped_touching(block)
+    def left():
+        log.append("stopped")
+
+    _run_frames(200)
+
+    assert log == ["touching", "stopped"]
+    assert ball.x < 0

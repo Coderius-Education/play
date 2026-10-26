@@ -1,34 +1,32 @@
 import pytest
+
 import play
-from play.globals import globals_list
 
 
-@pytest.fixture(autouse=True)
-def setup_play(clean_play_state):
-    pass
+def _ball_after_a_second(sim_steps):
+    """A ball moving 60 px/s after 60 frames at *sim_steps* simulation steps."""
+    play.set_physics_simulation_steps(sim_steps)
+    ball = play.new_circle(radius=10)
+    ball.start_physics(x_speed=60, obeys_gravity=False)
+    frames = [0]
+
+    @play.repeat_forever
+    def stop_later():
+        frames[0] += 1
+        if frames[0] == 60:
+            play.stop_program()
+
+    play.start_program()
+    return ball
 
 
-def test_set_physics_simulation_steps_positive():
-    """Setting simulation steps to a positive integer should work."""
-    play.set_physics_simulation_steps(10)
-    assert globals_list.num_sim_steps == 10
+@pytest.mark.parametrize("sim_steps", [1, 3, 10, 20])
+def test_more_simulation_steps_do_not_make_sprites_faster(sim_steps):
+    ball = _ball_after_a_second(sim_steps)
+    assert ball.x == pytest.approx(60)
 
 
-def test_set_physics_simulation_steps_one():
-    """Setting simulation steps to 1 (minimum sensible value) should work."""
-    play.set_physics_simulation_steps(1)
-    assert globals_list.num_sim_steps == 1
-
-
-def test_set_physics_simulation_steps_zero():
-    """Setting simulation steps to 0 is accepted (no validation exists).
-    This documents current behavior — 0 steps means no physics updates per frame."""
-    play.set_physics_simulation_steps(0)
-    assert globals_list.num_sim_steps == 0
-
-
-def test_set_physics_simulation_steps_negative():
-    """Setting simulation steps to a negative value is accepted (no validation exists).
-    This documents current behavior."""
-    play.set_physics_simulation_steps(-1)
-    assert globals_list.num_sim_steps == -1
+@pytest.mark.parametrize("sim_steps", [0, -1])
+def test_no_simulation_steps_freezes_physics(sim_steps):
+    ball = _ball_after_a_second(sim_steps)
+    assert ball.x == 0

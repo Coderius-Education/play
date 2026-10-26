@@ -15,7 +15,6 @@ This test verifies:
 """
 
 from tests.conftest import post_key_down, post_key_up
-from tests.projects.conftest import add_safety_timeout
 
 max_frames = 1500  # 25s at 60fps; pytest's timeout is 60s
 
@@ -120,7 +119,9 @@ def test_topdown_maze():
     # --- assertions --------------------------------------------------------
     assert moves[0] > 0, "player should have moved"
     assert has_key[0], "player should have collected the key"
+    assert key_item.is_hidden, "a collected key disappears"
     assert reached_door[0], "player should have reached the door"
+    assert status_text.words == "You win!"
 
 
 if __name__ == "__main__":

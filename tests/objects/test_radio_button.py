@@ -5,7 +5,8 @@ import play
 from play.io.mouse import mouse
 from play.physics import physics_space
 from play.utils import color_name_to_rgb
-from tests.conftest import click_at, count_color
+from tests.conftest import click_at, count_color, image_bytes
+from tests.objects.clone_checks import BUNDLED_FONT, appearance, middle_of
 
 
 @pytest.fixture(autouse=True)
@@ -13,7 +14,16 @@ def setup_play(clean_play_state):
     pass
 
 
-# ── RadioGroup ─────────────────────────────────────────────────────────────────
+def _two_radios(selected="a"):
+    """A group with radios "a" and "b", the one named *selected* selected."""
+    g = play.new_radio_group()
+    r1 = play.new_radio_button(
+        "A", value="a", group=g, x=-50, y=0, selected=selected == "a"
+    )
+    r2 = play.new_radio_button(
+        "B", value="b", group=g, x=50, y=0, selected=selected == "b"
+    )
+    return g, r1, r2
 
 
 def test_radio_group_creation():
@@ -21,70 +31,52 @@ def test_radio_group_creation():
     assert g.selected_value is None
 
 
-def test_radio_group_selected_value_after_creation():
-    g = play.new_radio_group()
-    r = play.new_radio_button("A", value="a", group=g, selected=True)
-    assert g.selected_value == "a"
+@pytest.mark.parametrize("selected", ["a", "b"])
+def test_a_group_reports_the_radio_created_selected(selected):
+    g, _r1, _r2 = _two_radios(selected)
+    assert g.selected_value == selected
 
 
-def test_radio_group_deselects_others():
-    g = play.new_radio_group()
-    r1 = play.new_radio_button("A", value="a", group=g, x=-50, y=0, selected=True)
-    r2 = play.new_radio_button("B", value="b", group=g, x=50, y=0)
-    g._select(r2)
-    assert r1._selected is False
-    assert r2._selected is True
-
-
-def test_radio_group_selected_value_returns_correct_value():
-    g = play.new_radio_group()
-    r1 = play.new_radio_button("A", value="a", group=g, x=-50, y=0)
-    r2 = play.new_radio_button("B", value="b", group=g, x=50, y=0, selected=True)
+def test_selecting_a_radio_in_code_deselects_the_rest_of_its_group():
+    g, r1, r2 = _two_radios("a")
+    received = []
+    g.when_changed(received.append)
+    r2.selected = True
+    assert (r1.selected, r2.selected) == (False, True)
     assert g.selected_value == "b"
-
-
-def test_radio_group_selected_value_setter():
-    g = play.new_radio_group()
-    r1 = play.new_radio_button("A", value="a", group=g, x=-50, y=0, selected=True)
-    r2 = play.new_radio_button("B", value="b", group=g, x=50, y=0)
-    g.selected_value = "b"
-    assert r1._selected is False
-    assert r2._selected is True
+    assert received == ["b"]
 
 
 def test_radio_group_selected_value_setter_fires_when_changed():
     # Regression: setting selected_value should fire when_changed, like the
     # TextInput.value and Slider.value setters do.
-    g = play.new_radio_group()
-    r1 = play.new_radio_button("A", value="a", group=g, x=-50, y=0, selected=True)
-    r2 = play.new_radio_button("B", value="b", group=g, x=50, y=0)
+    g, r1, r2 = _two_radios("a")
     received = []
     g.when_changed(received.append)
     g.selected_value = "b"
     assert received == ["b"]
-    assert r2._selected is True
-    assert r1._selected is False
+    assert r2.selected is True
+    assert r1.selected is False
 
 
 def test_radio_group_selected_value_setter_no_match_clears_without_firing():
-    g = play.new_radio_group()
-    play.new_radio_button("A", value="a", group=g, x=-50, y=0, selected=True)
-    play.new_radio_button("B", value="b", group=g, x=50, y=0)
+    g, r1, r2 = _two_radios("a")
     received = []
     g.when_changed(received.append)
     g.selected_value = "does-not-exist"
     assert g.selected_value is None
+    assert (r1.selected, r2.selected) == (False, False)
     assert received == []
 
 
-def test_radio_group_when_changed_fires():
-    g = play.new_radio_group()
-    r1 = play.new_radio_button("A", value="a", group=g, x=-50, y=0)
-    r2 = play.new_radio_button("B", value="b", group=g, x=50, y=0)
+def test_deselecting_a_grouped_radio_in_code_leaves_nothing_selected():
+    g, r1, _r2 = _two_radios("a")
     received = []
     g.when_changed(received.append)
-    g._select(r2)
-    assert received == ["b"]
+    r1.selected = False
+    assert r1.selected is False
+    assert g.selected_value is None
+    assert received == []
 
 
 def test_radio_group_when_changed_fires_on_click():
@@ -110,64 +102,54 @@ def test_radio_group_when_changed_rejects_async():
             pass
 
 
-# ── RadioButton ────────────────────────────────────────────────────────────────
-
-
 def test_radio_button_creation():
     r = play.new_radio_button("Option A", value="a")
     assert r.label == "Option A"
     assert r.value == "a"
     assert r.selected is False
-
-
-def test_radio_button_selected_default():
-    r = play.new_radio_button(selected=True)
-    assert r.selected is True
+    assert play.new_radio_button(selected=True).selected is True
 
 
 def test_radio_button_label_setter():
-    import pygame
-
     r = play.new_radio_button("old")
-    r._should_recompute = True
-    r.update()
-    before = pygame.image.tobytes(r.image, "RGBA")
+    before = image_bytes(r)
     r.label = "new"
     assert r.label == "new"
-    assert r._should_recompute is True
     r.update()
-    after = pygame.image.tobytes(r.image, "RGBA")
-    assert after != before  # the new label is actually drawn
+    assert image_bytes(r) != before
 
 
-def test_radio_button_disabled_setter():
-    r = play.new_radio_button()
+def test_a_disabled_radio_is_dimmed_and_ignores_clicks():
+    g = play.new_radio_group()
+    r = play.new_radio_button("X", value="x", group=g, x=0, y=0)
+    enabled = image_bytes(r)
     r.disabled = True
     assert r.disabled is True
-
-
-def test_radio_button_disabled_ignores_click():
-    g = play.new_radio_group()
-    r = play.new_radio_button(
-        "X", value="x", group=g, x=0, y=0, size_px=22, disabled=True
-    )
+    r.update()
+    assert image_bytes(r) != enabled
     click_at(0, 0, r)
-    assert r._selected is False
+    assert r.selected is False
+    assert g.selected_value is None
 
 
 def test_radio_button_click_selects():
     g = play.new_radio_group()
     r = play.new_radio_button("X", value="x", group=g, x=0, y=0, size_px=22)
     click_at(0, 0, r)
-    assert r._selected is True
+    assert r.selected is True
 
 
-def test_radio_button_hit_shape_matches_size():
-    # Regression: the pymunk hit-shape must span the widget, not be a 0x0 point.
-    r = play.new_radio_button("Label", value="x", x=0, y=0, size_px=22)
-    bb = r.physics._pymunk_shape.bb
-    assert (bb.right - bb.left) > 0
-    assert (bb.top - bb.bottom) > 0
+def test_a_radio_without_a_group_selects_itself_when_clicked():
+    r = play.new_radio_button("X", value="x", x=0, y=0)
+    click_at(0, 0, r)
+    assert r.selected is True
+
+
+def test_clicking_a_radios_label_selects_it():
+    r = play.new_radio_button("A long label", value="x", x=0, y=0, size_px=22)
+    r.update()
+    click_at(r.image.get_width() / 2 - 5, 0, r)
+    assert r.selected is True
 
 
 def test_stacked_radios_select_independently():
@@ -191,15 +173,16 @@ def test_stacked_radios_select_independently():
     assert g.selected_value == "bot"
 
 
-def test_radio_button_alive():
-    r = play.new_radio_button()
-    assert r.alive()
+def test_a_radio_without_a_label_is_a_circle_of_size_px():
+    assert play.new_radio_button(size_px=30).image.get_size() == (30, 30)
 
 
-def test_radio_button_image_rendered():
-    r = play.new_radio_button()
-    assert r.image is not None
-    assert r.image.get_width() > 0 and r.image.get_height() > 0
+@pytest.mark.parametrize("size, expected", [(100, (22, 22)), (200, (44, 44))])
+def test_a_radios_drawing_scales_with_its_size(size, expected):
+    r = play.new_radio_button(size_px=22)
+    r.size = size
+    r.update()
+    assert r.image.get_size() == expected
 
 
 def test_radio_button_label_change_does_not_leak_bodies():
@@ -213,44 +196,38 @@ def test_radio_button_label_change_does_not_leak_bodies():
 
 def test_disabled_radio_ignores_hover():
     # Regression: a disabled radio must not show hover feedback.
-    import pygame
-
     r = play.new_radio_button("A", value="a", x=0, y=0, size_px=22, disabled=True)
     mouse.x, mouse.y = 500, 500  # away
     r.update()
-    away = pygame.image.tobytes(r.image, "RGBA")
+    away = image_bytes(r)
     mouse.x, mouse.y = 0, 0  # over the radio
     r.update()
-    over = pygame.image.tobytes(r.image, "RGBA")
-    assert away == over
+    assert image_bytes(r) == away
 
 
 def test_radio_button_hover_border_reacts():
-    # Regression: hovering must re-render so the hover border actually appears.
-    import pygame
-
-    r = play.new_radio_button("A", value="a", x=0, y=0, size_px=22)
-    mouse.x, mouse.y = 500, 500  # away from the radio
+    r = play.new_radio_button(
+        "A", value="a", x=0, y=0, size_px=22, hover_border_color="red"
+    )
+    mouse.x, mouse.y = 500, 500
     r.update()
-    away = pygame.image.tobytes(r.image, "RGBA")
-    mouse.x, mouse.y = 0, 0  # move over the radio
+    assert count_color(r.image, (255, 0, 0)) == 0
+    mouse.x, mouse.y = 0, 0
     r.update()
-    over = pygame.image.tobytes(r.image, "RGBA")
-    assert away != over
+    assert count_color(r.image, (255, 0, 0)) > 0
+    mouse.x, mouse.y = 500, 500
+    r.update()
+    assert count_color(r.image, (255, 0, 0)) == 0
 
 
-def test_radio_button_label_change_resizes_hit_shape():
-    # Regression: the pymunk hit-shape must grow when the label widens, so the
-    # new label region is clickable.
+def test_a_longer_label_is_clickable_after_the_label_changes():
     r = play.new_radio_button("A", value="a", x=0, y=0, size_px=22)
-
-    def shape_width():
-        bb = r.physics._pymunk_shape.bb
-        return bb.right - bb.left
-
-    narrow = shape_width()
+    r.update()
+    narrow = r.image.get_width()
     r.label = "A considerably longer option label"
-    assert shape_width() > narrow
+    r.update()
+    click_at(narrow, 0, r)
+    assert r.selected is True
 
 
 def test_radio_button_selected_dot_only_when_selected():
@@ -261,20 +238,61 @@ def test_radio_button_selected_dot_only_when_selected():
     assert count_color(on.image, dot_rgb) > 0
 
 
-def test_radio_button_unregisters_on_remove():
-    g = play.new_radio_group()
-    r = play.new_radio_button("X", value="x", group=g)
-    r.remove()
-    assert r not in g._buttons
+def test_a_removed_radio_leaves_its_group():
+    g, r1, r2 = _two_radios("a")
+    r1.remove()
+    assert g.selected_value is None
+    g.selected_value = "a"
+    assert g.selected_value is None
+    assert r2.selected is False
 
 
-def test_radio_button_clone():
-    g = play.new_radio_group()
-    r = play.new_radio_button("X", value="x", group=g, selected=True)
+def test_removing_a_radio_twice_is_harmless():
+    g, r1, r2 = _two_radios("b")
+    r1.remove()
+    r1.remove()
+    assert g.selected_value == "b"
+
+
+def test_a_cloned_radio_joins_the_same_group():
+    g, r1, _r2 = _two_radios("a")
+    c = r1.clone()
+    assert c.label == "A"
+    assert c.value == "a"
+    c.selected = True
+    assert r1.selected is False
+    assert g.selected_value == "a"
+
+
+def test_a_cloned_radio_looks_like_the_original_resting_hovered_and_disabled():
+    r = play.new_radio_button(
+        "X",
+        value="x",
+        x=30,
+        y=20,
+        size_px=36,
+        color="yellow",
+        selected_color="green",
+        border_color="blue",
+        hover_border_color="red",
+        label_color="purple",
+        font_size=26,
+        font=BUNDLED_FONT,
+        transparency=70,
+        anchor="top-left",
+        layer=12,
+        selected=True,
+    )
     c = r.clone()
-    assert c.label == "X"
-    assert c.value == "x"
-    assert c in g._buttons  # the clone joins the same group (unselected)
+    assert (c.label, c.value, c.selected) == ("X", "x", True)
+    assert appearance(c) == appearance(r)
+    mouse.x, mouse.y = middle_of(r)
+    assert appearance(c) == appearance(r)
+
+    r.disabled = True
+    disabled_twin = r.clone()
+    assert disabled_twin.disabled is True
+    assert appearance(disabled_twin) == appearance(r)
 
 
 def test_clone_selected_radio_keeps_single_selection():
@@ -283,10 +301,9 @@ def test_clone_selected_radio_keeps_single_selection():
     g = play.new_radio_group()
     r = play.new_radio_button("X", value="x", group=g, selected=True)
     c = r.clone()
-    selected = [btn for btn in g._buttons if btn.selected]
-    assert len(selected) == 1
     assert r.selected is True  # the original keeps its selection
     assert c.selected is False
+    assert g.selected_value == "x"
 
 
 def test_clone_ungrouped_radio_keeps_selected_state():
@@ -298,8 +315,7 @@ def test_clone_ungrouped_radio_keeps_selected_state():
 
 def test_constructing_second_selected_radio_keeps_single_selection():
     g = play.new_radio_group()
-    play.new_radio_button("A", value="a", group=g, selected=True)
-    play.new_radio_button("B", value="b", group=g, selected=True)
-    selected = [btn for btn in g._buttons if btn.selected]
-    assert len(selected) == 1
+    a = play.new_radio_button("A", value="a", group=g, selected=True)
+    b = play.new_radio_button("B", value="b", group=g, selected=True)
+    assert (a.selected, b.selected) == (False, True)
     assert g.selected_value == "b"

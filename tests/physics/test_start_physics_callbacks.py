@@ -1,239 +1,6 @@
-"""Test that calling start_physics again preserves callbacks without duplicating them."""
+"""Calling start_physics() again keeps every contact callback running exactly as before."""
 
 import pytest
-
-
-def test_when_touching_callbacks_not_duplicated():
-    """Calling start_physics a second time should not duplicate when_touching callbacks."""
-    import play
-    from play.callback import callback_manager, CallbackType
-
-    ball = play.new_circle(x=0, y=0, radius=20)
-    ball.start_physics(obeys_gravity=False)
-
-    wall = play.new_box(x=200, y=0, width=10, height=100)
-    wall.start_physics(obeys_gravity=False, can_move=False)
-
-    touch_count = [0]
-
-    @ball.when_touching(wall)
-    async def on_touch():
-        touch_count[0] += 1
-
-    callbacks_before = list(
-        callback_manager.get_callback(CallbackType.WHEN_TOUCHING, id(ball)) or []
-    )
-    count_before = len(callbacks_before)
-
-    # Call start_physics again
-    ball.start_physics(obeys_gravity=False)
-
-    callbacks_after = list(
-        callback_manager.get_callback(CallbackType.WHEN_TOUCHING, id(ball)) or []
-    )
-    count_after = len(callbacks_after)
-
-    assert (
-        count_before == count_after
-    ), f"when_touching callbacks changed from {count_before} to {count_after} after start_physics"
-
-    play.stop_program()
-
-
-def test_when_touching_wall_callbacks_not_duplicated():
-    """Calling start_physics a second time should not duplicate when_touching_wall callbacks."""
-    import play
-    from play.callback import callback_manager, CallbackType
-
-    ball = play.new_circle(x=0, y=0, radius=20)
-    ball.start_physics(obeys_gravity=False)
-
-    @ball.when_touching_wall
-    async def on_wall():
-        pass
-
-    callbacks_before = list(
-        callback_manager.get_callback(CallbackType.WHEN_TOUCHING_WALL, id(ball)) or []
-    )
-    count_before = len(callbacks_before)
-
-    ball.start_physics(obeys_gravity=False)
-
-    callbacks_after = list(
-        callback_manager.get_callback(CallbackType.WHEN_TOUCHING_WALL, id(ball)) or []
-    )
-    count_after = len(callbacks_after)
-
-    assert (
-        count_before == count_after
-    ), f"when_touching_wall callbacks changed from {count_before} to {count_after} after start_physics"
-
-    play.stop_program()
-
-
-def test_when_stopped_touching_callbacks_not_duplicated():
-    """Calling start_physics a second time should not duplicate when_stopped_touching callbacks."""
-    import play
-    from play.callback import callback_manager, CallbackType
-
-    ball = play.new_circle(x=0, y=0, radius=20)
-    ball.start_physics(obeys_gravity=False)
-
-    other = play.new_box(x=200, y=0, width=10, height=100)
-    other.start_physics(obeys_gravity=False, can_move=False)
-
-    @ball.when_stopped_touching(other)
-    async def on_stop_touch():
-        pass
-
-    callbacks_before = list(
-        callback_manager.get_callback(CallbackType.WHEN_STOPPED_TOUCHING, id(ball))
-        or []
-    )
-    count_before = len(callbacks_before)
-
-    ball.start_physics(obeys_gravity=False)
-
-    callbacks_after = list(
-        callback_manager.get_callback(CallbackType.WHEN_STOPPED_TOUCHING, id(ball))
-        or []
-    )
-    count_after = len(callbacks_after)
-
-    assert (
-        count_before == count_after
-    ), f"when_stopped_touching callbacks changed from {count_before} to {count_after} after start_physics"
-
-    play.stop_program()
-
-
-def test_when_stopped_touching_wall_callbacks_not_duplicated():
-    """Calling start_physics a second time should not duplicate when_stopped_touching_wall callbacks."""
-    import play
-    from play.callback import callback_manager, CallbackType
-
-    ball = play.new_circle(x=0, y=0, radius=20)
-    ball.start_physics(obeys_gravity=False)
-
-    @ball.when_stopped_touching_wall
-    async def on_stop_wall():
-        pass
-
-    callbacks_before = list(
-        callback_manager.get_callback(CallbackType.WHEN_STOPPED_TOUCHING_WALL, id(ball))
-        or []
-    )
-    count_before = len(callbacks_before)
-
-    ball.start_physics(obeys_gravity=False)
-
-    callbacks_after = list(
-        callback_manager.get_callback(CallbackType.WHEN_STOPPED_TOUCHING_WALL, id(ball))
-        or []
-    )
-    count_after = len(callbacks_after)
-
-    assert (
-        count_before == count_after
-    ), f"when_stopped_touching_wall callbacks changed from {count_before} to {count_after} after start_physics"
-
-    play.stop_program()
-
-
-def test_multiple_start_physics_calls_preserve_callbacks():
-    """Calling start_physics 3 times should still have the same callback count as after the first."""
-    import play
-    from play.callback import callback_manager, CallbackType
-
-    ball = play.new_circle(x=0, y=0, radius=20)
-    ball.start_physics(obeys_gravity=False)
-
-    other = play.new_box(x=200, y=0, width=10, height=100)
-    other.start_physics(obeys_gravity=False, can_move=False)
-
-    @ball.when_touching(other)
-    async def on_touch():
-        pass
-
-    @ball.when_touching_wall
-    async def on_wall():
-        pass
-
-    touching_before = len(
-        callback_manager.get_callback(CallbackType.WHEN_TOUCHING, id(ball)) or []
-    )
-    wall_before = len(
-        callback_manager.get_callback(CallbackType.WHEN_TOUCHING_WALL, id(ball)) or []
-    )
-
-    # Call start_physics two more times
-    ball.start_physics(obeys_gravity=False)
-    ball.start_physics(obeys_gravity=False)
-
-    touching_after = len(
-        callback_manager.get_callback(CallbackType.WHEN_TOUCHING, id(ball)) or []
-    )
-    wall_after = len(
-        callback_manager.get_callback(CallbackType.WHEN_TOUCHING_WALL, id(ball)) or []
-    )
-
-    assert (
-        touching_before == touching_after
-    ), f"when_touching callbacks changed from {touching_before} to {touching_after} after 3x start_physics"
-    assert (
-        wall_before == wall_after
-    ), f"when_touching_wall callbacks changed from {wall_before} to {wall_after} after 3x start_physics"
-
-    play.stop_program()
-
-
-def test_other_sprite_start_physics_preserves_dependent_callbacks():
-    """When sprite B calls start_physics, callbacks registered by sprite A
-    referencing B should be re-registered with B's new physics shape."""
-    import play
-    from play.callback import callback_manager, CallbackType
-
-    bal = play.new_circle(x=0, y=0, radius=20)
-    bal.start_physics(obeys_gravity=False)
-
-    batje = play.new_box(x=200, y=0, width=10, height=100)
-    batje.start_physics(obeys_gravity=False, can_move=False)
-
-    @bal.when_touching(batje)
-    async def on_touch():
-        pass
-
-    @bal.when_stopped_touching(batje)
-    async def on_stop_touch():
-        pass
-
-    touching_before = len(
-        callback_manager.get_callback(CallbackType.WHEN_TOUCHING, id(bal)) or []
-    )
-    stopped_before = len(
-        callback_manager.get_callback(CallbackType.WHEN_STOPPED_TOUCHING, id(bal)) or []
-    )
-
-    # Call start_physics on the OTHER sprite (batje)
-    batje.start_physics(obeys_gravity=False, can_move=False)
-
-    touching_after = len(
-        callback_manager.get_callback(CallbackType.WHEN_TOUCHING, id(bal)) or []
-    )
-    stopped_after = len(
-        callback_manager.get_callback(CallbackType.WHEN_STOPPED_TOUCHING, id(bal)) or []
-    )
-
-    assert touching_before == touching_after, (
-        f"when_touching callbacks changed from {touching_before} to {touching_after} "
-        f"after other sprite called start_physics"
-    )
-    assert stopped_before == stopped_after, (
-        f"when_stopped_touching callbacks changed from {stopped_before} to {stopped_after} "
-        f"after other sprite called start_physics"
-    )
-
-    play.stop_program()
 
 
 @pytest.mark.parametrize("event", ["touching", "stopped touching"])
@@ -264,7 +31,7 @@ def test_a_third_sprites_callback_survives_another_sprite_starting_physics(event
 
     play.start_program()
 
-    assert "goal" in hits
+    assert hits == ["goal"]
 
 
 _REGISTER = {
@@ -290,11 +57,17 @@ _REGISTER = {
         ("paddle", "when_stopped_touching"),
     ],
 )
-def test_callbacks_still_run_after_many_restarts_of_physics(restarted, event):
+def test_callbacks_run_once_per_contact_after_many_restarts_of_physics(
+    restarted, event
+):
     import play
 
-    ball = play.new_circle(x=-350 if "wall" in event else 300, radius=10)
+    if "wall" in event:
+        ball = play.new_circle(x=-350, y=200, radius=10)
+    else:
+        ball = play.new_circle(x=0, radius=10)
     paddle = play.new_box(x=-300, width=20, height=200)
+    ball.start_physics(x_speed=-600, obeys_gravity=False)
     hits = []
     _REGISTER[event](ball, paddle, lambda: hits.append("hit"))
 
@@ -303,18 +76,17 @@ def test_callbacks_still_run_after_many_restarts_of_physics(restarted, event):
             paddle.start_physics(can_move=False)
         else:
             ball.start_physics(x_speed=-600, obeys_gravity=False)
-    ball.start_physics(x_speed=-600, obeys_gravity=False)
     frames = [0]
 
     @play.repeat_forever
     def stop_later():
         frames[0] += 1
-        if frames[0] == 90:
+        if frames[0] == 60:
             play.stop_program()
 
     play.start_program()
 
-    assert hits
+    assert hits == ["hit"]
 
 
 def test_when_stopped_touching_on_a_sprite_survives_it_starting_physics_again():
@@ -340,32 +112,27 @@ def test_when_stopped_touching_on_a_sprite_survives_it_starting_physics_again():
     assert hits == ["stopped"]
 
 
-def test_collision_type_stable_across_make_pymunk():
-    """collision_type must survive _make_pymunk() calls on the same physics object.
-
-    _make_pymunk is re-run when properties like can_move change. The collision
-    registry relies on the type being stable so registered handlers keep firing.
-    """
+def test_when_touching_stops_once_the_floor_is_moved_away_and_restarted():
     import play
 
-    ball = play.new_circle(x=0, y=0, radius=20)
-    wall = play.new_box(x=200, y=0, width=10, height=100)
+    floor = play.new_box(y=-200, width=400, height=20)
+    floor.start_physics(can_move=False)
+    box = play.new_box(y=-180, width=20, height=20)
+    box.start_physics(bounciness=0)
+    frames = [0]
+    calls = []
+    box.when_touching(floor)(lambda: calls.append(frames[0]))
 
-    @ball.when_touching(wall)
-    async def on_touch():
-        pass
+    @play.repeat_forever
+    def move_the_floor():
+        frames[0] += 1
+        if frames[0] == 30:
+            floor.y = -400
+            floor.start_physics(can_move=False)
+        if frames[0] == 60:
+            play.stop_program()
 
-    ct_before = ball.physics._pymunk_shape.collision_type
+    play.start_program()
 
-    # Toggling can_move triggers _make_pymunk on the same _Physics instance
-    ball.physics.can_move = not ball.physics.can_move
-
-    ct_after = ball.physics._pymunk_shape.collision_type
-
-    assert ct_before == ct_after
-
-    play.stop_program()
-
-
-if __name__ == "__main__":
-    test_when_touching_callbacks_not_duplicated()
+    assert calls == list(range(30))
+    assert box.y < -190

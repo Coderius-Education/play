@@ -1,105 +1,101 @@
 import pytest
+
 import play
-from play.physics import physics_space, set_gravity, set_physics_simulation_steps
-from play.globals import globals_list
+from play.physics import set_gravity
 
 
-@pytest.fixture(autouse=True)
-def setup_play(clean_play_state):
-    pass
+def _run_frames(frames):
+    """Run the game loop for *frames* frames, then stop it."""
+    counted = [0]
+
+    @play.repeat_forever
+    def step():
+        counted[0] += 1
+        if counted[0] == frames:
+            play.stop_program()
+
+    play.start_program()
 
 
-def test_physics_direct_init_and_properties():
-    box = play.new_box(color="red", x=0, y=0, width=50, height=50)
+def test_a_sprite_without_physics_stays_put_and_stops_a_physics_ball():
+    wall = play.new_box(width=20, height=100)
+    ball = play.new_circle(x=-100, radius=10)
+    ball.start_physics(x_speed=200, obeys_gravity=False)
 
-    # Defaults checking
-    assert box.physics.can_move is True
-    assert box.physics.stable is True
-    assert box.physics.obeys_gravity is False
-    assert box.physics.bounciness == 1.0
+    _run_frames(60)
 
-    # can_move
-    box.physics.can_move = False
-    assert box.physics.can_move is False
-    # should trigger _make_pymunk and recreate as static
-
-    # speed
-    box.physics.x_speed = 10
-    assert box.physics.x_speed == 10
-    box.physics.y_speed = -20
-    assert box.physics.y_speed == -20
-
-    # bounciness
-    box.physics.bounciness = 0.5
-    assert box.physics.bounciness == 0.5
-
-    # mass
-    box.physics.can_move = True
-    box.physics.stable = False
-    box.physics.obeys_gravity = True
-    box.physics.mass = 50
-    assert box.physics.mass == 50
-
-    # obeys_gravity
-    box.physics.obeys_gravity = True
-    assert box.physics.obeys_gravity is True
-
-    # turn gravity off
-    box.physics.obeys_gravity = False
-    assert box.physics.obeys_gravity is False
+    assert (wall.x, wall.y, wall.angle) == (0, 0, 0)
+    assert ball.physics.x_speed == pytest.approx(-200, abs=1)
+    assert ball.x < -20
 
 
-def test_physics_direct_stable_recreation():
-    circle = play.new_circle(color="blue", x=0, y=0, radius=20)
-    circle.start_physics(can_move=True, stable=False)
+def test_a_cloned_physics_has_every_setting_of_the_original():
+    box = play.new_box()
+    box.start_physics(
+        can_move=True,
+        stable=True,
+        x_speed=100,
+        y_speed=-20,
+        obeys_gravity=False,
+        bounciness=0.8,
+        mass=5,
+        friction=0.3,
+        sensor=True,
+    )
 
-    assert circle.physics.stable is False
+    cloned = box.physics.clone(play.new_box(x=50))
 
-    # Changing stable toggles moment infinity vs calculation
-    circle.physics.stable = True
-    assert circle.physics.stable is True
-
-
-def test_physics_direct_pause_unpause():
-    box = play.new_box(color="red", x=0, y=0, width=50, height=50)
-
-    # Initial state is unpaused
-    assert box.physics._is_paused is False
-
-    box.physics.pause()
-    assert box.physics._is_paused is True
-
-    # Pausing again does nothing and returns early
-    box.physics.pause()
-
-    box.physics.unpause()
-    assert box.physics._is_paused is False
-
-    # Unpausing again does nothing and returns early
-    box.physics.unpause()
-
-
-def test_physics_direct_clone():
-    box = play.new_box(color="red", x=0, y=0, width=50, height=50)
-    box.physics.x_speed = 100
-    box.physics.bounciness = 0.8
-
-    cloned_physics = box.physics.clone(box)
-    assert cloned_physics.x_speed == 100
-    assert cloned_physics.bounciness == 0.8
-    assert cloned_physics.can_move == box.physics.can_move
+    assert (
+        cloned.can_move,
+        cloned.stable,
+        cloned.x_speed,
+        cloned.y_speed,
+        cloned.obeys_gravity,
+        cloned.bounciness,
+        cloned.mass,
+        cloned.friction,
+        cloned.sensor,
+    ) == (True, True, 100, -20, False, 0.8, 5, 0.3, True)
 
 
-def test_physics_direct_global_setters():
-    set_gravity(vertical=-50, horizontal=10)
-    assert physics_space.gravity == (10, -50)
+@pytest.mark.parametrize(
+    "gravity, x_speed, y_speed",
+    [
+        ({"vertical": 0, "horizontal": 60}, 60, 0),
+        ({"vertical": -60, "horizontal": 60}, 60, -60),
+        ({"vertical": -60}, 0, -60),
+    ],
+    ids=["sideways", "both", "vertical only"],
+)
+def test_gravity_pulls_a_sprite_the_way_it_is_set(gravity, x_speed, y_speed):
+    set_gravity(**gravity)
+    ball = play.new_circle(radius=10)
+    ball.start_physics()
 
-    set_gravity(vertical=-200)  # leaving horizontal alone
-    assert physics_space.gravity == (10, -200)
+    _run_frames(60)
 
-    set_physics_simulation_steps(3)
-    assert globals_list.num_sim_steps == 3
-    set_physics_simulation_steps(10)  # Reset global state
+    assert ball.physics.x_speed == pytest.approx(x_speed, abs=0.5)
+    assert ball.physics.y_speed == pytest.approx(y_speed, abs=0.5)
 
-    # Reset gravity to defaults so it doesn't bleed into other tests
-    set_gravity(vertical=-100, horizontal=0)
+
+def test_setting_only_vertical_gravity_keeps_the_sideways_pull():
+    set_gravity(vertical=0, horizontal=60)
+    set_gravity(vertical=-60)
+    ball = play.new_circle(radius=10)
+    ball.start_physics()
+
+    _run_frames(60)
+
+    assert ball.physics.x_speed == pytest.approx(60, abs=0.5)
+    assert ball.physics.y_speed == pytest.approx(-60, abs=0.5)
+
+
+def test_sideways_gravity_can_be_switched_off_again():
+    set_gravity(vertical=0, horizontal=60)
+    set_gravity(vertical=0, horizontal=0)
+    ball = play.new_circle(radius=10)
+    ball.start_physics()
+
+    _run_frames(60)
+
+    assert (ball.x, ball.y) == (0, 0)

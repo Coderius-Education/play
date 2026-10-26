@@ -24,6 +24,7 @@ def test_hover_button():
     hover_detected = [False]
     button_clicked = [False]
     hover_frames = [0]
+    colors = {}
 
     # --- sprites -----------------------------------------------------------
     button = play.new_box(color="gray", x=0, y=0, width=120, height=40)
@@ -53,10 +54,16 @@ def test_hover_button():
         sx = int(screen.width / 2)
         sy = int(screen.height / 2)
 
+        post_mouse_motion(5, 5)
+        for _ in range(3):
+            await play.animate()
+        colors["away"] = button.color
+
         # First hover over the button for a few frames
         post_mouse_motion(sx, sy)
         for _ in range(20):
             await play.animate()
+        colors["hover"] = button.color
 
         # Click the button
         post_mouse_down(sx, sy)
@@ -75,6 +82,8 @@ def test_hover_button():
     assert hover_detected[0], "mouse.is_touching(button) should have detected hover"
     assert hover_frames[0] > 0, "hover should have been detected for multiple frames"
     assert button_clicked[0], "button should have been clicked"
+    assert label.words == "Clicked!"
+    assert colors == {"away": "gray", "hover": "lightblue"}
 
 
 if __name__ == "__main__":

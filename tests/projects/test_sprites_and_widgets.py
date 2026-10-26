@@ -35,11 +35,6 @@ async def _click(screen, x, y):
     await play.animate()
 
 
-# ---------------------------------------------------------------------------
-# a widget on top of a sprite
-# ---------------------------------------------------------------------------
-
-
 def test_clicking_a_button_does_not_click_the_sprite_under_it():
     """A UI panel over the playfield must absorb the click.
 
@@ -102,11 +97,6 @@ def test_clicking_beside_the_button_still_reaches_the_sprite():
     assert sprite_clicks, "a click away from the button should reach the sprite"
 
 
-# ---------------------------------------------------------------------------
-# collisions driving a widget
-# ---------------------------------------------------------------------------
-
-
 def test_a_progress_bar_tracks_damage_from_collisions():
     """A health bar updated from a collision callback.
 
@@ -143,11 +133,6 @@ def test_a_progress_bar_tracks_damage_from_collisions():
     assert (
         bar.value == health[0]
     ), f"the bar should show the current health ({health[0]}), not {bar.value}"
-
-
-# ---------------------------------------------------------------------------
-# a widget driving the physics
-# ---------------------------------------------------------------------------
 
 
 def test_a_checkbox_can_freeze_and_release_a_moving_sprite():
@@ -206,11 +191,6 @@ def test_a_checkbox_can_freeze_and_release_a_moving_sprite():
     )
 
 
-# ---------------------------------------------------------------------------
-# widgets and sprite lifetime
-# ---------------------------------------------------------------------------
-
-
 def test_a_button_can_remove_a_physics_sprite_mid_game():
     """Removing a simulated sprite from a widget callback.
 
@@ -256,12 +236,14 @@ def test_a_tooltip_survives_its_target_being_removed():
     enemy = play.new_box(color="red", x=0, y=0, width=60, height=60)
     tooltip = play.new_tooltip(target=enemy, text="enemy")
     survived = []
+    shown = []
 
     @play.when_program_starts
     async def driver():
         post_mouse_motion(*_screen_xy(screen, 0, 0))
         for _ in range(5):
             await play.animate()
+        shown.append(tooltip.is_shown)
         enemy.remove()
         for _ in range(20):
             await play.animate()
@@ -276,11 +258,8 @@ def test_a_tooltip_survives_its_target_being_removed():
     assert not enemy.alive()
     assert survived, "the game stopped running after the tooltip's target was removed"
     assert tooltip.alive(), "the tooltip should still be a live sprite"
-
-
-# ---------------------------------------------------------------------------
-# overlays, hiding, and dragging over a live playfield
-# ---------------------------------------------------------------------------
+    assert shown == [True], "the tooltip should show while the cursor is on the enemy"
+    assert tooltip.is_hidden, "with its enemy gone the tooltip should disappear"
 
 
 def test_an_open_dropdown_menu_absorbs_clicks_meant_for_the_playfield():
@@ -321,36 +300,6 @@ def test_an_open_dropdown_menu_absorbs_clicks_meant_for_the_playfield():
     ), "the playfield under the menu should not have been clicked"
 
 
-def test_hiding_a_widget_hands_the_playfield_back():
-    """A dismissed overlay must stop intercepting clicks.
-
-    A pause menu that keeps eating clicks after being hidden leaves the game
-    looking alive and completely unresponsive.
-    """
-    import play
-    from play.io.screen import screen
-
-    sprite_clicks = []
-
-    field = play.new_box(color="green", x=0, y=0, width=400, height=400)
-    field.when_clicked(lambda: sprite_clicks.append(1))
-    overlay = play.new_button(text="resume", x=0, y=0, width=200, height=80)
-
-    @play.when_program_starts
-    async def driver():
-        for _ in range(3):
-            await play.animate()
-        overlay.hide()
-        await play.animate()
-        await _click(screen, 0, 0)
-        play.stop_program()
-
-    add_safety_timeout(max_frames)
-    play.start_program()
-
-    assert sprite_clicks, "with the overlay hidden the click should reach the playfield"
-
-
 def test_a_slider_drag_survives_a_busy_physics_frame():
     import play
     from play.io.screen import screen
@@ -366,7 +315,9 @@ def test_a_slider_drag_survives_a_busy_physics_frame():
             bounciness=1.0,
         )
 
+    values = []
     slider = play.new_slider(min_value=0, max_value=100, value=0, x=0, y=150, width=200)
+    slider.when_changed(values.append)
 
     @play.when_program_starts
     async def driver():
@@ -385,6 +336,10 @@ def test_a_slider_drag_survives_a_busy_physics_frame():
 
         post_mouse_up(*_screen_xy(screen, 90, 150))
         await play.animate()
+
+        post_mouse_motion(*_screen_xy(screen, -90, 150))
+        await play.animate()
+        await play.animate()
         play.stop_program()
 
     add_safety_timeout(max_frames)
@@ -394,4 +349,6 @@ def test_a_slider_drag_survives_a_busy_physics_frame():
         f"the drag should have reached max_value with sprites simulating, "
         f"got {slider.value}"
     )
-    assert slider._dragging is False, "releasing the mouse should end the drag"
+    assert values, "when_changed should fire while dragging"
+    assert values == sorted(values), "a left-to-right drag should only increase"
+    assert values[-1] == 100, "moving the mouse after releasing must not drag on"

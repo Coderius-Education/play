@@ -1,179 +1,59 @@
-"""Tests for screen properties."""
+"""play.screen: its size, edges and caption."""
 
+import pygame
 import pytest
 
+import play
+from play.io.screen import Screen, convert_pos, pos_convert
 
-def test_screen_width_getter():
-    """Test getting screen width."""
-    import play
 
-    box = play.new_box()
-    box.start_physics()
+@pytest.mark.parametrize(
+    "name, value",
+    [
+        ("width", 800),
+        ("height", 600),
+        ("size", (800, 600)),
+        ("top", 300),
+        ("bottom", -300),
+        ("left", -400),
+        ("right", 400),
+    ],
+)
+def test_an_800_by_600_screen_has_its_edges_half_its_size_from_the_middle(name, value):
+    assert getattr(play.screen, name) == value
 
-    result = []
 
-    @play.when_program_starts
-    def check():
-        result.append(play.screen.width)
-        play.stop_program()
+def test_the_caption_starts_as_coderius_play():
+    assert play.screen.caption == "coderius-play"
 
-    play.start_program()
 
-    assert result[0] == 800  # default width
+def test_a_new_screen_titles_the_window_coderius_play():
+    pygame.display.set_caption("something else")
+    Screen()
+    assert pygame.display.get_caption()[0] == "coderius-play"
 
 
-def test_screen_height_getter():
-    """Test getting screen height."""
-    import play
+def test_setting_the_caption_changes_the_window_title():
+    play.screen.caption = "My Game"
 
-    box = play.new_box()
-    box.start_physics()
+    assert play.screen.caption == "My Game"
+    assert pygame.display.get_caption()[0] == "My Game"
 
-    result = []
 
-    @play.when_program_starts
-    def check():
-        result.append(play.screen.height)
-        play.stop_program()
+@pytest.mark.parametrize(
+    "play_point, window_point",
+    [((0, 0), (400, 300)), ((-400, 300), (0, 0)), ((100, -50), (500, 350))],
+)
+def test_play_points_and_window_points_convert_both_ways(play_point, window_point):
+    assert convert_pos(*play_point) == window_point
+    assert pos_convert(*window_point) == play_point
 
-    play.start_program()
 
-    assert result[0] == 600  # default height
+@pytest.mark.parametrize(
+    "name, value, size", [("width", 500, (500, 600)), ("height", 400, (800, 400))]
+)
+def test_setting_one_side_of_the_screen_resizes_the_window(name, value, size):
+    setattr(play.screen, name, value)
 
-
-def test_screen_top():
-    """Test screen top boundary."""
-    import play
-
-    box = play.new_box()
-    box.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(play.screen.top)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == 300  # half of 600
-
-
-def test_screen_bottom():
-    """Test screen bottom boundary."""
-    import play
-
-    box = play.new_box()
-    box.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(play.screen.bottom)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == -300  # negative half of 600
-
-
-def test_screen_left():
-    """Test screen left boundary."""
-    import play
-
-    box = play.new_box()
-    box.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(play.screen.left)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == -400  # negative half of 800
-
-
-def test_screen_right():
-    """Test screen right boundary."""
-    import play
-
-    box = play.new_box()
-    box.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(play.screen.right)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == 400  # half of 800
-
-
-def test_screen_caption_getter():
-    """Test getting screen caption."""
-    import play
-
-    box = play.new_box()
-    box.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(play.screen.caption)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == "coderius-play"  # default caption
-
-
-def test_screen_caption_setter():
-    """Test setting screen caption."""
-    import play
-
-    box = play.new_box()
-    box.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        play.screen.caption = "My Game"
-        result.append(play.screen.caption)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == "My Game"
-
-
-def test_screen_size():
-    """Test screen size property."""
-    import play
-
-    box = play.new_box()
-    box.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(play.screen.size)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == (800, 600)
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    assert pygame.display.get_surface().get_size() == size
+    assert play.screen.size == size

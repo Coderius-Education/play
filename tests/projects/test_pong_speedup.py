@@ -10,6 +10,8 @@ This test verifies:
 - scoring and reset still work at higher speeds
 """
 
+import math
+
 from tests.projects.conftest import (
     new_scoring_state,
     setup_pong,
@@ -31,6 +33,7 @@ def test_pong_speedup():
     paddle_hits = [0]
     current_speed = [300.0]
     max_speed_ever = [300.0]
+    fastest_ball = [0.0]
 
     ball, paddle_left, paddle_right, score_text = setup_pong()
 
@@ -82,6 +85,11 @@ def test_pong_speedup():
             scoring["won"] = True
             play.stop_program()
 
+    @play.repeat_forever
+    def measure_ball():
+        speed = math.hypot(ball.physics.x_speed, ball.physics.y_speed)
+        fastest_ball[0] = max(fastest_ball[0], speed)
+
     add_safety_timeout(max_frames)
 
     play.start_program()
@@ -91,6 +99,11 @@ def test_pong_speedup():
     assert (
         max_speed_ever[0] > 300
     ), f"speed should have increased beyond 300, but max was {max_speed_ever[0]}"
+    serve_speed = math.hypot(300, 40)
+    assert fastest_ball[0] > serve_speed * speed_factor * 0.97, (
+        "after a paddle hit the ball itself should move 20% faster, "
+        f"but its fastest speed was {fastest_ball[0]:.0f}"
+    )
 
 
 if __name__ == "__main__":

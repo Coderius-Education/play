@@ -15,7 +15,6 @@ def _settled(sprite):
     return sprite
 
 
-# ── Edge-based anchor semantics ───────────────────────────────────────────────
 # ox / oy are pixel distances from the screen border.
 # After two updates the relevant EDGE of the sprite sits at that distance.
 
@@ -76,7 +75,7 @@ def test_anchor_bottom_center_with_offset():
     assert box.rect.bottom == pytest.approx(screen.height - 20, abs=1)
 
 
-def test_anchor_text_no_crash():
+def test_an_anchored_text_is_placed_right_from_its_first_update():
     # Text.__init__ pre-renders so its rect is real before the game loop starts;
     # edge placement should be correct from the very first game-loop update().
     text = play.new_text("HUD", anchor="top-left", x=5, y=5)
@@ -115,3 +114,27 @@ def test_anchored_sprite_with_gravity_physics_falls():
         box.update()
     assert box.y < y_anchored
     assert box.physics._pymunk_body.velocity.y < 0
+
+
+def test_an_anchored_body_without_gravity_stays_anchored_and_loses_its_speed():
+    from play.physics import physics_space
+    from play.core.sprites_loop import update_sprite_physics
+
+    box = play.new_box("red", width=50, height=50, anchor="top-left", x=20, y=15)
+    box.start_physics(obeys_gravity=False, x_speed=300)
+    for _ in range(10):
+        physics_space.step(1 / 60.0)
+        update_sprite_physics(box)
+        box.update()
+
+    assert box.rect.left == pytest.approx(20, abs=1)
+    assert box.rect.top == pytest.approx(15, abs=1)
+    assert box.physics.x_speed == pytest.approx(0, abs=1e-6)
+
+
+@pytest.mark.parametrize("anchor", ["middle", "left-top", "top-left-corner"])
+def test_an_unknown_anchor_warns_with_the_valid_values(anchor):
+    with pytest.warns(UserWarning, match=f"Unknown anchor value '{anchor}'.*top-left"):
+        box = play.new_box(width=50, height=50, anchor=anchor, x=20, y=15)
+
+    assert (box.x, box.y) == (0, 0)

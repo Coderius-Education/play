@@ -7,20 +7,20 @@ def setup_play(clean_play_state):
     pass
 
 
-def test_syntax_case_insensitivity_colors():
-    """
-    Beginners might capitalize colors differently (e.g. 'RED', 'Red', 'red').
-    The library should accept them all without crashing (color_name_to_rgb
-    normalizes internally during rendering).
-    """
-    box1 = play.new_box(color="RED", x=0, y=0, width=10, height=10)
-    box2 = play.new_box(color="Red", x=10, y=0, width=10, height=10)
-    box3 = play.new_box(color="red", x=20, y=0, width=10, height=10)
+@pytest.mark.parametrize("name", ["RED", "Red", "red", " red ", "#F00", "#ff0000"])
+def test_a_color_name_draws_the_same_however_it_is_written(name):
+    box = play.new_box(color=name, x=0, y=0, width=10, height=10)
+    box.update()
 
-    # All boxes should be created successfully
-    assert isinstance(box1.color, str)
-    assert isinstance(box2.color, str)
-    assert isinstance(box3.color, str)
+    assert box.image.get_at(box.image.get_rect().center)[:3] == (255, 0, 0)
+
+
+@pytest.mark.parametrize("name", ["light blue", "light-blue", "LightBlue"])
+def test_a_two_word_color_draws_with_a_space_a_hyphen_or_neither(name):
+    box = play.new_box(color=name, x=0, y=0, width=10, height=10)
+    box.update()
+
+    assert box.image.get_at(box.image.get_rect().center)[:3] == (173, 216, 230)
 
 
 def test_syntax_physics_spelling_mistakes():

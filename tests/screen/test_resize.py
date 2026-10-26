@@ -3,35 +3,21 @@
 import pytest
 
 
-def test_screen_resize_before_sprites():
-    """Test resizing screen before creating sprites."""
+@pytest.mark.parametrize(
+    "width, height",
+    [(1800, 900), (1000, 500), (400, 300), (500, 500), (2000, 400), (400, 2000)],
+)
+def test_resizing_before_any_sprites_sets_the_size_and_the_edges(width, height):
+    import pygame
     import play
 
-    play.screen.resize(1800, 900)
+    play.screen.resize(width, height)
 
-    assert play.screen.width == 1800
-    assert play.screen.height == 900
-
-
-def test_screen_resize_updates_boundaries():
-    """Test that resize updates screen boundary properties."""
-    import play
-
-    play.screen.resize(800, 600)
-
-    assert play.screen.top == 300
-    assert play.screen.bottom == -300
-    assert play.screen.left == -400
-    assert play.screen.right == 400
-
-
-def test_screen_resize_updates_size_tuple():
-    """Test that resize updates the size property."""
-    import play
-
-    play.screen.resize(1000, 500)
-
-    assert play.screen.size == (1000, 500)
+    assert (play.screen.width, play.screen.height) == (width, height)
+    assert play.screen.size == (width, height)
+    assert pygame.display.get_surface().get_size() == (width, height)
+    assert (play.screen.left, play.screen.right) == (-width / 2, width / 2)
+    assert (play.screen.bottom, play.screen.top) == (-height / 2, height / 2)
 
 
 def test_screen_resize_after_sprites_raises_error():
@@ -44,7 +30,7 @@ def test_screen_resize_after_sprites_raises_error():
         play.screen.resize(1200, 800)
 
     assert "Screen must be resized before creating sprites" in str(exc_info.value)
-    assert "1 sprite" in str(exc_info.value)
+    assert "creating 1 sprite.\n" in str(exc_info.value)
 
 
 def test_screen_resize_after_multiple_sprites_shows_plural():
@@ -59,62 +45,6 @@ def test_screen_resize_after_multiple_sprites_shows_plural():
         play.screen.resize(1200, 800)
 
     assert "3 sprites" in str(exc_info.value)
-
-
-def test_screen_resize_with_different_dimensions():
-    """Test resizing to various dimensions."""
-    import play
-
-    test_dimensions = [
-        (400, 300),
-        (1920, 1080),
-        (640, 480),
-        (1024, 768),
-    ]
-
-    for width, height in test_dimensions:
-        play.screen.resize(width, height)
-        assert play.screen.width == width
-        assert play.screen.height == height
-        assert play.screen.size == (width, height)
-
-
-def test_screen_resize_square_dimensions():
-    """Test resizing to square dimensions."""
-    import play
-
-    play.screen.resize(500, 500)
-
-    assert play.screen.width == 500
-    assert play.screen.height == 500
-    assert play.screen.left == -250
-    assert play.screen.right == 250
-    assert play.screen.top == 250
-    assert play.screen.bottom == -250
-
-
-def test_screen_resize_very_wide():
-    """Test resizing to very wide dimensions."""
-    import play
-
-    play.screen.resize(2000, 400)
-
-    assert play.screen.width == 2000
-    assert play.screen.height == 400
-    assert play.screen.left == -1000
-    assert play.screen.right == 1000
-
-
-def test_screen_resize_very_tall():
-    """Test resizing to very tall dimensions."""
-    import play
-
-    play.screen.resize(400, 2000)
-
-    assert play.screen.width == 400
-    assert play.screen.height == 2000
-    assert play.screen.top == 1000
-    assert play.screen.bottom == -1000
 
 
 def _wall_edges():
@@ -180,4 +110,28 @@ def test_setting_resizable_takes_effect_straight_away(monkeypatch):
 
     play.screen.resizable = True
 
+    assert play.screen.resizable is True
     assert flags and flags[-1] & pygame.RESIZABLE
+
+
+def test_dragging_the_window_bigger_runs_when_resized_with_the_new_size():
+    import pygame
+    import play
+
+    sizes = []
+
+    @play.screen.when_resized
+    def on_resize():
+        sizes.append(play.screen.size)
+
+    @play.when_program_starts
+    async def drag():
+        await play.animate()
+        pygame.event.post(pygame.event.Event(pygame.VIDEORESIZE, {"w": 1000, "h": 700}))
+        for _ in range(3):
+            await play.animate()
+        play.stop_program()
+
+    play.start_program()
+
+    assert sizes == [(1000, 700)]

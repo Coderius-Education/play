@@ -1,156 +1,124 @@
-"""Tests for Box sprite properties."""
+"""What changing a box's properties does to the box on screen."""
 
+import pygame
 import pytest
 
+import play
+from tests.conftest import color_at
 
-def test_box_color_getter():
-    """Test getting box color."""
-    import play
-
-    box = play.new_box(color="red")
-    box.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(box.color)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == "red"
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+WHITE = (255, 255, 255)
 
 
-def test_box_color_setter():
-    """Test setting box color."""
-    import play
+def test_a_new_box_colour_is_drawn_on_the_next_frame():
+    box = play.new_box(color="red", width=20, height=20)
+    assert color_at(box, 10, 10) == RED
 
-    box = play.new_box(color="red")
-    box.start_physics()
+    box.color = "blue"
+    box.update()
 
-    result = []
-
-    @play.when_program_starts
-    def check():
-        box.color = "blue"
-        result.append(box.color)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == "blue"
+    assert box.color == "blue"
+    assert color_at(box, 10, 10) == BLUE
 
 
-def test_box_border_color():
-    """Test box border_color property."""
-    import play
+@pytest.mark.parametrize("prop", ["color", "border_color"])
+def test_a_mistyped_box_colour_is_refused_where_it_is_set(prop):
+    box = play.new_box(color="red", border_color="red")
 
-    box = play.new_box(border_color="green", border_width=2)
-    box.start_physics()
+    with pytest.raises(ValueError, match="blu"):
+        setattr(box, prop, "blu")
 
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(box.border_color)
-        box.border_color = "yellow"
-        result.append(box.border_color)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == "green"
-    assert result[1] == "yellow"
+    assert getattr(box, prop) == "red"
 
 
-def test_box_border_width():
-    """Test box border_width property."""
-    import play
+def test_the_border_is_drawn_in_its_own_colour_on_every_side():
+    box = play.new_box(
+        color="white", width=40, height=30, border_color="red", border_width=5
+    )
 
-    box = play.new_box(border_width=5)
-    box.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(box.border_width)
-        box.border_width = 10
-        result.append(box.border_width)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == 5
-    assert result[1] == 10
+    for x, y in [(2, 15), (37, 15), (20, 2), (20, 27)]:
+        assert color_at(box, x, y) == RED, (x, y)
+    for x, y in [(6, 15), (33, 15), (20, 6), (20, 23)]:
+        assert color_at(box, x, y) == WHITE, (x, y)
 
 
-def test_box_border_radius():
-    """Test box border_radius property."""
-    import play
+def test_a_box_border_set_later_is_drawn_too():
+    box = play.new_box(color="white", width=40, height=30)
+    assert color_at(box, 2, 15) == WHITE
 
-    box = play.new_box(border_radius=15)
-    box.start_physics()
+    box.border_width = 5
+    box.border_color = "blue"
+    box.update()
 
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(box.border_radius)
-        box.border_radius = 20
-        result.append(box.border_radius)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == 15
-    assert result[1] == 20
+    assert (box.border_width, box.border_color) == (5, "blue")
+    assert color_at(box, 2, 15) == BLUE
+    assert color_at(box, 20, 15) == WHITE
 
 
-def test_box_width_setter():
-    """Test setting box width after creation."""
-    import play
+@pytest.mark.parametrize("border_width", [0, 3])
+def test_a_border_radius_rounds_the_corners(border_width):
+    box = play.new_box(
+        color="red", width=40, height=40, border_radius=12, border_width=border_width
+    )
+    assert box.image.get_at((0, 0)).a == 0
+    assert box.image.get_at((20, 20)).a == 255
 
-    box = play.new_box(width=100)
-    box.start_physics()
+    box.border_radius = 0
+    box.update()
 
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(box.width)
-        box.width = 200
-        result.append(box.width)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == 100
-    assert result[1] == 200
+    assert box.border_radius == 0
+    assert box.image.get_at((0, 0)).a == 255
 
 
-def test_box_height_setter():
-    """Test setting box height after creation."""
-    import play
+def test_the_inside_of_a_bordered_box_is_rounded_as_well():
+    box = play.new_box(
+        color="white",
+        width=60,
+        height=60,
+        border_color="red",
+        border_width=3,
+        border_radius=15,
+    )
 
-    box = play.new_box(height=50)
-    box.start_physics()
-
-    result = []
-
-    @play.when_program_starts
-    def check():
-        result.append(box.height)
-        box.height = 100
-        result.append(box.height)
-        play.stop_program()
-
-    play.start_program()
-
-    assert result[0] == 50
-    assert result[1] == 100
+    assert color_at(box, 4, 4) != WHITE
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+@pytest.mark.parametrize(
+    "prop, point",
+    [("width", (90, 0)), ("height", (0, 90))],
+)
+def test_resizing_a_box_changes_what_is_drawn_and_what_can_be_touched(prop, point):
+    box = play.new_box(width=100, height=100)
+    assert not box.is_touching(point)
+
+    setattr(box, prop, 200)
+    box.update()
+
+    assert getattr(box, prop) == 200
+    assert box.image.get_size() == ((200, 100) if prop == "width" else (100, 200))
+    assert box.is_touching(point)
+
+
+def test_a_cloned_box_looks_exactly_like_the_original():
+    box = play.new_box(
+        color="green",
+        x=40,
+        y=-30,
+        width=60,
+        height=40,
+        border_color="red",
+        border_width=4,
+        border_radius=9,
+        transparency=70,
+        size=150,
+        angle=20,
+    )
+
+    clone = box.clone()
+
+    assert clone is not box
+    assert clone.rect == box.rect
+    assert pygame.image.tobytes(clone.image, "RGBA") == pygame.image.tobytes(
+        box.image, "RGBA"
+    )

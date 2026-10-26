@@ -4,7 +4,8 @@ import pytest
 import play
 from play.io.mouse import mouse
 from play.utils import color_name_to_rgb
-from tests.conftest import click_at, count_color
+from tests.conftest import click_at, count_color, image_bytes
+from tests.objects.clone_checks import BUNDLED_FONT, appearance, middle_of
 
 
 @pytest.fixture(autouse=True)
@@ -16,53 +17,41 @@ def test_checkbox_creation():
     cb = play.new_checkbox(label="Enable sound", checked=True)
     assert cb.checked is True
     assert cb.label == "Enable sound"
+    assert play.new_checkbox().checked is False
 
 
-def test_checkbox_default_unchecked():
-    cb = play.new_checkbox()
-    assert cb.checked is False
-
-
-def test_checkbox_toggles_on_click():
-    cb = play.new_checkbox(x=0, y=0, size_px=24)
-    click_at(0, 0, cb)
-    assert cb.checked is True
-
-
-def test_checkbox_hover_border_reacts():
-    # Regression: hovering must re-render so the hover border actually appears.
-    import pygame
-
-    cb = play.new_checkbox(x=0, y=0, size_px=24)
-    mouse.x, mouse.y = 500, 500  # away from the checkbox
-    cb.update()
-    away = pygame.image.tobytes(cb.image, "RGBA")
-    mouse.x, mouse.y = 0, 0  # move over the checkbox
-    cb.update()
-    over = pygame.image.tobytes(cb.image, "RGBA")
-    assert away != over  # the hover border changed the rendered image
-
-
-def test_disabled_checkbox_ignores_hover():
-    # Regression: a disabled widget must not show hover feedback (border change).
-    import pygame
-
-    cb = play.new_checkbox(x=0, y=0, size_px=24, disabled=True)
-    mouse.x, mouse.y = 500, 500  # away
-    cb.update()
-    away = pygame.image.tobytes(cb.image, "RGBA")
-    mouse.x, mouse.y = 0, 0  # over the checkbox
-    cb.update()
-    over = pygame.image.tobytes(cb.image, "RGBA")
-    assert away == over  # no hover reaction while disabled
-
-
-def test_checkbox_when_changed_fires():
+def test_each_click_toggles_the_checkbox_and_reports_the_new_state():
     cb = play.new_checkbox(x=0, y=0, size_px=24)
     results = []
     cb.when_changed(results.append)
     click_at(0, 0, cb)
-    assert results == [True]
+    assert cb.checked is True
+    click_at(0, 0, cb)
+    assert cb.checked is False
+    assert results == [True, False]
+
+
+def test_checkbox_hover_border_reacts():
+    cb = play.new_checkbox(x=0, y=0, size_px=24, hover_border_color="red")
+    mouse.x, mouse.y = 500, 500
+    cb.update()
+    assert count_color(cb.image, (255, 0, 0)) == 0
+    mouse.x, mouse.y = 0, 0
+    cb.update()
+    assert count_color(cb.image, (255, 0, 0)) > 0
+    mouse.x, mouse.y = 500, 500
+    cb.update()
+    assert count_color(cb.image, (255, 0, 0)) == 0
+
+
+def test_disabled_checkbox_ignores_hover():
+    cb = play.new_checkbox(x=0, y=0, size_px=24, disabled=True)
+    mouse.x, mouse.y = 500, 500
+    cb.update()
+    away = image_bytes(cb)
+    mouse.x, mouse.y = 0, 0
+    cb.update()
+    assert image_bytes(cb) == away
 
 
 def test_checkbox_when_changed_rejects_async():
@@ -74,10 +63,27 @@ def test_checkbox_when_changed_rejects_async():
             pass
 
 
-def test_checkbox_disabled_ignores_click():
+def test_a_disabled_checkbox_ignores_clicks_and_reports_nothing():
     cb = play.new_checkbox(x=0, y=0, size_px=24, disabled=True)
+    results = []
+    cb.when_changed(results.append)
     click_at(0, 0, cb)
     assert cb.checked is False
+    assert results == []
+
+
+def test_disabling_a_checkbox_dims_it_and_enabling_restores_it():
+    cb = play.new_checkbox(x=0, y=0, size_px=24)
+    mouse.x, mouse.y = 500, 500
+    cb.update()
+    enabled = image_bytes(cb)
+    cb.disabled = True
+    assert cb.disabled is True
+    cb.update()
+    assert image_bytes(cb) != enabled
+    cb.disabled = False
+    cb.update()
+    assert image_bytes(cb) == enabled
 
 
 def test_checkbox_checked_setter():
@@ -85,46 +91,31 @@ def test_checkbox_checked_setter():
     cb = play.new_checkbox(check_color="royalblue")
     cb.checked = True
     assert cb.checked is True
-    cb._should_recompute = True
     cb.update()
-    assert count_color(cb.image, check_rgb) > 0  # checkmark is drawn
+    assert count_color(cb.image, check_rgb) > 0
     cb.checked = False
     assert cb.checked is False
-    cb._should_recompute = True
     cb.update()
-    assert count_color(cb.image, check_rgb) == 0  # checkmark is gone
+    assert count_color(cb.image, check_rgb) == 0
 
 
 def test_checkbox_label_setter():
-    import pygame
-
     cb = play.new_checkbox(label="old")
-    cb._should_recompute = True
-    cb.update()
-    before = pygame.image.tobytes(cb.image, "RGBA")
+    before = image_bytes(cb)
     cb.label = "new"
     assert cb.label == "new"
-    assert cb._should_recompute is True
     cb.update()
-    after = pygame.image.tobytes(cb.image, "RGBA")
-    assert after != before  # the new label is actually drawn
+    assert image_bytes(cb) != before
 
 
-def test_checkbox_disabled_setter():
-    cb = play.new_checkbox()
-    cb.disabled = True
-    assert cb.disabled is True
+def test_a_checkbox_without_a_label_is_a_square_of_size_px():
+    assert play.new_checkbox(size_px=30).image.get_size() == (30, 30)
 
 
-def test_checkbox_alive():
-    cb = play.new_checkbox()
-    assert cb.alive()
-
-
-def test_checkbox_image_rendered():
-    cb = play.new_checkbox()
-    assert cb.image is not None
-    assert cb.image.get_width() > 0 and cb.image.get_height() > 0
+def test_a_label_makes_the_checkbox_wider_than_its_box():
+    cb = play.new_checkbox("Enable", size_px=24)
+    assert cb.image.get_width() > 24 + 10
+    assert cb.image.get_height() == 24
 
 
 def test_checkbox_checkmark_only_when_checked():
@@ -153,12 +144,35 @@ def test_checkbox_click_outside_does_not_toggle():
     assert cb.checked is False
 
 
-def test_checkbox_clone():
-    cb = play.new_checkbox(label="X", checked=True, disabled=True)
+def test_a_cloned_checkbox_looks_like_the_original_resting_hovered_and_disabled():
+    cb = play.new_checkbox(
+        label="X",
+        checked=True,
+        x=30,
+        y=20,
+        size_px=36,
+        color="yellow",
+        check_color="green",
+        border_color="blue",
+        hover_border_color="red",
+        label_color="purple",
+        font_size=26,
+        font=BUNDLED_FONT,
+        border_radius=9,
+        transparency=70,
+        anchor="top-left",
+        layer=12,
+    )
     c = cb.clone()
-    assert c.label == "X"
-    assert c.checked is True
-    assert c.disabled is True
+    assert (c.label, c.checked) == ("X", True)
+    assert appearance(c) == appearance(cb)
+    mouse.x, mouse.y = middle_of(cb)
+    assert appearance(c) == appearance(cb)
+
+    cb.disabled = True
+    disabled_twin = cb.clone()
+    assert disabled_twin.disabled is True
+    assert appearance(disabled_twin) == appearance(cb)
 
 
 def test_checkbox_label_setter_resizes_widget_and_hit_shape():

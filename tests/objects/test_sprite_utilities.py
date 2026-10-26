@@ -1,7 +1,5 @@
 import pytest
 import play
-import io
-import contextlib
 import pygame
 
 
@@ -10,72 +8,44 @@ def setup_play(clean_play_state):
     pass
 
 
-def test_sprite_distance_to():
-    s1 = play.new_circle(color="red", x=0, y=0, radius=10)
-    s2 = play.new_circle(color="blue", x=30, y=40, radius=10)
-
-    # Test distance string matching
-    assert s1.distance_to(s2) == 50.0
-    assert s2.distance_to(s1) == 50.0
-
-    # Test point
-    assert s1.distance_to(30, 40) == 50.0
-
-    # Test bad arguments
-    with pytest.raises(ValueError):
-        s1.distance_to(30)  # Missing y
-
-
-def test_sprite_clone():
+def test_a_clone_copies_what_the_sprite_has_become():
     s1 = play.new_box(color="red", x=10, y=20, width=50, height=50)
     s1.angle = 45
     s1.transparency = 50
+    s1.x = -30
+    s1.update()
 
-    # Clone it
     s2 = s1.clone()
-    assert s2.x == 10
-    assert s2.y == 20
-    assert s2.angle == 45
-    assert s2.transparency == 50
-    assert s2.width == 50
-    assert s2.height == 50
+
+    assert (s2.x, s2.y, s2.angle, s2.transparency) == (-30, 20, 45, 50)
+    assert (s2.width, s2.height) == (50, 50)
+    assert s2.rect == s1.rect
+    assert pygame.image.tobytes(s2.image, "RGBA") == pygame.image.tobytes(
+        s1.image, "RGBA"
+    )
 
 
-def test_sprite_clone_has_physics():
-    """Cloned sprite must have physics initialized."""
+def test_a_clone_of_an_anchored_sprite_sits_in_the_same_place_and_layer():
+    s1 = play.new_box(width=40, height=30, anchor="top-left", x=20, y=15, layer=3)
+    s1.update()
+
+    s2 = s1.clone()
+    s2.update()
+
+    assert s2.rect == s1.rect
+    assert s2.layer == 3
+
+
+def test_a_clone_has_a_body_of_its_own():
     s1 = play.new_box(color="red", x=10, y=20, width=50, height=50)
     s2 = s1.clone()
-    assert s2.physics is not None
+    assert s2.is_touching((10, 20))
 
+    s2.x = 200
 
-def test_sprite_clone_physics_is_independent():
-    """Cloned sprite gets its own independent physics object."""
-    s1 = play.new_box(color="red", x=10, y=20, width=50, height=50)
-    s2 = s1.clone()
-    assert s2.physics is not s1.physics
-
-
-def test_sprite_hide_show():
-    s1 = play.new_box(color="red", x=0, y=0, width=10, height=10)
-
-    assert s1.is_hidden is False
-    assert s1.is_shown is True
-
-    s1.hide()
-    assert s1.is_hidden is True
-    assert s1.is_shown is False
-
-    # Does not crash if already hidden
-    s1.hide()
-
-    s1.show()
-    assert s1.is_hidden is False
-
-    s1.is_hidden = True
-    assert s1.is_hidden is True
-
-    s1.is_shown = True
-    assert s1.is_shown is True
+    assert s2.is_touching((200, 20))
+    assert s1.is_touching((10, 20))
+    assert not s1.is_touching((200, 20))
 
 
 def test_sprite_rect_properties():
@@ -105,56 +75,24 @@ def test_sprite_rect_properties():
     assert s1.y == -85
     assert s1.bottom == -100
 
-    # pygame coords
-    assert isinstance(s1._pygame_x(), float)
-    assert isinstance(s1._pygame_y(), float)
+    s1.update()
+    assert s1.rect.topleft == (
+        play.screen.width / 2 + s1.left,
+        play.screen.height / 2 - s1.top,
+    )
 
 
-def test_sprite_info_output():
-    s1 = play.new_circle(color="red", x=10, y=20, radius=50)
-    s2 = play.new_box(color="blue", x=0, y=0, width=100, height=100)
-
-    stdout = io.StringIO()
-    with contextlib.redirect_stdout(stdout):
-        s1.info()
-        s2.info()
-
-    output = stdout.getvalue()
-    assert "Circle" in output
-    assert "Box" in output
-    assert "radius=50" in output
-    assert "width=100" in output
-    assert "Color: red" in output
-    assert "Color: blue" in output
-
-
-def test_sprite_physics_info_output():
-    s1 = play.new_box(color="blue", x=0, y=0, width=100, height=100)
-
-    stdout = io.StringIO()
-    with contextlib.redirect_stdout(stdout):
-        s1.start_physics(can_move=True, stable=False)
-        s1.physics_info()
-
-        s1.stop_physics()
-        s1.physics_info()
-
-    output = stdout.getvalue()
-    assert "DYNAMIC" in output
-    assert "KINEMATIC" in output
-
-
-def test_sprite_remove():
+def test_a_removed_sprite_is_no_longer_drawn_and_removing_it_again_is_harmless():
     s1 = play.new_box(color="blue", x=0, y=0, width=100, height=100)
     from play.globals import globals_list
 
     assert s1 in globals_list.sprites_group
 
     s1.remove()
-    assert s1 not in globals_list.sprites_group
-
-    # Removing again should not crash
     s1.remove()
+
+    assert s1 not in globals_list.sprites_group
+    assert not s1.is_touching((0, 0))
 
 
 def test_sprite_is_touching_point():

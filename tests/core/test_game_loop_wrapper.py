@@ -1,134 +1,61 @@
-"""Tests for listen_to_failure decorator."""
+"""listen_to_failure: the game loop's error goes on, is shown once and stops the program."""
 
-import asyncio
+import logging
+
 import pytest
 
-
-def test_listen_to_failure_sync_function_returns_value():
-    """Test that a sync function's return value passes through."""
-    from play.core.game_loop_wrapper import listen_to_failure
-
-    @listen_to_failure()
-    def add(a, b):
-        return a + b
-
-    loop = asyncio.new_event_loop()
-    result = loop.run_until_complete(add(2, 3))
-    loop.close()
-
-    assert result == 5
+from play.core.game_loop_wrapper import listen_to_failure
+from play.globals import globals_list, ProgramState
+from play.loop import get_loop
 
 
-def test_listen_to_failure_async_function_returns_value():
-    """Test that an async function's return value passes through."""
-    from play.core.game_loop_wrapper import listen_to_failure
-
-    @listen_to_failure()
-    async def add(a, b):
-        return a + b
-
-    loop = asyncio.new_event_loop()
-    result = loop.run_until_complete(add(2, 3))
-    loop.close()
-
-    assert result == 5
+def _add(a, b):
+    """Return the sum of *a* and *b*."""
+    return a + b
 
 
-def test_listen_to_failure_sync_exception_is_raised():
-    """Test that a sync function's exception is re-raised."""
-    from play.core.game_loop_wrapper import listen_to_failure
-
-    @listen_to_failure()
-    def fail():
-        raise ValueError("sync error")
-
-    loop = asyncio.new_event_loop()
-    with pytest.raises(ValueError, match="sync error"):
-        loop.run_until_complete(fail())
-    loop.close()
+async def _add_async(a, b):
+    """Return the sum of *a* and *b*, as a coroutine."""
+    return a + b
 
 
-def test_listen_to_failure_async_exception_is_raised():
-    """Test that an async function's exception is re-raised."""
-    from play.core.game_loop_wrapper import listen_to_failure
-
-    @listen_to_failure()
-    async def fail():
-        raise ValueError("async error")
-
-    loop = asyncio.new_event_loop()
-    with pytest.raises(ValueError, match="async error"):
-        loop.run_until_complete(fail())
-    loop.close()
+def _fail():
+    """Raise a ValueError."""
+    raise ValueError("sync error")
 
 
-def test_listen_to_failure_stops_loop_on_exception():
-    """Test that the event loop is stopped when an exception occurs."""
-    from play.core.game_loop_wrapper import listen_to_failure
-    from play.loop import get_loop
-
-    _loop = get_loop()
-
-    stopped = [False]
-    original_stop = _loop.stop
-
-    def mock_stop():
-        stopped[0] = True
-
-    _loop.stop = mock_stop
-
-    @listen_to_failure()
-    async def fail():
-        raise RuntimeError("boom")
-
-    loop = asyncio.new_event_loop()
-    try:
-        loop.run_until_complete(fail())
-    except RuntimeError:
-        pass
-    loop.close()
-
-    _loop.stop = original_stop
-
-    assert stopped[0] is True, "loop.stop() should have been called"
+async def _fail_async():
+    """Raise a ValueError, as a coroutine."""
+    raise ValueError("async error")
 
 
-def test_listen_to_failure_logs_exception(caplog):
-    """Test that the exception is logged with critical level."""
-    import logging
-    from play.core.game_loop_wrapper import listen_to_failure
-
-    @listen_to_failure()
-    async def fail():
-        raise RuntimeError("log me")
-
-    loop = asyncio.new_event_loop()
-    with caplog.at_level(logging.CRITICAL):
-        try:
-            loop.run_until_complete(fail())
-        except RuntimeError:
-            pass
-    loop.close()
-
-    assert any("log me" in record.message for record in caplog.records)
+@pytest.mark.parametrize("function", [_add, _add_async], ids=["def", "async def"])
+def test_a_wrapped_function_returns_its_value(function):
+    assert get_loop().run_until_complete(listen_to_failure()(function)(2, 3)) == 5
 
 
-def test_listen_to_failure_marks_the_program_as_stopped():
-    from play.core.game_loop_wrapper import listen_to_failure
-    from play.globals import globals_list, ProgramState
-    from play.loop import get_loop
-
+@pytest.mark.parametrize(
+    "function, message",
+    [(_fail, "sync error"), (_fail_async, "async error")],
+    ids=["def", "async def"],
+)
+def test_an_error_is_passed_on_shown_and_stops_the_program(function, message, caplog):
     globals_list.program_state = ProgramState.RUNNING
 
-    @listen_to_failure()
-    async def fail():
-        raise RuntimeError("boom")
+    with caplog.at_level(logging.CRITICAL, logger="play"):
+        with pytest.raises(ValueError, match=message):
+            get_loop().run_until_complete(listen_to_failure()(function)())
 
-    with pytest.raises(RuntimeError):
-        get_loop().run_until_complete(fail())
-
+    assert message in caplog.text
     assert globals_list.program_state is ProgramState.STOPPED
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+def test_only_the_first_of_two_errors_is_shown(caplog):
+    with caplog.at_level(logging.CRITICAL, logger="play"):
+        for function in (_fail, _fail_async):
+            with pytest.raises(ValueError):
+                get_loop().run_until_complete(listen_to_failure()(function)())
+
+    shown = [r.getMessage() for r in caplog.records if r.levelno == logging.CRITICAL]
+    assert len(shown) == 1
+    assert "sync error" in shown[0]

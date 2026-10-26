@@ -31,6 +31,8 @@ def test_pong_powerups():
     powerup_collected = [0]
     size_changes = [0]
     powerup_hide_frame = [0]
+    paddle_heights = set()
+    powerup_hidden_frames = [0]
 
     ball, paddle_left, paddle_right, score_text = setup_pong(ball_y_speed=60)
 
@@ -65,6 +67,11 @@ def test_pong_powerups():
 
     # --- powerup respawn via repeat_forever --------------------------------
     @play.repeat_forever
+    def watch():
+        paddle_heights.update((paddle_left.rect.height, paddle_right.rect.height))
+        powerup_hidden_frames[0] += powerup.is_hidden
+
+    @play.repeat_forever
     def respawn_powerup():
         if powerup_hide_frame[0] > 0:
             powerup_hide_frame[0] += 1
@@ -92,6 +99,8 @@ def test_pong_powerups():
     assert (
         size_changes[0] > 0
     ), "paddle size should have changed at least once via the power-up"
+    assert 120 in paddle_heights, "a grown paddle is drawn half as tall again"
+    assert powerup_hidden_frames[0] > 0, "a collected power-up should disappear"
 
 
 if __name__ == "__main__":

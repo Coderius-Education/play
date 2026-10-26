@@ -11,6 +11,7 @@ This test verifies:
 - the game completes normally with randomized serves
 """
 
+from tests.conftest import color_at
 from tests.projects.conftest import (
     new_scoring_state,
     setup_pong,
@@ -60,6 +61,7 @@ def test_pong_random():
 
         color = play.random_color()
         colors_used.append(color)
+        ball.color = color
 
         # Alternate serve direction
         direction = 1 if serves[0] % 2 == 0 else -1
@@ -114,6 +116,10 @@ def test_pong_random():
         assert len(color) == 3, f"random_color should return 3-tuple, got {color}"
         for channel in color:
             assert 0 <= channel <= 255, f"color channel out of range: {channel}"
+    centre = ball.image.get_rect().center
+    assert (
+        color_at(ball, *centre) == colors_used[-1]
+    ), "the ball should be drawn in its serve color"
 
 
 if __name__ == "__main__":

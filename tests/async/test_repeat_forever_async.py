@@ -53,7 +53,7 @@ def test_frames_render_during_repeat_forever_timer():
     @play.repeat_forever
     def stopper():
         frame_count[0] += 1
-        if frame_count[0] >= 60:
+        if len(flips_between_awaits) >= 2 or frame_count[0] >= 120:
             play.stop_program()
 
     with patch.object(pygame.display, "flip", side_effect=counting_flip):
@@ -91,12 +91,12 @@ def test_multiple_async_repeat_forever_callbacks():
     @play.repeat_forever
     def stopper():
         frame_count[0] += 1
-        if frame_count[0] >= 30:
+        if (a_count[0] >= 2 and b_count[0] >= 2) or frame_count[0] >= 120:
             play.stop_program()
 
     play.start_program()
 
-    assert frame_count[0] >= 30
+    assert frame_count[0] >= 3
     # Both callbacks should have run at least a few times
     assert a_count[0] >= 2, f"callback_a only ran {a_count[0]} times"
     assert b_count[0] >= 2, f"callback_b only ran {b_count[0]} times"
@@ -140,7 +140,7 @@ def test_frames_render_during_when_key_released_timer():
             pygame.event.post(pygame.event.Event(pygame.KEYUP, {"key": pygame.K_a}))
             key_posted[0] = True
 
-        if frame_count[0] >= 60:
+        if flips_during_callback or frame_count[0] >= 120:
             play.stop_program()
 
     with patch.object(pygame.display, "flip", side_effect=counting_flip):
@@ -154,3 +154,19 @@ def test_frames_render_during_when_key_released_timer():
         f"Expected at least 1 flip during await, got: {flips_during_callback}. "
         "Game loop froze while @when_key_released callback was suspended."
     )
+
+
+def test_a_plain_async_function_can_repeat_forever():
+    import play
+
+    runs = []
+
+    async def simple_callback():
+        runs.append(1)
+        if len(runs) == 3:
+            play.stop_program()
+
+    play.repeat_forever(simple_callback)
+    play.start_program()
+
+    assert runs == [1, 1, 1]

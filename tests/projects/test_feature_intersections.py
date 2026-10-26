@@ -15,10 +15,6 @@ from play.globals import globals_list
 from play.io.screen import screen
 from tests.conftest import click_at
 
-# ---------------------------------------------------------------------------
-# keyboard focus x sprite lifecycle
-# ---------------------------------------------------------------------------
-
 
 def test_removing_a_focused_text_input_releases_focus():
     """A removed field must not keep the keyboard.
@@ -59,11 +55,6 @@ def test_disabling_a_focused_text_input_releases_focus():
     field.disabled = True
 
     assert globals_list.focused_text_input is None
-
-
-# ---------------------------------------------------------------------------
-# collisions x physics lifecycle
-# ---------------------------------------------------------------------------
 
 
 def test_removing_a_sprite_stops_its_collision_callbacks():
@@ -157,9 +148,40 @@ def test_restarting_physics_while_touching_does_not_wedge():
     )
 
 
-# ---------------------------------------------------------------------------
-# layers x click ownership
-# ---------------------------------------------------------------------------
+def _position_after_frames(sprite, count):
+    """The sprite's (x, y) at frame *count*."""
+    frames = [0]
+    seen = []
+
+    @play.repeat_forever
+    def tick():
+        frames[0] += 1
+        if frames[0] == count:
+            seen.append((sprite.x, sprite.y))
+            play.stop_program()
+
+    play.start_program()
+    return seen[0]
+
+
+def test_a_sprite_hidden_after_starting_physics_stays_where_it_was():
+    ball = play.new_circle(x=0, y=0, radius=10)
+    ball.start_physics(obeys_gravity=False, x_speed=300, y_speed=40)
+    ball.hide()
+
+    assert _position_after_frames(ball, 20) == (0, 0)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="start_physics() on a hidden sprite simulates it while it stays hidden",
+)
+def test_a_sprite_hidden_before_starting_physics_stays_where_it_was():
+    ball = play.new_circle(x=0, y=0, radius=10)
+    ball.hide()
+    ball.start_physics(obeys_gravity=False, x_speed=300, y_speed=40)
+
+    assert _position_after_frames(ball, 20) == (0, 0)
 
 
 # Widget state is asserted rather than when_clicked callbacks: those dispatch
@@ -202,11 +224,6 @@ def test_disabled_widget_does_not_take_clicks_from_the_one_below():
     assert lower.checked is True, "a disabled widget should not swallow the click"
 
 
-# ---------------------------------------------------------------------------
-# anchors x screen size
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.parametrize(
     "anchor", ["top-left", "top-right", "bottom-left", "bottom-right"]
 )
@@ -223,7 +240,6 @@ def test_anchored_sprite_follows_a_screen_resize(anchor):
     before = (box.x, box.y)
 
     screen.width, screen.height = 1024, 768
-    screen.update_display()
     box.update()
     after = (box.x, box.y)
 
@@ -231,3 +247,9 @@ def test_anchored_sprite_follows_a_screen_resize(anchor):
         f"a sprite anchored {anchor!r} should move when the screen resizes, "
         f"but stayed at {before}"
     )
+    vertical, horizontal = anchor.split("-")
+    gap_x = (
+        box.x - 10 - screen.left if horizontal == "left" else screen.right - box.x - 10
+    )
+    gap_y = screen.top - box.y - 10 if vertical == "top" else box.y - 10 - screen.bottom
+    assert (gap_x, gap_y) == (10, 10), "the box should keep 10px from its corner"

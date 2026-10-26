@@ -28,6 +28,7 @@ from conftest import post_mouse_down, post_mouse_motion, post_mouse_up
 import play
 from play.globals import globals_list
 from play.objects.widgets import text_input_registry as registry
+from tests.events.frames import key_down, key_up, mouse_down, mouse_up, play_frames
 
 
 @pytest.fixture(autouse=True)
@@ -158,3 +159,23 @@ def test_tab_cycles_focus_between_text_inputs():
     assert results["after_first_tab"] is ti2
     # Tab order wraps around back to the first field.
     assert results["after_second_tab"] is ti1
+
+
+def test_a_key_held_when_a_text_input_takes_focus_stops_firing_and_stays_released():
+    play.new_text_input(x=0, y=200, width=200, height=40)
+    heard = []
+    play.while_key_pressed("right")(lambda: heard.append("right"))
+
+    play_frames(
+        [key_down(pygame.K_RIGHT)],
+        [],
+        [mouse_down(0, 200), mouse_up(0, 200)],
+        [],
+        [key_up(pygame.K_RIGHT)],
+        [key_down(pygame.K_ESCAPE)],
+        [],
+    )
+
+    assert globals_list.focused_text_input is None
+    assert heard == ["right"] * 3
+    assert play.key_is_pressed("right") is False

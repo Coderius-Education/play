@@ -8,10 +8,12 @@ from tests.projects.conftest import add_safety_timeout
 
 
 def _screen_xy(screen, x, y):
+    """The window position of play's point (x, y)."""
     return int(screen.width / 2 + x), int(screen.height / 2 - y)
 
 
 async def _click(screen, x, y):
+    """Move to, press and release the mouse at (x, y), a frame each."""
     pos = _screen_xy(screen, x, y)
     post_mouse_motion(*pos)
     await play.animate()
@@ -41,11 +43,6 @@ def _run_one_click(build, x=0, y=0, frames=120):
     add_safety_timeout(frames)
     play.start_program()
     return widget, calls
-
-
-# ---------------------------------------------------------------------------
-# callbacks fire once
-# ---------------------------------------------------------------------------
 
 
 def test_button_calls_its_action_once():
@@ -80,6 +77,16 @@ def test_checkbox_toggles_once():
     assert len(calls) == 1, f"one click should report one change, got {len(calls)}"
 
 
+def test_the_first_click_of_the_program_reaches_a_widget(monkeypatch):
+    from play.core.mouse_loop import mouse_state
+
+    monkeypatch.setattr(mouse_state, "click_id", 0)
+
+    box, _ = _run_one_click(lambda record: play.new_checkbox(x=0, y=0, size_px=40))
+
+    assert box.checked is True
+
+
 def test_radio_group_reports_one_change():
     """Selecting is idempotent, but the change notification is not."""
 
@@ -108,13 +115,8 @@ def test_dropdown_opens_once():
 
     menu, calls = _run_one_click(build)
 
-    assert menu._dropdown_open is True, "one click should leave the menu open"
+    assert menu.is_open is True, "one click should leave the menu open"
     assert not calls, "opening a menu is not choosing an option"
-
-
-# ---------------------------------------------------------------------------
-# repeated clicks stay in step
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("clicks", [2, 3])
@@ -145,11 +147,6 @@ def test_a_checkbox_follows_every_click(clicks):
 
     assert len(changes) == clicks, f"expected {clicks} changes, got {len(changes)}"
     assert box.checked is (clicks % 2 == 1)
-
-
-# ---------------------------------------------------------------------------
-# non-interactive widgets stay out of the way
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(

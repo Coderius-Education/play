@@ -51,9 +51,6 @@ COLOUR_ARG = {
 }
 
 
-# ── a mistyped colour is caught at the line that made the widget ──────────────
-
-
 @pytest.mark.parametrize("name", FACTORY_NAMES)
 def test_mistyped_colour_fails_immediately_with_a_helpful_message(name):
     # "blu" instead of "blue" is the archetypal beginner typo. It must not
@@ -67,9 +64,6 @@ def test_the_colour_error_repeats_the_word_they_typed():
     # Naming the offending value is what lets a student find it in their file.
     with pytest.raises(ValueError, match="reddd"):
         play.new_button("Go", color="reddd")
-
-
-# ── a back-to-front range is explained, not silently dead ─────────────────────
 
 
 @pytest.mark.parametrize("factory", ["slider", "progress_bar"])
@@ -86,15 +80,15 @@ def test_equal_min_and_max_is_allowed(factory):
     # A zero span is existing, deliberately tested behaviour (percentage
     # returns 0.0), so only a genuine swap is treated as a mistake. It is
     # still a degenerate widget, just not one this guard decides about.
-    WIDGET_FACTORIES[factory](min_value=50, max_value=50)
+    widget = WIDGET_FACTORIES[factory](min_value=50, max_value=50)
+    widget.update()
+
+    assert (widget.min_value, widget.max_value, widget.value) == (50, 50, 50)
 
 
 def test_the_range_error_suggests_the_swap():
     with pytest.raises(ValueError, match=r"min_value=0, max_value=100"):
         play.new_slider(min_value=100, max_value=0)
-
-
-# ── an async handler is rejected by name ──────────────────────────────────────
 
 
 def test_async_handler_is_rejected_and_names_the_function():
@@ -106,9 +100,6 @@ def test_async_handler_is_rejected_and_names_the_function():
         @checkbox.when_changed
         async def on_change(_checked):
             pass
-
-
-# ── forgiving where forgiveness is right ──────────────────────────────────────
 
 
 def test_value_outside_the_range_is_clamped_not_rejected():
@@ -130,13 +121,14 @@ def test_value_outside_the_range_is_clamped_not_rejected():
     ],
     ids=["box", "circle", "text", "button", "image"],
 )
-def test_a_negative_size_shows_nothing_instead_of_crashing(make):
+@pytest.mark.parametrize("size", [-10, 0])
+def test_a_size_of_zero_or_less_shows_nothing_instead_of_crashing(make, size):
     # Shrinking a sprite every frame without a floor is a classic. The old
     # scaling code silently left a one-pixel dot for any size, negative
     # included; now only a positive size keeps that floor and zero or less
     # shows nothing, without ever asking pygame for a negative surface.
     sprite = make()
-    sprite.size = -10
+    sprite.size = size
     sprite.update()
     assert sprite.image.get_size() == (0, 0)
 
@@ -162,10 +154,9 @@ def test_a_widget_can_be_built_with_no_arguments_at_all(name):
     # The first thing a student types is `play.new_slider()`. It has to work.
     widget = WIDGET_FACTORIES[name]()
     widget.update()
-    assert widget.image is not None
-
-
-# ── a removed widget stays quiet ──────────────────────────────────────────────
+    width, height = widget.image.get_size()
+    assert width > 0 and height > 0
+    assert widget.alive()
 
 
 @pytest.mark.parametrize("name", FACTORY_NAMES)
@@ -176,3 +167,6 @@ def test_updating_a_removed_widget_does_not_crash(name):
     widget.remove()
     widget.update()
     widget.update()
+
+    assert not widget.alive()
+    assert not widget.is_touching((widget.x, widget.y))

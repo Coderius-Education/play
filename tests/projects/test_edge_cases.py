@@ -15,14 +15,16 @@ This test verifies:
 - sprite removal mid-game doesn't crash
 """
 
+import pytest
+
 from tests.projects.conftest import add_safety_timeout
 
 max_frames = 200
 
 
-def test_edge_sprites_at_boundaries():
-    """Sprites created at exact screen edges should not glitch or crash."""
+def test_sprites_started_on_the_screen_edges_stay_on_the_screen():
     import play
+    from play.io.screen import screen
 
     # Create sprites at all four edges
     top = play.new_box(color="red", x=0, y=300, width=20, height=20)
@@ -51,6 +53,9 @@ def test_edge_sprites_at_boundaries():
     play.start_program()
 
     assert frames_run[0] >= max_frames, "simulation should have completed all frames"
+    for sprite in [top, bottom, left, right]:
+        assert screen.left <= sprite.x <= screen.right, sprite.x
+        assert screen.bottom <= sprite.y <= screen.top, sprite.y
 
 
 def test_edge_empty_callbacks():
@@ -151,6 +156,7 @@ def test_edge_remove_mid_game():
     play.start_program()
 
     assert removed[0] == len(sprites), "all sprites should have been removed"
+    assert not any(sprite.alive() for sprite in sprites)
 
 
 def test_edge_zero_speed_midgame():
@@ -189,9 +195,16 @@ def test_edge_zero_speed_midgame():
     assert frozen_stable[0], "ball should not move after setting speed to 0"
 
 
-if __name__ == "__main__":
-    test_edge_sprites_at_boundaries()
-    test_edge_empty_callbacks()
-    test_edge_rapid_hide_show()
-    test_edge_remove_mid_game()
-    test_edge_zero_speed_midgame()
+@pytest.mark.xfail(
+    strict=True,
+    reason="pymunk's shapes_collide reports a contact for a circle level with a box edge",
+)
+def test_a_ball_level_with_the_side_of_a_box_is_not_touching_it():
+    import play
+
+    box = play.new_box(x=340, y=50, width=20, height=40)
+    box.start_physics(obeys_gravity=False, can_move=False)
+    ball = play.new_circle(x=330, y=0, radius=5)
+    ball.start_physics(obeys_gravity=False, can_move=False)
+
+    assert not ball.is_touching(box)

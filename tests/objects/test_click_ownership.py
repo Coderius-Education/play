@@ -7,9 +7,10 @@ alone: every sprite under the cursor still receives the click, as before.
 
 import pytest
 import play
+from play.globals import globals_list
 from play.io.mouse import mouse
 from play.core.mouse_loop import mouse_state
-from tests.conftest import click_at
+from tests.conftest import click_at, end_click
 
 
 @pytest.fixture(autouse=True)
@@ -23,14 +24,6 @@ def _resolve_click_at(x, y):
     mouse._is_clicked = True
     mouse_state.click_happened = True
     mouse_state.resolve_click_owner()
-
-
-def _end_click():
-    mouse_state.clear()
-    mouse._is_clicked = False
-
-
-# ── widgets are exclusive ─────────────────────────────────────────────────────
 
 
 def test_only_topmost_stacked_widget_receives_the_click():
@@ -50,10 +43,7 @@ def test_widget_takes_ownership_from_an_overlapping_plain_sprite():
         assert mouse_state.click_hits(btn) is True
         assert mouse_state.click_hits(box) is False
     finally:
-        _end_click()
-
-
-# ── plain sprites keep their original behaviour ───────────────────────────────
+        end_click()
 
 
 def test_plain_sprites_never_take_ownership():
@@ -66,10 +56,7 @@ def test_plain_sprites_never_take_ownership():
         assert mouse_state.click_hits(a) is True
         assert mouse_state.click_hits(b) is True
     finally:
-        _end_click()
-
-
-# ── an open dropdown still wins, and still closes ─────────────────────────────
+        end_click()
 
 
 def test_open_dropdown_claims_clicks_on_its_menu():
@@ -100,3 +87,20 @@ def test_open_dropdown_closes_on_click_over_empty_space():
     assert dd.is_open is True
     click_at(350, 250, dd)
     assert dd.is_open is False
+
+
+@pytest.mark.parametrize(
+    "make_under",
+    [
+        lambda: play.new_radio_button("under", value="u", x=0, y=0, layer=5),
+        lambda: play.new_text_input(x=0, y=0, width=60, layer=5),
+    ],
+    ids=["radio_button", "text_input"],
+)
+def test_a_widget_under_another_widget_does_not_react_to_its_click(make_under):
+    under = make_under()
+    over = play.new_checkbox(x=0, y=0, size_px=40, layer=20)
+    click_at(0, 0, under, over)
+    assert over.checked is True
+    assert getattr(under, "selected", False) is False
+    assert globals_list.focused_text_input is None

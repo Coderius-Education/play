@@ -3,7 +3,9 @@
 import pytest
 import play
 from play.io.mouse import mouse
-from tests.conftest import click_at
+from play.utils import color_name_to_rgb, load_font, render_text
+from tests.conftest import click_at, count_color, image_bytes
+from tests.objects.clone_checks import BUNDLED_FONT, appearance
 
 
 @pytest.fixture(autouse=True)
@@ -18,14 +20,10 @@ def test_slider_creation():
     assert s.value == 50
 
 
-def test_slider_clamps_initial_value():
-    s = play.new_slider(min_value=0, max_value=10, value=200)
-    assert s.value == 10
-
-
-def test_slider_clamps_initial_value_low():
-    s = play.new_slider(min_value=5, max_value=10, value=1)
-    assert s.value == 5
+@pytest.mark.parametrize("value, expected", [(200, 10), (1, 5)])
+def test_slider_clamps_initial_value(value, expected):
+    s = play.new_slider(min_value=5, max_value=10, value=value)
+    assert s.value == expected
 
 
 def test_slider_value_setter_clamps():
@@ -34,26 +32,6 @@ def test_slider_value_setter_clamps():
     assert s.value == 100
     s.value = -10
     assert s.value == 0
-
-
-def test_slider_min_value_setter():
-    s = play.new_slider(min_value=0, max_value=100, value=50)
-    s.min_value = 60
-    assert s.value == 60  # clamped up
-
-
-def test_slider_max_value_setter():
-    s = play.new_slider(min_value=0, max_value=100, value=80)
-    s.max_value = 70
-    assert s.value == 70  # clamped down
-
-
-def test_slider_when_changed_fires():
-    s = play.new_slider(min_value=0, max_value=100, value=50)
-    results = []
-    s.when_changed(results.append)
-    s.value = 75
-    assert results == [75]
 
 
 def test_slider_when_changed_rejects_async():
@@ -65,38 +43,37 @@ def test_slider_when_changed_rejects_async():
             pass
 
 
-def test_slider_disabled_default_false():
+def test_disabling_a_slider_dims_it_and_enabling_restores_it():
     s = play.new_slider()
-    assert s.disabled is False
-
-
-def test_slider_disabled_setter():
-    s = play.new_slider()
+    enabled = image_bytes(s)
     s.disabled = True
     assert s.disabled is True
+    s.update()
+    assert image_bytes(s) != enabled
+    s.disabled = False
+    s.update()
+    assert image_bytes(s) == enabled
 
 
-def test_slider_alive():
-    s = play.new_slider()
-    assert s.alive()
+@pytest.mark.parametrize("x, expected", [(-95, 0), (95, 100)])
+def test_a_slider_can_be_grabbed_at_either_end_of_its_track(x, expected):
+    s = play.new_slider(min_value=0, max_value=100, value=50, x=0, y=0, width=200)
+    click_at(x, 0, s, hold=True)
+    assert s.value == expected
 
 
-def test_slider_hit_shape_matches_size():
-    # Regression: a 0x0 rect at construction gave a degenerate point hit-shape,
-    # so only dead-centre clicks could grab the slider.
+def test_a_slider_is_drawn_at_its_track_size_plus_the_thumb():
     s = play.new_slider(width=200, height=20, thumb_radius=12)
-    bb = s.physics._pymunk_shape.bb
-    assert (bb.right - bb.left) > 0
-    assert (bb.top - bb.bottom) > 0
+    assert s.image.get_size() == (200, 44)
 
 
-# ── drag interaction ──────────────────────────────────────────────────────────
 # The 800x600 test display puts x=0 at screen centre. For a slider at x=0 with
 # width=200 and thumb_radius=12, the usable track spans mouse.x ∈ [-88, +88],
 # so mouse.x=-88 → min, mouse.x=+88 → max, mouse.x=0 → midpoint.
 
 
 def _start_drag(slider):
+    """Press the mouse on the middle of the screen and keep it held."""
     click_at(0, 0, slider, hold=True)
 
 
@@ -116,6 +93,23 @@ def test_slider_drag_to_far_left_sets_min():
     assert s.value == 0
 
 
+def test_dragging_a_slider_maps_the_mouse_linearly_onto_the_range():
+    s = play.new_slider(min_value=0, max_value=100, value=0, x=0, y=0, width=200)
+    _start_drag(s)
+    mouse.x = 44
+    s.update()
+    assert s.value == pytest.approx(75)
+
+
+def test_a_slider_away_from_the_centre_drags_relative_to_its_own_track():
+    s = play.new_slider(min_value=0, max_value=100, value=50, x=200, y=100, width=200)
+    click_at(200, 100, s, hold=True)
+    assert s.value == pytest.approx(50)
+    mouse.x = 200 + 88
+    s.update()
+    assert s.value == 100
+
+
 def test_slider_drag_stops_on_mouse_release():
     s = play.new_slider(min_value=0, max_value=100, value=50, x=0, y=0, width=200)
     _start_drag(s)
@@ -125,24 +119,26 @@ def test_slider_drag_stops_on_mouse_release():
     assert s.value == 50  # not dragging → unchanged
 
 
-def test_slider_drag_fires_when_changed():
+def test_a_drag_reports_each_new_value_once():
     s = play.new_slider(min_value=0, max_value=100, value=50, x=0, y=0, width=200)
     seen = []
     s.when_changed(seen.append)
     _start_drag(s)
     mouse.x = 88
     s.update()
-    assert 100 in seen
+    s.update()
+    assert seen == [100]
 
 
-def test_slider_step_quantizes_dragged_value():
+@pytest.mark.parametrize("mouse_x, expected", [(-35, 25), (-17, 50)])
+def test_slider_step_quantizes_dragged_value(mouse_x, expected):
     s = play.new_slider(
         min_value=0, max_value=100, value=0, x=0, y=0, width=200, step=25
     )
-    _start_drag(s)  # mouse.x=0 → midpoint 50 (already a multiple of 25)
-    mouse.x = -35  # ~raw 30 → snaps to nearest 25
+    _start_drag(s)
+    mouse.x = mouse_x
     s.update()
-    assert s.value == 25
+    assert s.value == expected
 
 
 def test_slider_no_drag_without_prior_grab():
@@ -153,10 +149,12 @@ def test_slider_no_drag_without_prior_grab():
     assert s.value == 50
 
 
-def test_slider_image_rendered():
-    s = play.new_slider()
-    assert s.image is not None
-    assert s.image.get_width() > 0 and s.image.get_height() > 0
+def test_holding_the_mouse_down_and_moving_onto_a_slider_does_not_drag_it():
+    s = play.new_slider(min_value=0, max_value=100, value=50, x=0, y=0, width=200)
+    click_at(0, 200, s, hold=True)
+    mouse.x, mouse.y = 88, 0
+    s.update()
+    assert s.value == 50
 
 
 def _thumb_mean_x(surface, rgb):
@@ -171,50 +169,96 @@ def _thumb_mean_x(surface, rgb):
     return sum(xs) / len(xs) if xs else None
 
 
-def test_slider_thumb_moves_with_value():
-    # Give the thumb a colour distinct from the fill so we can locate it.
-    from play.utils import color_name_to_rgb
-
-    thumb_rgb = color_name_to_rgb("red")
-
-    def thumb_x(value):
-        s = play.new_slider(
-            min_value=0,
-            max_value=100,
-            value=value,
-            width=200,
-            thumb_color="red",
-            fill_color="blue",
-            track_color="lightgray",
-        )
-        return _thumb_mean_x(s.image, thumb_rgb)
-
-    left, mid, right = thumb_x(0), thumb_x(50), thumb_x(100)
-    assert left is not None and mid is not None and right is not None
-    assert left < mid < right
+@pytest.mark.parametrize("value, centre", [(0, 12), (50, 100), (100, 188)])
+def test_the_thumb_sits_on_the_track_where_the_value_is(value, centre):
+    s = play.new_slider(
+        min_value=0,
+        max_value=100,
+        value=value,
+        width=200,
+        thumb_radius=12,
+        thumb_color="red",
+        fill_color="blue",
+        track_color="lightgray",
+    )
+    assert _thumb_mean_x(s.image, color_name_to_rgb("red")) == pytest.approx(
+        centre, abs=1
+    )
 
 
-def test_slider_show_value_widens_image():
+def test_slider_show_value_widens_the_picture():
     # Regression: show_value must include the label in the surface, not clip it
     # off the right edge.
     plain = play.new_slider(width=200, value=100, show_value=False)
     labelled = play.new_slider(width=200, value=100, show_value=True)
-    assert labelled.image is not None
     assert labelled.image.get_width() > plain.image.get_width()
 
 
-def test_slider_clone():
-    s = play.new_slider(min_value=10, max_value=90, value=40)
+def test_a_slider_showing_its_value_is_still_dragged_by_its_track():
+    s = play.new_slider(
+        min_value=0, max_value=100, value=50, x=0, y=0, width=200, show_value=True
+    )
+    assert s.rect.left == play.screen.width / 2 - 100
+    _start_drag(s)
+    assert s.value == pytest.approx(50)
+    mouse.x = 88
+    s.update()
+    assert s.value == 100
+
+
+def _visible_pixels(surface):
+    """How many pixels of *surface* are not fully transparent."""
+    return sum(
+        surface.get_at((x, y)).a > 0
+        for x in range(surface.get_width())
+        for y in range(surface.get_height())
+    )
+
+
+@pytest.mark.parametrize("value, label", [(50.0, "50"), (12.5, "12.5"), (7, "7")])
+def test_the_value_label_drops_a_trailing_point_zero(value, label):
+    expected = render_text(load_font(None, 16), label, True, (0, 0, 0))
+    s = play.new_slider(value=value, show_value=True, value_color="black")
+    assert count_color(s.image, (0, 0, 0)) == _visible_pixels(expected)
+
+
+def test_a_cloned_slider_looks_and_steps_like_the_original():
+    s = play.new_slider(
+        min_value=10,
+        max_value=90,
+        value=30,
+        x=30,
+        y=20,
+        width=150,
+        height=16,
+        track_color="yellow",
+        fill_color="green",
+        thumb_color="red",
+        thumb_radius=8,
+        border_radius=3,
+        transparency=70,
+        anchor="top-left",
+        layer=12,
+        show_value=True,
+        font_size=24,
+        font=BUNDLED_FONT,
+        value_color="purple",
+        step=20,
+    )
     c = s.clone()
-    assert c.min_value == 10
-    assert c.max_value == 90
-    assert c.value == 40
+    assert (c.min_value, c.max_value, c.value) == (10, 90, 30)
+    assert appearance(c) == appearance(s)
+    c.value = 45
+    assert c.value == 50
+
+    s.disabled = True
+    disabled_twin = s.clone()
+    assert disabled_twin.disabled is True
+    assert appearance(disabled_twin) == appearance(s)
 
 
 def test_slider_fractional_range_renders_full_fill():
     # Regression: max(1, span) drew the thumb/fill halfway for sub-1 ranges.
-    from tests.conftest import count_color
-
     s = play.new_slider(
         min_value=0,
         max_value=0.5,
@@ -247,7 +291,7 @@ def test_slider_value_setter_safe_for_write_back_handlers():
     s = play.new_slider(min_value=0, max_value=100, value=0)
 
     @s.when_changed
-    def _round(value):
+    def snap(value):
         s.value = round(value)
 
     s.value = 33.4

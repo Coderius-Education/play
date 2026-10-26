@@ -52,7 +52,6 @@ def test_pong_start_menu():
     score_text.hide()
     gameover_text.hide()
 
-    # --- physics (started but ball is hidden so paused) ---------------------
     ball.start_physics(
         obeys_gravity=False,
         x_speed=300,
