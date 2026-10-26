@@ -5,7 +5,8 @@ import pytest
 import play
 from play.io.mouse import mouse
 from play.utils import color_name_to_rgb
-from tests.conftest import click_at
+from tests.conftest import click_at, image_bytes
+from tests.objects.clone_checks import BUNDLED_FONT, appearance, middle_of
 
 
 @pytest.fixture(autouse=True)
@@ -14,11 +15,8 @@ def setup_play(clean_play_state):
 
 
 def _toggle(dropdown):
+    """Click the middle of *dropdown*, opening or closing its menu."""
     click_at(dropdown.x, dropdown.y, dropdown)
-
-
-def _image(sprite):
-    return pygame.image.tobytes(sprite.image, "RGBA")
 
 
 @pytest.mark.parametrize("index, value", [(0, "A"), (2, "C")])
@@ -49,11 +47,11 @@ def test_an_out_of_range_selected_index_is_clamped(index, expected):
 
 def test_dropdown_options_setter():
     dd = play.new_dropdown(options=["A", "B"])
-    before = _image(dd)
+    before = image_bytes(dd)
     dd.options = ["X", "Y", "Z"]
     assert dd.options == ["X", "Y", "Z"]
     dd.update()
-    assert _image(dd) != before
+    assert image_bytes(dd) != before
 
 
 def test_dropdown_options_setter_clamps_index():
@@ -165,7 +163,7 @@ def test_disabling_an_open_dropdown_closes_it():
 def test_a_disabled_dropdown_is_dimmed():
     enabled = play.new_dropdown(options=["A", "B"], x=0, y=100)
     disabled = play.new_dropdown(options=["A", "B"], x=0, y=-100, disabled=True)
-    assert _image(enabled) != _image(disabled)
+    assert image_bytes(enabled) != image_bytes(disabled)
 
 
 def test_a_closed_dropdown_is_one_row_of_its_width_and_height():
@@ -174,9 +172,11 @@ def test_a_closed_dropdown_is_one_row_of_its_width_and_height():
 
 
 def test_a_dropdown_with_nothing_selected_shows_its_placeholder():
-    nothing = play.new_dropdown(options=["A", "B"], selected_index=-1, x=0, y=100)
-    empty = play.new_dropdown(options=[], x=0, y=-100)
-    assert _image(nothing) == _image(empty)
+    nothing = play.new_dropdown(
+        options=["A", "B"], selected_index=-1, placeholder="Pick", x=0, y=100
+    )
+    showing_pick = play.new_dropdown(options=["Pick"], x=0, y=-100)
+    assert image_bytes(nothing) == image_bytes(showing_pick)
 
 
 def test_dropdown_click_uses_current_mouse_not_stale_hover():
@@ -212,19 +212,50 @@ def test_dropdown_open_image_taller_than_closed():
     assert dd.image.get_height() > closed_h
 
 
-def test_a_cloned_dropdown_looks_like_the_original():
+def _open_with_row_hovered(dropdown, row):
+    """Open *dropdown*, hover option *row*, and return what it shows."""
+    x, y = middle_of(dropdown)
+    click_at(x, y, dropdown)
+    mouse.x, mouse.y = x, y - dropdown.height * (row + 1)
+    return appearance(dropdown)
+
+
+def test_a_cloned_dropdown_looks_like_the_original_closed_hovered_open_and_disabled():
     dd = play.new_dropdown(
         options=["A", "B", "C"],
-        selected_index=1,
+        selected_index=-1,
+        x=30,
+        y=20,
+        width=150,
+        height=36,
         color="yellow",
-        text_color="red",
+        hover_color="orange",
+        option_hover_color="red",
+        text_color="blue",
         border_color="green",
+        border_width=3,
+        border_radius=9,
+        font_size=24,
+        font=BUNDLED_FONT,
+        transparency=70,
+        anchor="top-left",
+        layer=25,
         placeholder="Pick",
     )
     c = dd.clone()
-    assert c.options == ["A", "B", "C"]
-    assert c.selected_index == 1
-    assert _image(c) == _image(dd)
+    assert (c.options, c.selected_index) == (["A", "B", "C"], -1)
+    assert appearance(c) == appearance(dd)
+    mouse.x, mouse.y = middle_of(dd)
+    assert appearance(c) == appearance(dd)
+    open_twin = _open_with_row_hovered(c, 1)
+    # The clone is drawn on top, so it would take the click meant for dd.
+    c.hide()
+    assert _open_with_row_hovered(dd, 1) == open_twin
+
+    dd.disabled = True
+    disabled_twin = dd.clone()
+    assert disabled_twin.disabled is True
+    assert appearance(disabled_twin) == appearance(dd)
 
 
 def test_a_dropdown_cloned_while_open_rests_at_the_original_layer():
@@ -291,6 +322,7 @@ def test_an_unturned_dropdown_at_a_fractional_x_keeps_its_place():
 
 
 def _a_full_turn_in_small_steps():
+    """360 degrees reached by adding 0.1 3600 times, so a little off."""
     angle = 0.0
     for _ in range(3600):
         angle += 0.1

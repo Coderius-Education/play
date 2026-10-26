@@ -107,7 +107,6 @@ def test_widgets_accept_non_ascii_labels(label):
     cb.update()
     rb.update()
     assert cb.label == label
-    # The hit-shape is sized from font.size(label), so a click on the label lands.
     assert cb.image.get_width() > 24 + 10
     assert rb.image.get_width() > 22 + 10
     click_at(cb.image.get_width() / 2 - 2, -60, cb, rb)
@@ -124,4 +123,4 @@ def test_non_ascii_text_input_round_trips():
         pygame.event.Event(pygame.KEYDOWN, {"key": pygame.K_LEFT, "mod": 0})
     )
     ti._handle_text_input("!")
-    assert ti.value == "Grüß!e"  # the cursor counts characters, not bytes
+    assert ti.value == "Grüß!e"

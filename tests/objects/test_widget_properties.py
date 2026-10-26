@@ -164,6 +164,7 @@ _OP_KEYS = {
 
 
 def _keydown(key, mod=0):
+    """A KEYDOWN event for *key* with modifier keys *mod*."""
     return pygame.event.Event(pygame.KEYDOWN, {"key": key, "mod": mod, "unicode": ""})
 
 

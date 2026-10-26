@@ -27,6 +27,7 @@ def _resolve_click_at(x, y):
 
 
 def _end_click():
+    """Finish the click: clear the frame's mouse state and release the button."""
     mouse_state.clear()
     mouse._is_clicked = False
 

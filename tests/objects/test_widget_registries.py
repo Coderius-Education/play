@@ -26,6 +26,7 @@ from tests.conftest import click_at
 
 
 def _counts():
+    """How many sprites, bodies, shapes, Tab stops and collision callbacks exist."""
     return {
         "sprites": len(globals_list.sprites_group.sprites()),
         "bodies": len(physics_space.bodies),
@@ -103,6 +104,7 @@ def test_collision_callbacks_do_not_pile_up():
 
 
 def _with_when_touching():
+    """A ball with a when_touching callback on a block; returns both."""
     ball = play.new_circle(color="black", x=0, y=0, radius=5)
     block = play.new_box(color="blue", x=50, y=0, width=20, height=20)
     ball.start_physics(obeys_gravity=False)
@@ -116,6 +118,7 @@ def _with_when_touching():
 
 
 def _with_when_touching_wall():
+    """A ball with a when_touching_wall callback."""
     ball = play.new_circle(color="black", x=0, y=0, radius=5)
     ball.start_physics(obeys_gravity=False)
 
@@ -127,6 +130,7 @@ def _with_when_touching_wall():
 
 
 def _with_when_clicked():
+    """A box with when_clicked and when_click_released callbacks."""
     box = play.new_box()
 
     @box.when_clicked
@@ -141,6 +145,7 @@ def _with_when_clicked():
 
 
 def _button_with_when_clicked():
+    """A button with a when_clicked callback."""
     button = play.new_button("Go")
 
     @button.when_clicked
@@ -151,6 +156,7 @@ def _button_with_when_clicked():
 
 
 def _open_dropdown():
+    """A dropdown with its menu open."""
     menu = play.new_dropdown(options=["a", "b"], x=0, y=0)
     click_at(0, 0, menu)
     assert menu.is_open

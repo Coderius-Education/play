@@ -1,20 +1,16 @@
 """Tests for the Slider widget."""
 
-import pygame
 import pytest
 import play
 from play.io.mouse import mouse
 from play.utils import color_name_to_rgb, load_font, render_text
-from tests.conftest import click_at, count_color
+from tests.conftest import click_at, count_color, image_bytes
+from tests.objects.clone_checks import BUNDLED_FONT, appearance
 
 
 @pytest.fixture(autouse=True)
 def setup_play(clean_play_state):
     pass
-
-
-def _image(sprite):
-    return pygame.image.tobytes(sprite.image, "RGBA")
 
 
 def test_slider_creation():
@@ -49,14 +45,14 @@ def test_slider_when_changed_rejects_async():
 
 def test_disabling_a_slider_dims_it_and_enabling_restores_it():
     s = play.new_slider()
-    enabled = _image(s)
+    enabled = image_bytes(s)
     s.disabled = True
     assert s.disabled is True
     s.update()
-    assert _image(s) != enabled
+    assert image_bytes(s) != enabled
     s.disabled = False
     s.update()
-    assert _image(s) == enabled
+    assert image_bytes(s) == enabled
 
 
 @pytest.mark.parametrize("x, expected", [(-95, 0), (95, 100)])
@@ -78,6 +74,7 @@ def test_a_slider_is_drawn_at_its_track_size_plus_the_thumb():
 
 
 def _start_drag(slider):
+    """Press the mouse on the middle of the screen and keep it held."""
     click_at(0, 0, slider, hold=True)
 
 
@@ -190,7 +187,7 @@ def test_the_thumb_sits_on_the_track_where_the_value_is(value, centre):
     )
 
 
-def test_slider_show_value_widens_image():
+def test_slider_show_value_widensimage_bytes():
     # Regression: show_value must include the label in the surface, not clip it
     # off the right edge.
     plain = play.new_slider(width=200, value=100, show_value=False)
@@ -211,6 +208,7 @@ def test_a_slider_showing_its_value_is_still_dragged_by_its_track():
 
 
 def _visible_pixels(surface):
+    """How many pixels of *surface* are not fully transparent."""
     return sum(
         surface.get_at((x, y)).a > 0
         for x in range(surface.get_width())
@@ -229,18 +227,35 @@ def test_a_cloned_slider_looks_and_steps_like_the_original():
     s = play.new_slider(
         min_value=10,
         max_value=90,
-        value=40,
-        step=20,
+        value=30,
+        x=30,
+        y=20,
+        width=150,
+        height=16,
         track_color="yellow",
         fill_color="green",
         thumb_color="red",
+        thumb_radius=8,
+        border_radius=3,
+        transparency=70,
+        anchor="top-left",
+        layer=12,
         show_value=True,
+        font_size=24,
+        font=BUNDLED_FONT,
+        value_color="purple",
+        step=20,
     )
     c = s.clone()
-    assert (c.min_value, c.max_value, c.value) == (10, 90, 40)
-    assert _image(c) == _image(s)
+    assert (c.min_value, c.max_value, c.value) == (10, 90, 30)
+    assert appearance(c) == appearance(s)
     c.value = 45
     assert c.value == 50
+
+    s.disabled = True
+    disabled_twin = s.clone()
+    assert disabled_twin.disabled is True
+    assert appearance(disabled_twin) == appearance(s)
 
 
 def test_slider_fractional_range_renders_full_fill():
@@ -277,7 +292,7 @@ def test_slider_value_setter_safe_for_write_back_handlers():
     s = play.new_slider(min_value=0, max_value=100, value=0)
 
     @s.when_changed
-    def _round(value):
+    def snap(value):
         s.value = round(value)
 
     s.value = 33.4

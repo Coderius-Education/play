@@ -1,17 +1,12 @@
 """Tests for enhanced Button features: click_color, disabled, click handlers."""
 
-import pygame
 import pytest
 import play
 from play.io.mouse import mouse
-from play.io.screen import screen
 from play.utils import color_name_to_rgb
-from tests.conftest import (
-    count_color,
-    post_mouse_down,
-    post_mouse_motion,
-    post_mouse_up,
-)
+from tests.conftest import color_at, count_color
+from tests.events.frames import mouse_down, mouse_move, mouse_up, play_frames
+from tests.objects.clone_checks import BUNDLED_FONT, appearance, middle_of
 
 
 @pytest.fixture(autouse=True)
@@ -19,32 +14,12 @@ def setup_play(clean_play_state):
     pass
 
 
-def _click_in_the_game_loop():
-    sx, sy = int(screen.width / 2), int(screen.height / 2)
-
-    @play.when_program_starts
-    async def driver():
-        post_mouse_motion(sx, sy)
-        await play.animate()
-        post_mouse_down(sx, sy)
-        await play.animate()
-        post_mouse_up(sx, sy)
-        await play.animate()
-        play.stop_program()
-
-    play.start_program()
-
-
-def _image(sprite):
-    return pygame.image.tobytes(sprite.image, "RGBA")
-
-
 def test_a_click_handler_can_ask_for_the_button_it_belongs_to():
     btn = play.new_button("Go", x=0, y=0, width=100, height=50)
     seen = []
     btn.when_clicked(seen.append, call_with_sprite=True)
 
-    _click_in_the_game_loop()
+    play_frames([mouse_move(0, 0)], [mouse_down(0, 0)], [mouse_up(0, 0)])
 
     assert seen == [btn]
 
@@ -85,12 +60,12 @@ def test_holding_the_mouse_elsewhere_does_not_press_the_button():
 
 def test_without_a_click_colour_a_held_button_darkens_its_hover_colour():
     hover = color_name_to_rgb("steelblue")
-    darker = tuple(int(channel * 0.75) for channel in hover[:3])
-    btn = play.new_button(x=0, y=0, width=100, height=50, hover_color="steelblue")
+    btn = play.new_button("", x=0, y=0, width=100, height=50, hover_color="steelblue")
     mouse.x, mouse.y = 0, 0
     mouse._is_clicked = True
     btn.update()
-    assert count_color(btn.image, darker) > 0
+    held = color_at(btn, 50, 25)
+    assert all(shade < channel for shade, channel in zip(held, hover))
     assert count_color(btn.image, hover) == 0
 
 
@@ -119,31 +94,35 @@ def test_the_disabled_text_colour_is_used_only_while_disabled(disabled):
 def test_a_cloned_button_looks_like_the_original_resting_hovered_pressed_and_disabled():
     btn = play.new_button(
         "Go",
-        x=0,
-        y=0,
+        x=30,
+        y=20,
         width=120,
         height=40,
         color="blue",
         hover_color="green",
         click_color="orange",
         text_color="yellow",
+        font_size=26,
+        font=BUNDLED_FONT,
+        border_radius=12,
+        transparency=70,
+        size=150,
+        anchor="top-left",
+        layer=12,
         disabled_color="silver",
         disabled_text_color="red",
     )
     twin = btn.clone()
-    for mouse_xy, held in (((999, 999), False), ((0, 0), False), ((0, 0), True)):
-        mouse.x, mouse.y = mouse_xy
+    assert appearance(twin) == appearance(btn)
+    for held in (False, True):
+        mouse.x, mouse.y = middle_of(btn)
         mouse._is_clicked = held
-        btn.update()
-        twin.update()
-        assert _image(twin) == _image(btn)
+        assert appearance(twin) == appearance(btn)
 
     btn.disabled = True
-    btn.update()
     disabled_twin = btn.clone()
-    disabled_twin.update()
     assert disabled_twin.disabled is True
-    assert _image(disabled_twin) == _image(btn)
+    assert appearance(disabled_twin) == appearance(btn)
 
 
 # ── property setters ─────────────────────────────────────────────────────────

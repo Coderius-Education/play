@@ -21,10 +21,12 @@ def setup_play(clean_play_state):
 
 
 def _keydown(key, mod=0):
+    """A KEYDOWN event for *key* with modifier keys *mod*."""
     return pygame.event.Event(pygame.KEYDOWN, {"key": key, "mod": mod, "unicode": ""})
 
 
 def _fake_scrap(monkeypatch, clipboard=""):
+    """Replace pygame.scrap with an in-memory fake; returns the storage dict."""
     store = {"text": clipboard}
     monkeypatch.setattr(pygame.scrap, "init", lambda: None)
     monkeypatch.setattr(
@@ -139,6 +141,7 @@ def test_tooltip_does_not_steal_clicks_from_its_target():
 
 
 def _start_drag(slider):
+    """Press the mouse on the middle of the screen and keep it held."""
     click_at(0, 0, slider, hold=True)
 
 
@@ -192,13 +195,13 @@ def test_text_input_color_setter_survives_update():
 
 
 def test_a_focused_field_shows_its_active_colour_until_it_is_blurred():
-    yellow = color_name_to_rgb("lightyellow")
-    ti = play.new_text_input(x=0, y=0, active_color="lightyellow")
-    assert count_color(ti.image, yellow) == 0
+    orange = color_name_to_rgb("orange")
+    ti = play.new_text_input(x=0, y=0, active_color="orange")
+    assert count_color(ti.image, orange) == 0
     click_at(0, 0, ti)
-    assert count_color(ti.image, yellow) > 0
+    assert count_color(ti.image, orange) > 0
     click_at(300, 250, ti)
-    assert count_color(ti.image, yellow) == 0
+    assert count_color(ti.image, orange) == 0
 
 
 def test_dropdown_color_setter_survives_update():
@@ -212,13 +215,13 @@ def test_dropdown_color_setter_survives_update():
 
 
 def test_a_dropdown_shows_its_hover_colour_only_while_closed():
-    yellow = color_name_to_rgb("lightyellow")
-    dd = play.new_dropdown(options=["A", "B"], x=0, y=0, hover_color="lightyellow")
+    orange = color_name_to_rgb("orange")
+    dd = play.new_dropdown(options=["A", "B"], x=0, y=0, hover_color="orange")
     mouse.x, mouse.y = 0, 0
     dd.update()
-    assert count_color(dd.image, yellow) > 0
+    assert count_color(dd.image, orange) > 0
     click_at(0, 0, dd)
-    assert count_color(dd.image, yellow) == 0
+    assert count_color(dd.image, orange) == 0
 
 
 def test_a_disabled_field_ignores_editing_keys_even_when_focused(monkeypatch):

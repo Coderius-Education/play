@@ -1,12 +1,12 @@
 """Tests for RadioButton and RadioGroup widgets."""
 
-import pygame
 import pytest
 import play
 from play.io.mouse import mouse
 from play.physics import physics_space
 from play.utils import color_name_to_rgb
-from tests.conftest import click_at, count_color
+from tests.conftest import click_at, count_color, image_bytes
+from tests.objects.clone_checks import BUNDLED_FONT, appearance, middle_of
 
 
 @pytest.fixture(autouse=True)
@@ -14,11 +14,8 @@ def setup_play(clean_play_state):
     pass
 
 
-def _image(sprite):
-    return pygame.image.tobytes(sprite.image, "RGBA")
-
-
 def _two_radios(selected="a"):
+    """A group with radios "a" and "b", the one named *selected* selected."""
     g = play.new_radio_group()
     r1 = play.new_radio_button(
         "A", value="a", group=g, x=-50, y=0, selected=selected == "a"
@@ -118,21 +115,21 @@ def test_radio_button_creation():
 
 def test_radio_button_label_setter():
     r = play.new_radio_button("old")
-    before = _image(r)
+    before = image_bytes(r)
     r.label = "new"
     assert r.label == "new"
     r.update()
-    assert _image(r) != before
+    assert image_bytes(r) != before
 
 
 def test_a_disabled_radio_is_dimmed_and_ignores_clicks():
     g = play.new_radio_group()
     r = play.new_radio_button("X", value="x", group=g, x=0, y=0)
-    enabled = _image(r)
+    enabled = image_bytes(r)
     r.disabled = True
     assert r.disabled is True
     r.update()
-    assert _image(r) != enabled
+    assert image_bytes(r) != enabled
     click_at(0, 0, r)
     assert r.selected is False
     assert g.selected_value is None
@@ -205,10 +202,10 @@ def test_disabled_radio_ignores_hover():
     r = play.new_radio_button("A", value="a", x=0, y=0, size_px=22, disabled=True)
     mouse.x, mouse.y = 500, 500  # away
     r.update()
-    away = _image(r)
+    away = image_bytes(r)
     mouse.x, mouse.y = 0, 0  # over the radio
     r.update()
-    assert _image(r) == away
+    assert image_bytes(r) == away
 
 
 def test_radio_button_hover_border_reacts():
@@ -270,11 +267,35 @@ def test_a_cloned_radio_joins_the_same_group():
     assert g.selected_value == "a"
 
 
-def test_a_cloned_radio_looks_like_the_original():
+def test_a_cloned_radio_looks_like_the_original_resting_hovered_and_disabled():
     r = play.new_radio_button(
-        "X", value="x", color="yellow", selected_color="green", label_color="red"
+        "X",
+        value="x",
+        x=30,
+        y=20,
+        size_px=36,
+        color="yellow",
+        selected_color="green",
+        border_color="blue",
+        hover_border_color="red",
+        label_color="purple",
+        font_size=26,
+        font=BUNDLED_FONT,
+        transparency=70,
+        anchor="top-left",
+        layer=12,
+        selected=True,
     )
-    assert _image(r.clone()) == _image(r)
+    c = r.clone()
+    assert (c.label, c.value, c.selected) == ("X", "x", True)
+    assert appearance(c) == appearance(r)
+    mouse.x, mouse.y = middle_of(r)
+    assert appearance(c) == appearance(r)
+
+    r.disabled = True
+    disabled_twin = r.clone()
+    assert disabled_twin.disabled is True
+    assert appearance(disabled_twin) == appearance(r)
 
 
 def test_clone_selected_radio_keeps_single_selection():

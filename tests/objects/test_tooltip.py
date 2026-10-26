@@ -1,6 +1,5 @@
 """Tests for the Tooltip widget."""
 
-import pygame
 import pytest
 import play
 from play.io.mouse import mouse
@@ -8,6 +7,8 @@ from play.io.screen import screen
 from play.objects.sprite import point_touching_sprite
 from play.physics import physics_space
 from play.utils import load_font
+from tests.conftest import image_bytes
+from tests.objects.clone_checks import BUNDLED_FONT, appearance
 
 
 @pytest.fixture(autouse=True)
@@ -16,7 +17,7 @@ def setup_play(clean_play_state):
 
 
 def _make(text="Hi", target_x=200):
-    # Target sits away from the origin so the tooltip is hidden by default
+    """A 100x100 target box away from the mouse, and a tooltip on it."""
     target = play.new_box(color="red", x=target_x, y=0, width=100, height=100)
     tip = play.new_tooltip(text, target=target)
     return target, tip
@@ -89,11 +90,11 @@ def test_tooltip_text_setter_redraws_the_bubble():
     _target, tip = _make()
     mouse.x, mouse.y = 200, 0
     tip.update()
-    before = pygame.image.tobytes(tip.image, "RGBA")
+    before = image_bytes(tip)
     tip.text = "Updated"
     assert tip.text == "Updated"
     tip.update()
-    assert pygame.image.tobytes(tip.image, "RGBA") != before
+    assert image_bytes(tip) != before
 
 
 def test_a_tooltip_moved_to_another_target_follows_that_target():
@@ -149,15 +150,22 @@ def test_a_cloned_tooltip_shows_the_same_bubble_in_the_same_place():
     # Regression: the inherited Sprite.clone() passed an unsupported image= kwarg.
     target = play.new_box(color="red", x=200, y=0, width=100, height=100)
     tip = play.new_tooltip(
-        "Hi", target=target, offset_x=30, offset_y=20, color="yellow", text_color="red"
+        "Hi",
+        target=target,
+        offset_x=30,
+        offset_y=20,
+        color="yellow",
+        text_color="red",
+        border_color="green",
+        font_size=24,
+        font=BUNDLED_FONT,
+        padding=9,
+        border_radius=5,
+        transparency=70,
+        layer=90,
     )
     c = tip.clone()
     assert c.text == tip.text
     assert c.target is target
     mouse.x, mouse.y = 200, 0
-    tip.update()
-    c.update()
-    assert c.rect == tip.rect
-    assert pygame.image.tobytes(c.image, "RGBA") == pygame.image.tobytes(
-        tip.image, "RGBA"
-    )
+    assert appearance(c) == appearance(tip)

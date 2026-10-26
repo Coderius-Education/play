@@ -63,7 +63,7 @@ def test_radio_group_reselecting_same_option_does_not_fire():
     received = []
     g.when_changed(received.append)
     click_at(50, 0, r1, r2)
-    click_at(50, 0, r1, r2)  # same option again — not a change
+    click_at(50, 0, r1, r2)
     assert received == ["b"]
 
 

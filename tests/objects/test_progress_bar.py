@@ -1,10 +1,10 @@
 """Tests for the ProgressBar widget."""
 
-import pygame
 import pytest
 import play
 from play.utils import color_name_to_rgb, load_font, render_text
 from tests.conftest import count_color
+from tests.objects.clone_checks import BUNDLED_FONT, appearance
 
 
 @pytest.fixture(autouse=True)
@@ -13,6 +13,7 @@ def setup_play(clean_play_state):
 
 
 def _bar_pixels(bar, color="royalblue"):
+    """How many pixels of *bar* are drawn in *color*."""
     return count_color(bar.image, color_name_to_rgb(color))
 
 
@@ -105,6 +106,7 @@ def test_progress_bar_show_label_draws_pixels():
 
 
 def _opaque_pixels(surface):
+    """How many pixels of *surface* are fully opaque."""
     return sum(
         surface.get_at((x, y)).a == 255
         for x in range(surface.get_width())
@@ -123,14 +125,24 @@ def test_a_cloned_progress_bar_looks_like_the_original():
     pb = play.new_progress_bar(
         min_value=10,
         max_value=90,
-        value=50,
+        value=30,
+        x=30,
+        y=20,
+        width=150,
+        height=30,
         bar_color="red",
         background_color="yellow",
+        border_color="green",
+        border_width=3,
+        border_radius=9,
+        transparency=70,
+        anchor="top-left",
+        layer=12,
         show_label=True,
         label_color="blue",
+        font_size=24,
+        font=BUNDLED_FONT,
     )
     c = pb.clone()
-    assert (c.min_value, c.max_value, c.value, c.bar_color) == (10, 90, 50, "red")
-    assert pygame.image.tobytes(c.image, "RGBA") == pygame.image.tobytes(
-        pb.image, "RGBA"
-    )
+    assert (c.min_value, c.max_value, c.value, c.bar_color) == (10, 90, 30, "red")
+    assert appearance(c) == appearance(pb)

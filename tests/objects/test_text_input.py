@@ -13,6 +13,7 @@ def setup_play(clean_play_state):
 
 
 def _keydown(key):
+    """A KEYDOWN event for *key* without modifier keys."""
     return pygame.event.Event(pygame.KEYDOWN, {"key": key, "mod": 0, "unicode": ""})
 
 

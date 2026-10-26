@@ -8,8 +8,7 @@ ignored the click itself, but the game's own when_clicked handler still ran.
 import pytest
 import play
 from play.io.mouse import mouse
-from play.io.screen import screen
-from tests.conftest import post_mouse_down, post_mouse_motion, post_mouse_up
+from tests.events.frames import mouse_down, mouse_move, mouse_up, play_frames
 
 
 @pytest.fixture(autouse=True)
@@ -94,33 +93,19 @@ def test_disabling_while_hovered_closes_the_hover(kind):
 def test_hover_callbacks_reject_async(kind, decorator):
     widget = _make(kind)
 
-    async def _handler():
+    async def handler():
         pass
 
     with pytest.raises(TypeError):
-        getattr(widget, decorator)(_handler)
+        getattr(widget, decorator)(handler)
 
 
 # ── `disabled` also suppresses the game's own click handler ───────────────────
 
 
-def _click_in_the_game_loop():
-    sx, sy = int(screen.width / 2), int(screen.height / 2)
-
-    @play.when_program_starts
-    async def driver():
-        post_mouse_motion(sx, sy)
-        await play.animate()
-        post_mouse_down(sx, sy)
-        await play.animate()
-        post_mouse_up(sx, sy)
-        await play.animate()
-        play.stop_program()
-
-    play.start_program()
-
-
 def _handlers(ran, label):
+    """A sync and an async handler that each note *label* in *ran*."""
+
     def sync_handler():
         ran.append(label)
 
@@ -141,7 +126,7 @@ def test_the_games_click_handlers_run_only_while_the_widget_is_enabled(kind, dis
     for handler in _handlers(ran, "released"):
         widget.when_click_released(handler)
 
-    _click_in_the_game_loop()
+    play_frames([mouse_move(0, 0)], [mouse_down(0, 0)], [mouse_up(0, 0)])
 
     expected = ["async clicked", "async released", "clicked", "released"]
     assert sorted(ran) == ([] if disabled else expected)

@@ -25,10 +25,12 @@ from tests.conftest import click_at, count_color
 
 @pytest.fixture
 def field():
+    """A text field in the middle of the screen holding "hello"."""
     return play.new_text_input(x=0, y=0, value="hello")
 
 
 def _keydown(key):
+    """A KEYDOWN event for *key* without modifier keys."""
     return pygame.event.Event(pygame.KEYDOWN, {"key": key, "mod": 0})
 
 

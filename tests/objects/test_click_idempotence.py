@@ -8,10 +8,12 @@ from tests.projects.conftest import add_safety_timeout
 
 
 def _screen_xy(screen, x, y):
+    """The window position of play's point (x, y)."""
     return int(screen.width / 2 + x), int(screen.height / 2 - y)
 
 
 async def _click(screen, x, y):
+    """Move to, press and release the mouse at (x, y), a frame each."""
     pos = _screen_xy(screen, x, y)
     post_mouse_motion(*pos)
     await play.animate()
