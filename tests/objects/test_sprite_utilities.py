@@ -76,7 +76,10 @@ def test_sprite_rect_properties():
     assert s1.bottom == -100
 
     s1.update()
-    assert (s1._pygame_x(), s1._pygame_y()) == s1.rect.topleft
+    assert s1.rect.topleft == (
+        play.screen.width / 2 + s1.left,
+        play.screen.height / 2 - s1.top,
+    )
 
 
 def test_a_removed_sprite_is_no_longer_drawn_and_removing_it_again_is_harmless():

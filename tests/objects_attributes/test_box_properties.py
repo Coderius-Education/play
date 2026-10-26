@@ -4,26 +4,22 @@ import pygame
 import pytest
 
 import play
+from tests.conftest import color_at
 
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 WHITE = (255, 255, 255)
 
 
-def colour_at(sprite, x, y):
-    """The RGB of the sprite's own picture at pixel (x, y)."""
-    return tuple(sprite.image.get_at((x, y)))[:3]
-
-
 def test_a_new_box_colour_is_drawn_on_the_next_frame():
     box = play.new_box(color="red", width=20, height=20)
-    assert colour_at(box, 10, 10) == RED
+    assert color_at(box, 10, 10) == RED
 
     box.color = "blue"
     box.update()
 
     assert box.color == "blue"
-    assert colour_at(box, 10, 10) == BLUE
+    assert color_at(box, 10, 10) == BLUE
 
 
 @pytest.mark.parametrize("prop", ["color", "border_color"])
@@ -42,22 +38,22 @@ def test_the_border_is_drawn_in_its_own_colour_on_every_side():
     )
 
     for x, y in [(2, 15), (37, 15), (20, 2), (20, 27)]:
-        assert colour_at(box, x, y) == RED, (x, y)
+        assert color_at(box, x, y) == RED, (x, y)
     for x, y in [(6, 15), (33, 15), (20, 6), (20, 23)]:
-        assert colour_at(box, x, y) == WHITE, (x, y)
+        assert color_at(box, x, y) == WHITE, (x, y)
 
 
 def test_a_box_border_set_later_is_drawn_too():
     box = play.new_box(color="white", width=40, height=30)
-    assert colour_at(box, 2, 15) == WHITE
+    assert color_at(box, 2, 15) == WHITE
 
     box.border_width = 5
     box.border_color = "blue"
     box.update()
 
     assert (box.border_width, box.border_color) == (5, "blue")
-    assert colour_at(box, 2, 15) == BLUE
-    assert colour_at(box, 20, 15) == WHITE
+    assert color_at(box, 2, 15) == BLUE
+    assert color_at(box, 20, 15) == WHITE
 
 
 @pytest.mark.parametrize("border_width", [0, 3])
@@ -85,7 +81,7 @@ def test_the_inside_of_a_bordered_box_is_rounded_as_well():
         border_radius=15,
     )
 
-    assert colour_at(box, 4, 4) != WHITE
+    assert color_at(box, 4, 4) != WHITE
 
 
 @pytest.mark.parametrize(

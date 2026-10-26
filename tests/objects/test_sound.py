@@ -46,8 +46,6 @@ def blip_file(tmp_path_factory):
 
 def busy_channels():
     """How many mixer channels are sounding right now."""
-    import pygame
-
     channels = range(pygame.mixer.get_num_channels())
     return sum(pygame.mixer.Channel(i).get_busy() for i in channels)
 
@@ -160,8 +158,6 @@ def test_play_pause_resume_and_stop(sound_file):
 
 
 def test_playing_again_replaces_the_previous_playback(sound_file):
-    import pygame
-
     sound = Sound(sound_file)
     pygame.mixer.stop()
 
@@ -248,8 +244,6 @@ def test_pausing_a_finished_sound_does_not_stop_it_from_playing_again(blip_file)
 def test_with_no_free_channel_play_warns_and_stays_silent(
     sound_file, monkeypatch, caplog
 ):
-    import pygame
-
     sound = Sound(sound_file)
     monkeypatch.setattr(pygame.mixer, "find_channel", lambda *args: None)
 

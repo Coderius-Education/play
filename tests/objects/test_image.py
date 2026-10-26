@@ -1,5 +1,3 @@
-import math
-
 import pygame
 import pytest
 
@@ -86,25 +84,30 @@ def test_growing_and_shrinking_back_does_not_wear_the_picture_down(mock_image_fi
 
 
 def _picture(tmp_path, width, height):
-    import pygame
-
+    """Save a black picture of this size and return its path."""
     path = tmp_path / "picture.png"
     pygame.image.save(pygame.Surface((width, height)), str(path))
     return str(path)
 
 
 def test_an_image_turns_with_its_physics_body(tmp_path):
-    import play
+    image = play.new_image(image=_picture(tmp_path, 40, 30))
+    image.start_physics(obeys_gravity=False, bounciness=0)
+    ball = play.new_circle(x=18, y=100, radius=5)
+    ball.start_physics(bounciness=0)
+    num_frames = [0]
 
-    image = play.new_image(image=_picture(tmp_path, 40, 30), x=100, y=100)
-    image.update()
-    assert image.rect.size == (40, 30)
+    @play.repeat_forever
+    def run():
+        num_frames[0] += 1
+        if num_frames[0] == 120:
+            play.stop_program()
 
-    image.physics._pymunk_body.angle = math.radians(90)
-    image._should_recompute = True
-    image.update()
+    play.start_program()
 
-    assert image.rect.size == (30, 40)
+    turned = pygame.transform.rotate(pygame.Surface((40, 30)), image.angle)
+    assert image.angle != pytest.approx(0, abs=5)
+    assert image.rect.size == turned.get_size()
 
 
 @pytest.mark.parametrize(
@@ -114,25 +117,22 @@ def test_an_image_turns_with_its_physics_body(tmp_path):
 def test_an_image_size_is_rounded_and_never_below_one_pixel(
     tmp_path, picture_size, size, expected
 ):
-    import play
-
     image = play.new_image(image=_picture(tmp_path, *picture_size), size=size)
 
     assert (image.width, image.height) == expected
 
 
 def test_an_image_clone_keeps_its_place_size_angle_and_picture(tmp_path):
-    picture = tmp_path / "picture.png"
-    pygame.image.save(pygame.Surface((40, 30)), str(picture))
+    picture = _picture(tmp_path, 40, 30)
     image = play.new_image(
-        image=str(picture), x=-100, y=100, size=50, angle=45, transparency=50
+        image=picture, x=-100, y=100, size=50, angle=45, transparency=50
     )
 
     clone = image.clone()
 
     assert (clone.x, clone.y) == (-100, 100)
     assert (clone.size, clone.angle, clone.transparency) == (50, 45, 50)
-    assert clone.image_filename == str(picture)
+    assert clone.image_filename == picture
     clone.size = 100
     clone.angle = 0
     clone.update()

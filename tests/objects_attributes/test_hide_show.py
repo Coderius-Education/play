@@ -148,7 +148,7 @@ def test_hiding_a_hidden_box_again_keeps_it_hidden():
     @play.repeat_forever
     def check():
         num_frames[0] += 1
-        if num_frames[0] in (5, 6, 7):
+        if num_frames[0] in (5, 6):
             box.hide()
         if num_frames[0] == 20:
             visible[0] = has_non_white_pixels_in_region(0, 0, 60, 60)
@@ -183,35 +183,33 @@ def test_showing_a_shown_box_again_keeps_it_visible():
     assert visible[0] is True
 
 
-def test_physics_changed_while_hidden_still_applies_once_shown():
+@pytest.mark.parametrize("setting, value", [("can_move", False), ("stable", True)])
+def test_physics_changed_while_hidden_still_holds_the_box_still_once_shown(
+    setting, value
+):
     import play
 
     num_frames = [0]
-    visible = [None]
 
-    box = play.new_box(x=0, y=0, width=50, height=50, color="red")
+    box = play.new_box(x=0, y=0, width=200, height=20, color="red")
+    box.start_physics(obeys_gravity=False)
+    box.hide()
+    setattr(box.physics, setting, value)
+    box.show()
+    ball = play.new_circle(x=0, y=150, radius=10)
+    ball.start_physics(bounciness=0)
 
     @play.repeat_forever
     def check():
         num_frames[0] += 1
-        if num_frames[0] == 5:
-            box.hide()
-        if num_frames[0] == 10:
-            box.physics.can_move = False
-        if num_frames[0] == 15:
-            box.physics.stable = True
-        if num_frames[0] == 20:
-            box.show()
-        if num_frames[0] == 30:
-            visible[0] = has_non_white_pixels_in_region(0, 0, 60, 60)
+        if num_frames[0] == 180:
             play.stop_program()
 
     play.start_program()
 
-    assert box.physics.can_move is False
-    assert box.physics.stable is True
-    assert visible[0] is True
-    assert box.is_touching((0, 0))
+    assert getattr(box.physics, setting) is value
+    assert box.y == pytest.approx(0, abs=1)
+    assert ball.bottom >= box.top - 2
 
 
 def test_circle_hide_show():

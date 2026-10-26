@@ -5,6 +5,7 @@ import time
 import pytest
 
 import play
+from tests.conftest import count_color
 from play.core.mouse_loop import mouse_state
 from play.io.keypress import keyboard_state
 from play.io.mouse import mouse
@@ -31,16 +32,19 @@ def wait_for_frames(video, count=2, timeout=5.0):
     return False
 
 
+def seek_and_wait(video, seconds, timeout=5.0):
+    """Seek, then tick until the first frame decoded after the seek is shown."""
+    shown = video._player.frame_index
+    video.seek(seconds)
+    deadline = time.monotonic() + timeout
+    while video._player.frame_index == shown and time.monotonic() < deadline:
+        video._tick()
+        time.sleep(0.01)
+
+
 def grey_of(video):
     """The grey level of the frame currently on screen."""
     return video._player.canvas.get_at((10, 10))[0]
-
-
-def count_colour(surface, rgb):
-    """How many visible pixels of *surface* have exactly this RGB."""
-    width, height = surface.get_size()
-    pixels = (surface.get_at((x, y)) for x in range(width) for y in range(height))
-    return sum(1 for p in pixels if p.a and tuple(p)[:3] == rgb)
 
 
 def point_on(video, local_x, local_y):
@@ -211,7 +215,7 @@ def test_clock_advances_and_shows_later_frames(video_file, fake_clock):
 def test_seek_jumps_to_the_right_frame(video_file, fake_clock):
     video = make_video(video_file, fake_clock)
 
-    video.seek(1.5)
+    seek_and_wait(video, 1.5)
 
     assert video.time == pytest.approx(1.5, abs=0.01)
     assert video._player.current_time == pytest.approx(1.5, abs=0.11)
@@ -608,7 +612,7 @@ def test_no_control_bar_when_controls_are_off(video_file, fake_clock):
 
 def test_a_very_small_video_still_draws_its_control_bar(video_file, fake_clock):
     video = make_video(video_file, fake_clock, width=48, height=32)
-    video.seek(1.5)
+    seek_and_wait(video, 1.5)
     video._player.controls_alpha = 255
     video._should_recompute = True
 
@@ -665,14 +669,14 @@ def test_the_time_label_is_drawn_even_after_the_font_module_was_shut_down(
     bar = video._render_controls()
 
     label = bar.subsurface((video._scrub_area().left + 10, 24, 50, 20))
-    assert count_colour(label, (255, 255, 255)) > 0
+    assert count_color(label, (255, 255, 255)) > 0
 
 
 def test_a_resized_video_fills_the_whole_picture(video_file, fake_clock):
     # Regression: the frame used to be drawn at its own size in the corner of a
     # larger black canvas instead of being scaled up to fill it.
     video = make_video(video_file, fake_clock, width=320, height=240, controls=False)
-    video.seek(1.5)
+    seek_and_wait(video, 1.5)
     video.update()
 
     assert video.image.get_size() == (320, 240)
@@ -1077,7 +1081,7 @@ def test_the_control_bar_shows_time_as_minutes_and_seconds(seconds, shown):
 
 def white_in(surface, rect):
     """How many pure white pixels a part of the control bar has."""
-    return count_colour(surface.subsurface(rect), (255, 255, 255))
+    return count_color(surface.subsurface(rect), (255, 255, 255))
 
 
 def test_the_button_shows_play_when_stopped_and_pause_while_playing(

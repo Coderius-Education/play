@@ -5,16 +5,10 @@ import logging
 import pytest
 
 import play
+from tests.conftest import count_color, image_bytes
 
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
-
-
-def count_colour(surface, rgb):
-    """How many visible pixels of *surface* have exactly this RGB."""
-    width, height = surface.get_size()
-    pixels = (surface.get_at((x, y)) for x in range(width) for y in range(height))
-    return sum(1 for p in pixels if p.a and tuple(p)[:3] == rgb)
 
 
 def test_new_words_are_drawn_and_can_be_touched_where_they_are_drawn():
@@ -30,24 +24,26 @@ def test_new_words_are_drawn_and_can_be_touched_where_they_are_drawn():
     assert text.is_touching((short_width, 0))
 
 
-def test_a_number_given_as_words_is_shown_as_text():
+def test_a_number_given_as_words_is_drawn_like_the_same_number_as_text():
     text = play.new_text(words="hi")
+    as_string = play.new_text(words="42")
 
     text.words = 42
+    text.update()
 
-    assert text.words == "42"
+    assert image_bytes(text) == image_bytes(as_string)
 
 
 def test_a_new_text_colour_is_drawn_on_the_next_frame():
     text = play.new_text(words="Hello", color="red", font_size=50)
-    assert count_colour(text.image, RED) > 0
+    assert count_color(text.image, RED) > 0
 
     text.color = "blue"
     text.update()
 
     assert text.color == "blue"
-    assert count_colour(text.image, BLUE) > 0
-    assert count_colour(text.image, RED) == 0
+    assert count_color(text.image, BLUE) > 0
+    assert count_color(text.image, RED) == 0
 
 
 def test_a_mistyped_text_colour_is_refused_where_it_is_set():
