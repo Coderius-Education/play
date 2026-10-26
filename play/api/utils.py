@@ -9,7 +9,6 @@ import pygame
 from play.api.auto_start import _cleanup_auto_start, stop_waiting_for_the_script
 from play.callback import callback_manager, CallbackType
 from play.callback.collision_callbacks import collision_registry as _collision_registry
-from play import core as _core
 from play.core import game_loop as _game_loop
 from play.core.controller_loop import controller_state as _controller_state
 from play.core.mouse_loop import mouse_state as _mouse_state
@@ -17,6 +16,7 @@ from play.core.sprites_loop import _clicked_sprites
 from play import loop as _play_loop
 from play.globals import globals_list, ProgramState
 from play.io.keypress import keyboard_state
+from play.io.controllers import controllers as _controllers
 from play.io.logging import play_logger
 from play.io.mouse import mouse as _mouse
 from play.io.screen import screen as _screen
@@ -121,13 +121,38 @@ def stop_program():
 def reset_program():
     """Put play back into the state it has right after ``import play``.
     For programs that run one play program after another, such as a playground or a test suite.
-    It works whether or not a program started: a running one stops, and play's tasks end before it returns.
-    :raises RuntimeError: On the desktop, when called while the program is running."""
-    _play_loop.reset()
+    A running program stops, and play's tasks end, running their finally blocks, before play is reset.
+    :return: In the browser, an awaitable that is done once play is reset: await it before the next program.
+        On the desktop, None: play is reset when it returns.
+    :raises RuntimeError: When called from inside a running play program."""
+    tasks = _play_loop.stop_for_reset()
+    if _play_loop.RUNS_IN_BROWSER:
+        resetting = _play_loop.get_loop().create_task(_reset_in_the_browser(tasks))
+        _resets.add(resetting)
+        resetting.add_done_callback(_resets.discard)
+        return resetting
+    _play_loop.end_tasks(tasks)
+    _reset_state()
+    return None
+
+
+_resets = set()
+
+
+async def _reset_in_the_browser(tasks):
+    """Let play's cancelled tasks end, then put play back into its starting state."""
+    await _play_loop.end_tasks_in_the_browser(tasks)
+    _reset_state()
+
+
+def _reset_state():
+    """Put every part of play back into the state it has right after ``import play``."""
     _close_all_videos()
     pygame.init()
     if pygame.mixer.get_init():
         pygame.mixer.stop()
+    _logging.getLogger("asyncio").setLevel(_logging.NOTSET)
+    _text_input_registry.clear_focus()
     globals_list.reset()
     _clicked_sprites.clear()
     _cleanup_auto_start()
@@ -136,13 +161,12 @@ def reset_program():
     _text_input_registry.reset()
     _reset_physics()
     _screen._reset()
-    _core._clock = pygame.time.Clock()
+    _controllers._reconnect()
     keyboard_state.pressed.clear()
     keyboard_state.clear()
     _mouse_state.clear()
     _mouse_state.click_claimants.clear()
     _controller_state.buttons_pressed.clear()
-    _controller_state.clear()
     _mouse.x = _mouse.y = 0
     _mouse._is_clicked = False
     pygame.event.clear()

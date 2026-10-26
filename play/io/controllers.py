@@ -141,6 +141,10 @@ class _DisconnectedController:  # pylint: disable=missing-function-docstring
 
 class _Controllers:
     def __init__(self):
+        self._reconnect()
+
+    def _reconnect(self):
+        """Forget the controllers and open the ones that are plugged in now, as on import."""
         self._controllers = []
         for device_index in range(_get_controller_count()):
             self._connect(device_index)
