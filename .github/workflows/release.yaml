@@ -20,7 +20,7 @@ jobs:
             pip install -r requirements.txt
             pip install pdoc
       - run: pdoc ./play -o docs
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: docs/
   
