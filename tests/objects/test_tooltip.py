@@ -113,7 +113,7 @@ def test_a_visible_bubble_is_its_text_plus_the_padding_on_each_side():
     _target, tip = _make()
     mouse.x, mouse.y = 200, 0
     tip.update()
-    text_w, text_h = load_font(None, 15).size("Hi")
+    text_w, text_h = load_font(None, 15).render("Hi", True, (0, 0, 0)).get_size()
     assert tip.image.get_size() == (text_w + 12, text_h + 12)
 
 
