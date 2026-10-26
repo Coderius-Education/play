@@ -9,6 +9,8 @@ from play.globals import globals_list
 from play.physics import physics_space
 from play.utils.async_helpers import make_async
 
+_DEFAULT_CAPTION = "coderius-play"
+
 
 class Screen:
     def update_display(self, extra_flags=0):
@@ -27,7 +29,7 @@ class Screen:
 
         self._resizable = False
         self._fullscreen = False
-        self._caption = "coderius-play"
+        self._caption = _DEFAULT_CAPTION
 
         self.update_display()
         pygame.display.set_caption(self._caption)
@@ -81,6 +83,14 @@ class Screen:
         """Set the height of the screen.
         :param _height: The new height of the screen."""
         self._set_size(self._width, _height)
+
+    def _reset(self):
+        """Go back to the size, window flags and caption of a new screen, with fresh walls."""
+        self._width, self._height = globals_list.width, globals_list.height
+        self._resizable = False
+        self.caption = _DEFAULT_CAPTION
+        self.update_display()
+        create_walls()
 
     def _set_size(self, width, height):
         """Resize the window and move the walls to its new edges."""

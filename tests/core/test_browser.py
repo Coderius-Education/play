@@ -409,3 +409,34 @@ def test_a_debugger_still_sees_a_top_level_await_pause(in_the_browser):
         sys.settrace(previous)
 
     assert returns == ["<module>", "<module>"]
+
+
+def test_a_reset_in_the_browser_ends_the_running_program_and_lets_a_new_one_start(
+    in_the_browser,
+):
+    ended = []
+    frames = []
+
+    @play.when_program_starts
+    async def walk():
+        try:
+            while True:
+                await play.animate()
+        finally:
+            ended.append("walk")
+
+    async def page():
+        play.start_program()
+        for _ in range(5):
+            await asyncio.sleep(0)
+        play.reset_program()
+        ended.append("reset returned")
+        play.repeat_forever(_stop_after(3))
+        play.repeat_forever(lambda: frames.append(1))
+        play.start_program()
+        await _until_only_the_page_is_left()
+
+    in_the_browser.run_until_complete(page())
+
+    assert ended == ["walk", "reset returned"]
+    assert frames == [1, 1, 1]

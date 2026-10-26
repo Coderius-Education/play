@@ -123,3 +123,51 @@ def stop_loop():
             task.cancel()
     else:
         get_loop().stop()
+
+
+def _ignore_outcome(task):
+    """Take the outcome of an ended task, so the loop does not report it."""
+    if not task.cancelled():
+        task.exception()
+
+
+def _end_now(task):
+    """Cancel *task* and close its coroutine, so its finally blocks run straight away."""
+    task.cancel()
+    task.add_done_callback(_ignore_outcome)
+    coro = task.get_coro()
+    if coro is not None:
+        try:
+            coro.close()
+        except RuntimeError:
+            pass
+
+
+def reset():
+    """Stop the program and end play's tasks now; on the desktop, also close play's event loop.
+    :raises RuntimeError: On the desktop, when called while the program is running."""
+    global _loop, _creator_pid
+
+    if not RUNS_IN_BROWSER and _loop is not None and _loop.is_running():
+        raise RuntimeError(
+            "play.reset_program() cannot run while the program is running. "
+            "Call it after play.start_program() has returned."
+        )
+    globals_list.program_state = ProgramState.STOPPED
+    if RUNS_IN_BROWSER:
+        try:
+            current = asyncio.current_task()
+        except RuntimeError:
+            current = None
+        for task in list(_tasks):
+            if task is not current:
+                _end_now(task)
+        _tasks.clear()
+        return
+    if _loop is None or _loop.is_closed():
+        return
+    for task in asyncio.all_tasks(_loop):
+        _end_now(task)
+    _loop.close()
+    _loop = None
+    _creator_pid = None

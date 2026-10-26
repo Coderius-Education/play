@@ -6,13 +6,22 @@ import os as _os
 
 import pygame
 
-from play.api.auto_start import stop_waiting_for_the_script
+from play.api.auto_start import _cleanup_auto_start, stop_waiting_for_the_script
 from play.callback import callback_manager, CallbackType
+from play.callback.collision_callbacks import collision_registry as _collision_registry
+from play import core as _core
 from play.core import game_loop as _game_loop
+from play.core.controller_loop import controller_state as _controller_state
+from play.core.mouse_loop import mouse_state as _mouse_state
+from play.core.sprites_loop import _clicked_sprites
 from play import loop as _play_loop
 from play.globals import globals_list, ProgramState
 from play.io.keypress import keyboard_state
 from play.io.logging import play_logger
+from play.io.mouse import mouse as _mouse
+from play.io.screen import screen as _screen
+from play.objects.widgets import text_input_registry as _text_input_registry
+from play.physics import _reset_physics
 from play.physics import set_physics_simulation_steps as _set_physics_simulation_steps
 from play.objects.video.video import close_all_videos as _close_all_videos
 from play.utils import color_name_to_rgb as _color_name_to_rgb
@@ -107,6 +116,36 @@ def stop_program():
     play.stop_program() should almost certainly go at the very end of your program.
     """
     _play_loop.stop_loop()
+
+
+def reset_program():
+    """Put play back into the state it has right after ``import play``.
+    For programs that run one play program after another, such as a playground or a test suite.
+    It works whether or not a program started: a running one stops, and play's tasks end before it returns.
+    :raises RuntimeError: On the desktop, when called while the program is running."""
+    _play_loop.reset()
+    _close_all_videos()
+    pygame.init()
+    if pygame.mixer.get_init():
+        pygame.mixer.stop()
+    globals_list.reset()
+    _clicked_sprites.clear()
+    _cleanup_auto_start()
+    callback_manager.callbacks.clear()
+    _collision_registry.reset()
+    _text_input_registry.reset()
+    _reset_physics()
+    _screen._reset()
+    _core._clock = pygame.time.Clock()
+    keyboard_state.pressed.clear()
+    keyboard_state.clear()
+    _mouse_state.clear()
+    _mouse_state.click_claimants.clear()
+    _controller_state.buttons_pressed.clear()
+    _controller_state.clear()
+    _mouse.x = _mouse.y = 0
+    _mouse._is_clicked = False
+    pygame.event.clear()
 
 
 async def animate():
