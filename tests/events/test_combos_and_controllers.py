@@ -4,16 +4,8 @@ import pygame
 import pytest
 
 import play
-from play.core.controller_loop import controller_state
 from play.io.controllers import controllers
 from tests.events.frames import key_down as _down, key_up as _up, play_frames
-
-
-@pytest.fixture(autouse=True)
-def no_buttons_held():
-    controller_state.buttons_pressed.clear()
-    yield
-    controller_state.buttons_pressed.clear()
 
 
 def test_a_key_combination_fires_when_its_last_key_goes_down():

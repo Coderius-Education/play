@@ -3,7 +3,6 @@
 import pygame
 import pytest
 
-from play.core.controller_loop import controller_state
 from play.io import controllers as controllers_module
 from play.io.controllers import controllers
 from tests.events.frames import (
@@ -59,13 +58,6 @@ def two_controllers(monkeypatch):
     plugged_in = controllers_module._Controllers()
     monkeypatch.setattr(controllers, "_controllers", plugged_in._controllers)
     return plugged_in._controllers
-
-
-@pytest.fixture(autouse=True)
-def no_buttons_held():
-    controller_state.buttons_pressed.clear()
-    yield
-    controller_state.buttons_pressed.clear()
 
 
 def test_controllers_plugged_in_at_the_start_are_counted_in_order(two_controllers):

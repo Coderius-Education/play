@@ -4,7 +4,6 @@ import pygame
 import pytest
 
 import play
-from play.core.controller_loop import controller_state
 from play.io.controllers import controllers
 from tests.events.frames import (
     button_down,
@@ -17,13 +16,6 @@ from tests.events.frames import (
 )
 
 TWO_MORE_FRAMES = [[], []]
-
-
-@pytest.fixture(autouse=True)
-def no_buttons_held():
-    controller_state.buttons_pressed.clear()
-    yield
-    controller_state.buttons_pressed.clear()
 
 
 def test_while_key_pressed_fires_in_every_frame_the_key_is_held():
