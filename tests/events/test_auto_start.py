@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 def test_auto_start_flag_set_by_callback():
     """Test that adding a callback sets should_auto_start."""
-    from play.api import auto_start
     from play.callback import callback_manager, CallbackType
     from play.globals import globals_list
 

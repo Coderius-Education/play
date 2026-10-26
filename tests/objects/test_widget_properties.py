@@ -13,14 +13,13 @@ from hypothesis import HealthCheck, given, settings, strategies as st
 
 import play
 from play.io.screen import screen
+from tests.conftest import keydown_event
 
 
 @pytest.fixture(autouse=True)
 def setup_play(clean_play_state):
     pass
 
-
-# ── anchor placement ──────────────────────────────────────────────────────────
 
 ANCHORS = [
     "top-left",
@@ -93,8 +92,6 @@ def test_anchor_placement_and_stability(anchor, ox, oy, width, height):
         box.remove()
 
 
-# ── slider clamping ───────────────────────────────────────────────────────────
-
 _bounded_floats = st.floats(
     min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False
 )
@@ -138,8 +135,6 @@ def test_slider_value_always_clamped_and_change_fires_on_real_change(
         slider.remove()
 
 
-# ── text input editing invariants ─────────────────────────────────────────────
-
 _printable_char = st.characters(min_codepoint=32, max_codepoint=126)
 
 _edit_ops = st.lists(
@@ -163,11 +158,6 @@ _OP_KEYS = {
 }
 
 
-def _keydown(key, mod=0):
-    """A KEYDOWN event for *key* with modifier keys *mod*."""
-    return pygame.event.Event(pygame.KEYDOWN, {"key": key, "mod": mod, "unicode": ""})
-
-
 @given(
     initial=st.text(alphabet=_printable_char, max_size=40),
     ops=_edit_ops,
@@ -188,7 +178,7 @@ def test_text_input_editing_keeps_cursor_and_value_consistent(initial, ops):
                 model_text = model_text[:model_cursor] + ch + model_text[model_cursor:]
                 model_cursor += 1
             else:
-                ti._handle_keydown(_keydown(_OP_KEYS[op]))
+                ti._handle_keydown(keydown_event(_OP_KEYS[op]))
                 if op == "left":
                     model_cursor = max(0, model_cursor - 1)
                 elif op == "right":
@@ -219,7 +209,6 @@ def test_text_input_editing_keeps_cursor_and_value_consistent(initial, ops):
         ti.remove()
 
 
-# ── widget geometry: the hit-shape must follow the drawn widget ───────────────
 #
 # These guard the class of bug where a widget's image and its pymunk hit-shape
 # disagree: the visible control has dead zones, or clicks land on empty space
@@ -276,9 +265,6 @@ def test_checkbox_image_and_hit_shape_scale_together(size):
         assert mouse.is_touching(checkbox)
     finally:
         checkbox.remove()
-
-
-# ── progress bar: percentage stays a fraction under any bound mutation ────────
 
 
 @given(

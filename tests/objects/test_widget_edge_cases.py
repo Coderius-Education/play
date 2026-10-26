@@ -18,9 +18,6 @@ def setup_play(clean_play_state):
     pass
 
 
-# ── a slider narrower than its own thumb ──────────────────────────────────────
-
-
 def test_narrow_slider_is_still_draggable():
     # Regression: the default 12px thumb on a 20px track made track_width
     # negative, so every drag pinned the value to min_value.
@@ -41,9 +38,6 @@ def test_a_thumb_is_shrunk_only_when_it_would_not_fit_the_track(width, height):
     assert s.image.get_size() == (width, height)
 
 
-# ── max_length=0 ──────────────────────────────────────────────────────────────
-
-
 def test_max_length_zero_rejects_all_input():
     ti = play.new_text_input(max_length=0)
     ti._handle_text_input("a")
@@ -53,9 +47,6 @@ def test_max_length_zero_rejects_all_input():
 def test_max_length_zero_truncates_the_initial_value():
     ti = play.new_text_input(value="preset", max_length=0)
     assert ti.value == ""
-
-
-# ── an empty dropdown ─────────────────────────────────────────────────────────
 
 
 def test_empty_dropdown_opens_and_closes_without_error():
@@ -84,18 +75,12 @@ def test_options_emptied_at_runtime_clears_the_selection():
     assert dd.selected_value is None
 
 
-# ── a label that shrinks back to nothing ──────────────────────────────────────
-
-
 def test_checkbox_label_cleared_shrinks_the_widget():
     cb = play.new_checkbox(label="A very long label indeed", x=0, y=0, size_px=24)
     wide = cb.width
     cb.label = ""
     assert cb.width < wide
     assert cb.width == 24  # back to the bare box
-
-
-# ── non-ASCII labels ──────────────────────────────────────────────────────────
 
 
 @pytest.mark.parametrize("label", ["Geluid aan", "Café", "Grüße", "€10", "Ω"])

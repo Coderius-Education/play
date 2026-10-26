@@ -35,11 +35,6 @@ async def _click(screen, x, y):
     await play.animate()
 
 
-# ---------------------------------------------------------------------------
-# a widget on top of a sprite
-# ---------------------------------------------------------------------------
-
-
 def test_clicking_a_button_does_not_click_the_sprite_under_it():
     """A UI panel over the playfield must absorb the click.
 
@@ -102,11 +97,6 @@ def test_clicking_beside_the_button_still_reaches_the_sprite():
     assert sprite_clicks, "a click away from the button should reach the sprite"
 
 
-# ---------------------------------------------------------------------------
-# collisions driving a widget
-# ---------------------------------------------------------------------------
-
-
 def test_a_progress_bar_tracks_damage_from_collisions():
     """A health bar updated from a collision callback.
 
@@ -143,11 +133,6 @@ def test_a_progress_bar_tracks_damage_from_collisions():
     assert (
         bar.value == health[0]
     ), f"the bar should show the current health ({health[0]}), not {bar.value}"
-
-
-# ---------------------------------------------------------------------------
-# a widget driving the physics
-# ---------------------------------------------------------------------------
 
 
 def test_a_checkbox_can_freeze_and_release_a_moving_sprite():
@@ -204,11 +189,6 @@ def test_a_checkbox_can_freeze_and_release_a_moving_sprite():
         "the ball should move again once released, but it stayed at "
         f"{positions['after_release']}"
     )
-
-
-# ---------------------------------------------------------------------------
-# widgets and sprite lifetime
-# ---------------------------------------------------------------------------
 
 
 def test_a_button_can_remove_a_physics_sprite_mid_game():
@@ -280,11 +260,6 @@ def test_a_tooltip_survives_its_target_being_removed():
     assert tooltip.alive(), "the tooltip should still be a live sprite"
     assert shown == [True], "the tooltip should show while the cursor is on the enemy"
     assert tooltip.is_hidden, "with its enemy gone the tooltip should disappear"
-
-
-# ---------------------------------------------------------------------------
-# overlays, hiding, and dragging over a live playfield
-# ---------------------------------------------------------------------------
 
 
 def test_an_open_dropdown_menu_absorbs_clicks_meant_for_the_playfield():

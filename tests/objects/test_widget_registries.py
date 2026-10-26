@@ -277,11 +277,6 @@ def test_a_bullet_can_remove_itself_and_its_target_on_a_hit():
     assert not bullet.alive() and not enemy.alive()
 
 
-# ---------------------------------------------------------------------------
-# Tab order
-# ---------------------------------------------------------------------------
-
-
 def test_tab_moves_through_fields_in_order_and_wraps():
     first = play.new_text_input(x=0, y=100)
     second = play.new_text_input(x=0, y=0)

@@ -32,11 +32,6 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_slow)
 
 
-# ---------------------------------------------------------------------------
-# Shared mouse-event helpers (used by tests/events/ and tests/projects/)
-# ---------------------------------------------------------------------------
-
-
 UPDATES_PER_CLICK = 10
 
 
@@ -64,6 +59,22 @@ def click_at(x, y, *widgets, hold=False):
     mouse_state.clear()
     if not hold:
         mouse._is_clicked = False
+
+
+def end_click():
+    """Finish a click: clear the frame's mouse state and release the button."""
+    from play.io.mouse import mouse
+    from play.core.mouse_loop import mouse_state
+
+    mouse_state.clear()
+    mouse._is_clicked = False
+
+
+def keydown_event(key, mod=0):
+    """A KEYDOWN event for *key* with modifier keys *mod*, as a focused text field gets it."""
+    import pygame
+
+    return pygame.event.Event(pygame.KEYDOWN, {"key": key, "mod": mod, "unicode": ""})
 
 
 def post_mouse_motion(screen_x, screen_y):

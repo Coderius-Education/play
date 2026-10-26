@@ -10,7 +10,7 @@ import play
 from play.globals import globals_list
 from play.io.mouse import mouse
 from play.core.mouse_loop import mouse_state
-from tests.conftest import click_at
+from tests.conftest import click_at, end_click
 
 
 @pytest.fixture(autouse=True)
@@ -24,15 +24,6 @@ def _resolve_click_at(x, y):
     mouse._is_clicked = True
     mouse_state.click_happened = True
     mouse_state.resolve_click_owner()
-
-
-def _end_click():
-    """Finish the click: clear the frame's mouse state and release the button."""
-    mouse_state.clear()
-    mouse._is_clicked = False
-
-
-# ── widgets are exclusive ─────────────────────────────────────────────────────
 
 
 def test_only_topmost_stacked_widget_receives_the_click():
@@ -52,10 +43,7 @@ def test_widget_takes_ownership_from_an_overlapping_plain_sprite():
         assert mouse_state.click_hits(btn) is True
         assert mouse_state.click_hits(box) is False
     finally:
-        _end_click()
-
-
-# ── plain sprites keep their original behaviour ───────────────────────────────
+        end_click()
 
 
 def test_plain_sprites_never_take_ownership():
@@ -68,10 +56,7 @@ def test_plain_sprites_never_take_ownership():
         assert mouse_state.click_hits(a) is True
         assert mouse_state.click_hits(b) is True
     finally:
-        _end_click()
-
-
-# ── an open dropdown still wins, and still closes ─────────────────────────────
+        end_click()
 
 
 def test_open_dropdown_claims_clicks_on_its_menu():

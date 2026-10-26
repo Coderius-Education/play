@@ -67,7 +67,6 @@ def test_a_slider_is_drawn_at_its_track_size_plus_the_thumb():
     assert s.image.get_size() == (200, 44)
 
 
-# ── drag interaction ──────────────────────────────────────────────────────────
 # The 800x600 test display puts x=0 at screen centre. For a slider at x=0 with
 # width=200 and thumb_radius=12, the usable track spans mouse.x ∈ [-88, +88],
 # so mouse.x=-88 → min, mouse.x=+88 → max, mouse.x=0 → midpoint.
@@ -187,7 +186,7 @@ def test_the_thumb_sits_on_the_track_where_the_value_is(value, centre):
     )
 
 
-def test_slider_show_value_widensimage_bytes():
+def test_slider_show_value_widens_the_picture():
     # Regression: show_value must include the label in the surface, not clip it
     # off the right edge.
     plain = play.new_slider(width=200, value=100, show_value=False)

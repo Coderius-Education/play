@@ -27,9 +27,6 @@ def _screen_xy(screen, x, y):
     return int(screen.width / 2 + x), int(screen.height / 2 - y)
 
 
-# ── Slider ────────────────────────────────────────────────────────────────────
-
-
 def test_slider_ignores_mouse_motion_without_a_press():
     import play
     from play.io.screen import screen
@@ -49,9 +46,6 @@ def test_slider_ignores_mouse_motion_without_a_press():
     play.start_program()
 
     assert slider.value == 50, "hovering must not move the slider"
-
-
-# ── Dropdown ──────────────────────────────────────────────────────────────────
 
 
 def test_dropdown_selection_in_the_game_loop():
@@ -91,9 +85,6 @@ def test_dropdown_selection_in_the_game_loop():
     assert dd.is_open is False, "picking an option should close the menu"
     assert dd.selected_value == "Hard"
     assert received == [("Hard", 2)], "when_changed should fire exactly once"
-
-
-# ── TextInput ─────────────────────────────────────────────────────────────────
 
 
 def test_text_input_captures_the_keyboard_in_the_game_loop():

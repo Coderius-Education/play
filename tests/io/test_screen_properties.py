@@ -4,7 +4,7 @@ import pygame
 import pytest
 
 import play
-from play.io.screen import convert_pos, pos_convert
+from play.io.screen import Screen, convert_pos, pos_convert
 
 
 @pytest.mark.parametrize(
@@ -25,6 +25,11 @@ def test_an_800_by_600_screen_has_its_edges_half_its_size_from_the_middle(name, 
 
 def test_the_caption_starts_as_coderius_play():
     assert play.screen.caption == "coderius-play"
+
+
+def test_a_new_screen_titles_the_window_coderius_play():
+    pygame.display.set_caption("something else")
+    Screen()
     assert pygame.display.get_caption()[0] == "coderius-play"
 
 

@@ -45,11 +45,6 @@ def _run_one_click(build, x=0, y=0, frames=120):
     return widget, calls
 
 
-# ---------------------------------------------------------------------------
-# callbacks fire once
-# ---------------------------------------------------------------------------
-
-
 def test_button_calls_its_action_once():
     """The clearest case: a button that fires ten times fires the student's
     function ten times — ten bullets, ten points, ten lives lost."""
@@ -124,11 +119,6 @@ def test_dropdown_opens_once():
     assert not calls, "opening a menu is not choosing an option"
 
 
-# ---------------------------------------------------------------------------
-# repeated clicks stay in step
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.parametrize("clicks", [2, 3])
 def test_a_checkbox_follows_every_click(clicks):
     """Two clicks off, three clicks on — the count has to track exactly.
@@ -157,11 +147,6 @@ def test_a_checkbox_follows_every_click(clicks):
 
     assert len(changes) == clicks, f"expected {clicks} changes, got {len(changes)}"
     assert box.checked is (clicks % 2 == 1)
-
-
-# ---------------------------------------------------------------------------
-# non-interactive widgets stay out of the way
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(

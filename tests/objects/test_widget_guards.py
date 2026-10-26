@@ -12,17 +12,12 @@ from play.io.mouse import mouse
 from play.core.mouse_loop import mouse_state, handle_mouse_events
 from play.objects.widgets import text_input_registry as registry
 from play.utils import color_name_to_rgb
-from tests.conftest import click_at, count_color
+from tests.conftest import click_at, count_color, keydown_event
 
 
 @pytest.fixture(autouse=True)
 def setup_play(clean_play_state):
     pass
-
-
-def _keydown(key, mod=0):
-    """A KEYDOWN event for *key* with modifier keys *mod*."""
-    return pygame.event.Event(pygame.KEYDOWN, {"key": key, "mod": mod, "unicode": ""})
 
 
 def _fake_scrap(monkeypatch, clipboard=""):
@@ -34,9 +29,6 @@ def _fake_scrap(monkeypatch, clipboard=""):
     )
     monkeypatch.setattr(pygame.scrap, "get_text", lambda: store["text"])
     return store
-
-
-# ── the mouse wheel is not a click ────────────────────────────────────────────
 
 
 @pytest.mark.parametrize("wheel_button", [4, 5])
@@ -69,41 +61,32 @@ def test_real_click_still_registers():
     assert mouse_state.click_happened is True
 
 
-# ── password fields never reach the clipboard ─────────────────────────────────
-
-
 def test_password_mode_blocks_copy(monkeypatch):
     store = _fake_scrap(monkeypatch, clipboard="untouched")
     ti = play.new_text_input(value="hunter2", password_mode=True)
-    ti._handle_keydown(_keydown(pygame.K_a, mod=pygame.KMOD_CTRL))
-    ti._handle_keydown(_keydown(pygame.K_c, mod=pygame.KMOD_CTRL))
+    ti._handle_keydown(keydown_event(pygame.K_a, mod=pygame.KMOD_CTRL))
+    ti._handle_keydown(keydown_event(pygame.K_c, mod=pygame.KMOD_CTRL))
     assert store["text"] == "untouched"
 
 
 def test_password_mode_blocks_cut(monkeypatch):
     store = _fake_scrap(monkeypatch, clipboard="untouched")
     ti = play.new_text_input(value="hunter2", password_mode=True)
-    ti._handle_keydown(_keydown(pygame.K_a, mod=pygame.KMOD_CTRL))
-    ti._handle_keydown(_keydown(pygame.K_x, mod=pygame.KMOD_CTRL))
+    ti._handle_keydown(keydown_event(pygame.K_a, mod=pygame.KMOD_CTRL))
+    ti._handle_keydown(keydown_event(pygame.K_x, mod=pygame.KMOD_CTRL))
     assert store["text"] == "untouched"
     assert ti.value == "hunter2"  # cut must not delete either
-
-
-# ── pasted newlines are flattened ─────────────────────────────────────────────
 
 
 def test_paste_flattens_newlines(monkeypatch):
     _fake_scrap(monkeypatch, clipboard="a\nb\r\nc\rd")
     ti = play.new_text_input(value="")
-    ti._handle_keydown(_keydown(pygame.K_v, mod=pygame.KMOD_CTRL))
+    ti._handle_keydown(keydown_event(pygame.K_v, mod=pygame.KMOD_CTRL))
     assert "\n" not in ti.value
     assert "\r" not in ti.value
     assert ti.value == "a b c d"
     ti._handle_text_input("!")
     assert ti.value == "a b c d!"
-
-
-# ── decorative widgets must not swallow clicks ────────────────────────────────
 
 
 def test_progress_bar_does_not_steal_clicks_from_a_button():
@@ -135,9 +118,6 @@ def test_tooltip_does_not_steal_clicks_from_its_target():
     finally:
         mouse_state.clear()
         mouse._is_clicked = False
-
-
-# ── a disabled or hidden slider is inert ──────────────────────────────────────
 
 
 def _start_drag(slider):
@@ -180,9 +160,6 @@ def test_disabling_mid_drag_does_not_resume_on_re_enable():
     s.update()
     assert s.value == 50
     mouse._is_clicked = False
-
-
-# ── colour setters survive the next frame ─────────────────────────────────────
 
 
 def test_text_input_color_setter_survives_update():
@@ -229,10 +206,10 @@ def test_a_disabled_field_ignores_editing_keys_even_when_focused(monkeypatch):
     ti = play.new_text_input(value="abc", disabled=True)
     registry.focus(ti)
     for key in (pygame.K_BACKSPACE, pygame.K_DELETE):
-        ti._handle_keydown(_keydown(key))
-    ti._handle_keydown(_keydown(pygame.K_HOME))
-    ti._handle_keydown(_keydown(pygame.K_v, mod=pygame.KMOD_CTRL))
-    ti._handle_keydown(_keydown(pygame.K_a, mod=pygame.KMOD_CTRL))
-    ti._handle_keydown(_keydown(pygame.K_c, mod=pygame.KMOD_CTRL))
+        ti._handle_keydown(keydown_event(key))
+    ti._handle_keydown(keydown_event(pygame.K_HOME))
+    ti._handle_keydown(keydown_event(pygame.K_v, mod=pygame.KMOD_CTRL))
+    ti._handle_keydown(keydown_event(pygame.K_a, mod=pygame.KMOD_CTRL))
+    ti._handle_keydown(keydown_event(pygame.K_c, mod=pygame.KMOD_CTRL))
     assert ti.value == "abc"
     assert store["text"] == "pasted"

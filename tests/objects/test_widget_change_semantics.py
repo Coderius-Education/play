@@ -19,9 +19,6 @@ def setup_play(clean_play_state):
     pass
 
 
-# ── Button.color round-trips ──────────────────────────────────────────────────
-
-
 def test_button_color_setter_survives_update():
     # Regression: update() re-derives _color from _base_color every frame, so a
     # plain Box.color setter was silently reverted on the next frame.
@@ -42,18 +39,12 @@ def test_button_color_getter_reports_resting_colour_not_hover():
     assert btn.color == "royalblue"
 
 
-# ── Checkbox.checked fires when_changed ───────────────────────────────────────
-
-
 def test_checkbox_checked_setter_no_fire_when_unchanged():
     cb = play.new_checkbox(x=0, y=0, checked=True)
     received = []
     cb.when_changed(received.append)
     cb.checked = True
     assert received == []
-
-
-# ── RadioGroup only reports real changes ──────────────────────────────────────
 
 
 def test_radio_group_reselecting_same_option_does_not_fire():
@@ -74,9 +65,6 @@ def test_radio_group_selected_value_setter_no_fire_when_unchanged():
     g.when_changed(received.append)
     g.selected_value = "a"
     assert received == []
-
-
-# ── Dropdown only reports real changes ────────────────────────────────────────
 
 
 def test_dropdown_reselecting_same_option_does_not_fire():
@@ -101,9 +89,6 @@ def test_dropdown_hidden_does_not_handle_clicks():
     assert dd.is_open is False  # hiding closes the menu
     click_at(0, -120, dd)  # would have been the 3rd option row
     assert received == []
-
-
-# ── Slider ────────────────────────────────────────────────────────────────────
 
 
 def test_slider_step_grid_is_anchored_to_min_value():
@@ -141,9 +126,6 @@ def test_slider_bound_setter_without_clamp_does_not_fire():
     s.when_changed(received.append)
     s.max_value = 90  # 50 still in range
     assert received == []
-
-
-# ── Tooltip drops a removed target ────────────────────────────────────────────
 
 
 def test_tooltip_does_not_reappear_after_target_removed():

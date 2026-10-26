@@ -15,10 +15,6 @@ from play.globals import globals_list
 from play.io.screen import screen
 from tests.conftest import click_at
 
-# ---------------------------------------------------------------------------
-# keyboard focus x sprite lifecycle
-# ---------------------------------------------------------------------------
-
 
 def test_removing_a_focused_text_input_releases_focus():
     """A removed field must not keep the keyboard.
@@ -59,11 +55,6 @@ def test_disabling_a_focused_text_input_releases_focus():
     field.disabled = True
 
     assert globals_list.focused_text_input is None
-
-
-# ---------------------------------------------------------------------------
-# collisions x physics lifecycle
-# ---------------------------------------------------------------------------
 
 
 def test_removing_a_sprite_stops_its_collision_callbacks():
@@ -193,11 +184,6 @@ def test_a_sprite_hidden_before_starting_physics_stays_where_it_was():
     assert _position_after_frames(ball, 20) == (0, 0)
 
 
-# ---------------------------------------------------------------------------
-# layers x click ownership
-# ---------------------------------------------------------------------------
-
-
 # Widget state is asserted rather than when_clicked callbacks: those dispatch
 # through the event loop, which is not running in a click_at() unit test, so a
 # callback-based assertion here would be checking nothing.
@@ -236,11 +222,6 @@ def test_disabled_widget_does_not_take_clicks_from_the_one_below():
 
     assert upper.checked is False, "a disabled widget should not react to clicks"
     assert lower.checked is True, "a disabled widget should not swallow the click"
-
-
-# ---------------------------------------------------------------------------
-# anchors x screen size
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(

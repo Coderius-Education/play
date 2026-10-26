@@ -34,11 +34,10 @@ def test_a_sprite_takes_its_place_angle_and_speed_from_its_body():
     [
         ((float("nan"), 20.0, 45.0), (100, 20.0, 45.0)),
         ((10.0, float("nan"), 45.0), (10.0, 100, 45.0)),
-        ((100.0, 100.0, float("nan")), (100, 100, 30)),
     ],
-    ids=["x", "y", "angle"],
+    ids=["x", "y"],
 )
-def test_a_body_value_that_is_not_a_number_is_ignored_and_the_others_still_follow(
+def test_a_body_coordinate_that_is_not_a_number_is_ignored_and_the_others_still_follow(
     body, expected
 ):
     box = _box_whose_body_moved(*body)
@@ -46,6 +45,15 @@ def test_a_body_value_that_is_not_a_number_is_ignored_and_the_others_still_follo
     update_sprite_physics(box)
 
     assert (box.x, box.y, box.angle) == pytest.approx(expected)
+
+
+def test_a_body_angle_that_is_not_a_number_is_ignored_and_the_speed_still_follows():
+    box = _box_whose_body_moved(10.0, 20.0, float("nan"), velocity=(5.0, -3.0))
+
+    update_sprite_physics(box)
+
+    assert box.angle == pytest.approx(30)
+    assert (box.physics.x_speed, box.physics.y_speed) == (5.0, -3.0)
 
 
 def test_the_speed_a_student_reads_turns_round_after_a_bounce():

@@ -24,10 +24,6 @@ import pytest
 import play
 from tests.conftest import click_at
 
-# ---------------------------------------------------------------------------
-# when_changed signatures
-# ---------------------------------------------------------------------------
-
 
 def test_checkbox_when_changed_passes_only_the_value():
     seen = []
@@ -133,10 +129,6 @@ def test_clearing_a_dropdown_selection_reports_nothing_selected():
     assert seen == [(None, -1)], f"expected (None, -1), got {seen}"
 
 
-# ---------------------------------------------------------------------------
-# constructor arguments without a matching property
-# ---------------------------------------------------------------------------
-
 # Constructor arguments that a reader would reasonably expect to be readable
 # back, and currently are not. Adding a property should delete its entry here.
 KNOWN_MISSING_PROPERTIES = {
@@ -194,11 +186,6 @@ def test_core_constructor_arguments_round_trip(factory_name, argument, value, ex
     assert getattr(widget, argument) == value
 
 
-# ---------------------------------------------------------------------------
-# range setters keep their bounds ordered
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.parametrize(
     "factory",
     [
@@ -250,11 +237,6 @@ def test_moving_a_slider_range_upwards_in_two_steps_works():
 
     assert (slider.min_value, slider.max_value) == (100, 200)
     assert 100 <= slider.value <= 200
-
-
-# ---------------------------------------------------------------------------
-# dropdown layer bookkeeping
-# ---------------------------------------------------------------------------
 
 
 def test_setting_a_dropdowns_layer_while_open_survives_closing():

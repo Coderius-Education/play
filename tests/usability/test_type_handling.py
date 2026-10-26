@@ -1,6 +1,5 @@
 import pytest
 import play
-import pygame
 
 
 @pytest.fixture(autouse=True)

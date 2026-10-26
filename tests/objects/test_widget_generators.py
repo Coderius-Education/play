@@ -48,22 +48,48 @@ def test_a_new_function_has_the_same_arguments_and_defaults_as_its_widget(name):
     assert _defaults(generator) == _defaults(widget_class.__init__)
 
 
+def _record_widget(monkeypatch, widget_class):
+    """Make play.api.generators build a recorder instead of *widget_class*; return (calls, what it builds)."""
+    calls = []
+    built = object()
+
+    def record(*args, **kwargs):
+        calls.append(inspect.signature(widget_class).bind(*args, **kwargs))
+        return built
+
+    name = next(key for key, value in vars(generators).items() if value is widget_class)
+    monkeypatch.setattr(generators, name, record)
+    return calls, built
+
+
 @pytest.mark.parametrize("name", sorted(PAIRS))
 def test_a_new_function_hands_each_argument_to_the_same_widget_argument(
     name, monkeypatch
 ):
     generator, widget_class = PAIRS[name]
-    received = []
-    built = object()
-
-    def record(*args, **kwargs):
-        received.append(inspect.signature(widget_class).bind(*args, **kwargs))
-        return built
-
-    monkeypatch.setattr(generators, f"_{widget_class.__name__}", record)
+    received, built = _record_widget(monkeypatch, widget_class)
     given = {
         parameter: object() for parameter in inspect.signature(generator).parameters
     }
 
     assert generator(**given) is built
     assert [call.arguments for call in received] == [given]
+
+
+@pytest.mark.parametrize("name", sorted(PAIRS))
+def test_a_new_function_hands_on_the_widget_defaults_for_arguments_left_out(
+    name, monkeypatch
+):
+    generator, widget_class = PAIRS[name]
+    received, _ = _record_widget(monkeypatch, widget_class)
+    required = {
+        parameter: object()
+        for parameter, default in _defaults(generator).items()
+        if default is inspect.Parameter.empty
+    }
+
+    generator(**required)
+
+    (call,) = received
+    call.apply_defaults()
+    assert call.arguments == {**_defaults(widget_class.__init__), **required}

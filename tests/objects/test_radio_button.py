@@ -102,9 +102,6 @@ def test_radio_group_when_changed_rejects_async():
             pass
 
 
-# ── RadioButton ────────────────────────────────────────────────────────────────
-
-
 def test_radio_button_creation():
     r = play.new_radio_button("Option A", value="a")
     assert r.label == "Option A"

@@ -44,9 +44,6 @@ def _settle_outside(widget):
     widget.update()
 
 
-# ── every interactive widget reports hover ────────────────────────────────────
-
-
 @pytest.mark.parametrize("kind", KINDS)
 def test_every_widget_supports_hover_callbacks(kind):
     widget = _make(kind)
@@ -98,9 +95,6 @@ def test_hover_callbacks_reject_async(kind, decorator):
 
     with pytest.raises(TypeError):
         getattr(widget, decorator)(handler)
-
-
-# ── `disabled` also suppresses the game's own click handler ───────────────────
 
 
 def _handlers(ran, label):

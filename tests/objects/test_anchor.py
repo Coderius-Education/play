@@ -15,7 +15,6 @@ def _settled(sprite):
     return sprite
 
 
-# ── Edge-based anchor semantics ───────────────────────────────────────────────
 # ox / oy are pixel distances from the screen border.
 # After two updates the relevant EDGE of the sprite sits at that distance.
 

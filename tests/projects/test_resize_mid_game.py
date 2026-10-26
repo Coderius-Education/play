@@ -11,7 +11,6 @@ moved with it.
 """
 
 import pygame
-import pytest
 
 import play
 from play.callback.collision_callbacks import WallSide

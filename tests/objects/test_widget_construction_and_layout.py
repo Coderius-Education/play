@@ -14,6 +14,7 @@ from play.globals import globals_list
 from play.io.mouse import mouse
 from play.io.screen import screen
 from play.core.mouse_loop import mouse_state
+from tests.conftest import end_click
 
 
 @pytest.fixture(autouse=True)
@@ -29,22 +30,13 @@ def _begin_click(x, y):
     mouse_state.resolve_click_owner()
 
 
-def _end_click():
-    """Finish the click: clear the frame's mouse state and release the button."""
-    mouse_state.clear()
-    mouse._is_clicked = False
-
-
-# ── widgets created during a click must not activate themselves ───────────────
-
-
 def test_checkbox_created_during_click_does_not_toggle():
     _begin_click(0, 0)
     try:
         cb = play.new_checkbox(x=0, y=0, size_px=24)
         assert cb.checked is False
     finally:
-        _end_click()
+        end_click()
 
 
 def test_radio_button_created_during_click_does_not_select():
@@ -55,7 +47,7 @@ def test_radio_button_created_during_click_does_not_select():
         assert r.selected is False
         assert g.selected_value is None
     finally:
-        _end_click()
+        end_click()
 
 
 def test_slider_created_during_click_does_not_start_drag():
@@ -68,10 +60,7 @@ def test_slider_created_during_click_does_not_start_drag():
         s.update()
         assert s.value == 50
     finally:
-        _end_click()
-
-
-# ── anchored sprites track their own size changes ─────────────────────────────
+        end_click()
 
 
 def test_anchor_tracks_content_size_change_within_one_frame():
@@ -88,9 +77,6 @@ def test_anchor_tracks_content_size_change_within_one_frame():
     assert label.rect.right == pytest.approx(screen.width - 10, abs=1)
 
 
-# ── hidden sprites are non-interactive both ways ──────────────────────────────
-
-
 def test_hidden_sprite_does_not_collide_with_other_sprite():
     a = play.new_box(color="red", x=0, y=0, width=50, height=50)
     b = play.new_box(color="blue", x=0, y=0, width=50, height=50)
@@ -100,9 +86,6 @@ def test_hidden_sprite_does_not_collide_with_other_sprite():
     # transform; the query must not keep reporting the stale contact.
     assert b.is_touching(a) is False
     assert a.is_touching(b) is False
-
-
-# ── disabled text input is visually distinct ──────────────────────────────────
 
 
 def test_disabled_text_input_is_dimmed():

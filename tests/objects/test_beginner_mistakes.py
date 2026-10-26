@@ -51,9 +51,6 @@ COLOUR_ARG = {
 }
 
 
-# ── a mistyped colour is caught at the line that made the widget ──────────────
-
-
 @pytest.mark.parametrize("name", FACTORY_NAMES)
 def test_mistyped_colour_fails_immediately_with_a_helpful_message(name):
     # "blu" instead of "blue" is the archetypal beginner typo. It must not
@@ -67,9 +64,6 @@ def test_the_colour_error_repeats_the_word_they_typed():
     # Naming the offending value is what lets a student find it in their file.
     with pytest.raises(ValueError, match="reddd"):
         play.new_button("Go", color="reddd")
-
-
-# ── a back-to-front range is explained, not silently dead ─────────────────────
 
 
 @pytest.mark.parametrize("factory", ["slider", "progress_bar"])
@@ -97,9 +91,6 @@ def test_the_range_error_suggests_the_swap():
         play.new_slider(min_value=100, max_value=0)
 
 
-# ── an async handler is rejected by name ──────────────────────────────────────
-
-
 def test_async_handler_is_rejected_and_names_the_function():
     # `async def` is copied from tutorials constantly. Silently never calling
     # the handler would be the worst outcome here.
@@ -109,9 +100,6 @@ def test_async_handler_is_rejected_and_names_the_function():
         @checkbox.when_changed
         async def on_change(_checked):
             pass
-
-
-# ── forgiving where forgiveness is right ──────────────────────────────────────
 
 
 def test_value_outside_the_range_is_clamped_not_rejected():
@@ -169,9 +157,6 @@ def test_a_widget_can_be_built_with_no_arguments_at_all(name):
     width, height = widget.image.get_size()
     assert width > 0 and height > 0
     assert widget.alive()
-
-
-# ── a removed widget stays quiet ──────────────────────────────────────────────
 
 
 @pytest.mark.parametrize("name", FACTORY_NAMES)

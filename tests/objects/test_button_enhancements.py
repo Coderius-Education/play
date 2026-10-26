@@ -29,9 +29,6 @@ def test_registering_a_handler_without_a_readable_signature_does_not_crash():
     btn.when_clicked(min)
 
 
-# ── click_color ───────────────────────────────────────────────────────────────
-
-
 @pytest.mark.parametrize("how", ["constructor", "setter"])
 def test_a_held_button_shows_its_click_colour(how):
     navy = color_name_to_rgb("navy")
@@ -67,9 +64,6 @@ def test_without_a_click_colour_a_held_button_darkens_its_hover_colour():
     held = color_at(btn, 50, 25)
     assert all(shade < channel for shade, channel in zip(held, hover))
     assert count_color(btn.image, hover) == 0
-
-
-# ── disabled state ────────────────────────────────────────────────────────────
 
 
 def test_a_disabled_button_shows_its_disabled_colour_even_when_hovered():
@@ -123,9 +117,6 @@ def test_a_cloned_button_looks_like_the_original_resting_hovered_pressed_and_dis
     disabled_twin = btn.clone()
     assert disabled_twin.disabled is True
     assert appearance(disabled_twin) == appearance(btn)
-
-
-# ── property setters ─────────────────────────────────────────────────────────
 
 
 def test_setting_the_text_colour_redraws_the_label():

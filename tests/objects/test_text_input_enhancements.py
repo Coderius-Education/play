@@ -6,7 +6,7 @@ import play
 from play.globals import globals_list
 from play.objects.widgets import text_input_registry as registry
 from play.utils import color_name_to_rgb
-from tests.conftest import click_at, count_color, image_bytes
+from tests.conftest import click_at, count_color, image_bytes, keydown_event
 from tests.objects.clone_checks import BUNDLED_FONT, appearance, middle_of
 
 CTRL = pygame.KMOD_CTRL
@@ -17,15 +17,10 @@ def setup_play(clean_play_state):
     pass
 
 
-def _keydown(key, mod=0):
-    """A KEYDOWN event for *key* with modifier keys *mod*."""
-    return pygame.event.Event(pygame.KEYDOWN, {"key": key, "mod": mod, "unicode": ""})
-
-
 def _press(field, *keys, mod=0):
     """Hand *field* a KEYDOWN for each of *keys*, all with modifier keys *mod*."""
     for key in keys:
-        field._handle_keydown(_keydown(key, mod))
+        field._handle_keydown(keydown_event(key, mod))
 
 
 @pytest.mark.parametrize(
@@ -136,9 +131,6 @@ def test_ctrl_a_without_ctrl_is_just_the_letter_key():
     assert ti.value == "helloX"
 
 
-# ── disabled mode ─────────────────────────────────────────────────────────────
-
-
 def test_disabled_prevents_focus():
     ti = play.new_text_input(x=0, y=0, width=200, height=40, disabled=True)
     click_at(0, 0, ti)
@@ -149,9 +141,6 @@ def test_disabled_prevents_text_input():
     ti = play.new_text_input(value="hello", disabled=True)
     ti._handle_text_input("!")
     assert ti.value == "hello"
-
-
-# ── readonly mode ─────────────────────────────────────────────────────────────
 
 
 def test_readonly_prevents_text_input():
@@ -182,7 +171,7 @@ def test_the_readonly_setter_blocks_and_unblocks_editing():
 
 def test_readonly_blocks_editing_keys():
     ti = play.new_text_input(value="abc", readonly=True)
-    ti._handle_keydown(_keydown(pygame.K_BACKSPACE))
+    ti._handle_keydown(keydown_event(pygame.K_BACKSPACE))
     assert ti.value == "abc"
 
 
@@ -203,14 +192,11 @@ def test_turning_password_mode_on_masks_what_is_drawn():
     assert image_bytes(ti) == image_bytes(bullets)
 
 
-# ── Tab navigation ────────────────────────────────────────────────────────────
-
-
 def test_tab_key_moves_to_next_input():
     ti1 = play.new_text_input(x=-100, y=0)
     ti2 = play.new_text_input(x=100, y=0)
     registry.focus(ti1)
-    ti1._handle_keydown(_keydown(pygame.K_TAB))
+    ti1._handle_keydown(keydown_event(pygame.K_TAB))
     assert globals_list.focused_text_input is ti2
 
 
@@ -222,7 +208,7 @@ def test_tab_with_all_fields_disabled_clears_focus():
     # Disable every field via the private attr (bypasses the disabled setter).
     ti1._is_disabled = True
     ti2._is_disabled = True
-    ti1._handle_keydown(_keydown(pygame.K_TAB))
+    ti1._handle_keydown(keydown_event(pygame.K_TAB))
     assert globals_list.focused_text_input is None
     assert ti1._is_focused is False
 
@@ -231,8 +217,8 @@ def test_tab_from_a_still_focused_field_outside_the_tab_order_goes_to_the_first_
     a = play.new_text_input()
     play.new_text_input()
     c = play.new_text_input()
+    c.disabled = True
     registry.focus(c)
-    c._is_disabled = True
     registry.focus_next()
     assert globals_list.focused_text_input is a
 
@@ -255,7 +241,8 @@ def test_disabling_focused_field_clears_focus():
     assert globals_list.focused_text_input is None
 
 
-def test_a_cloned_field_looks_like_the_original_but_starts_empty():
+def test_a_cloned_field_looks_like_the_original_but_starts_empty(monkeypatch):
+    monkeypatch.setattr(pygame.time, "get_ticks", lambda: 0)
     ti = play.new_text_input(
         placeholder="name",
         value="secret",
@@ -302,9 +289,6 @@ def test_a_cloned_field_looks_like_the_original_but_starts_empty():
     disabled_twin.value = "abcdef"
     assert disabled_twin.disabled is True
     assert appearance(disabled_twin) == appearance(ti)
-
-
-# ── clipboard (mocked pygame.scrap) ──────────────────────────────────────────
 
 
 def _fake_scrap(monkeypatch, clipboard=""):

@@ -4,20 +4,12 @@ import play
 from play.globals import globals_list
 from play.objects.widgets import text_input_registry as registry
 from play.utils import color_name_to_rgb
-from tests.conftest import click_at, count_color
+from tests.conftest import click_at, count_color, keydown_event
 
 
 @pytest.fixture(autouse=True)
 def setup_play(clean_play_state):
     pass
-
-
-def _keydown(key):
-    """A KEYDOWN event for *key* without modifier keys."""
-    return pygame.event.Event(pygame.KEYDOWN, {"key": key, "mod": 0, "unicode": ""})
-
-
-# ── creation ────────────────────────────────────────────────────────────────
 
 
 def test_text_input_creation():
@@ -32,9 +24,6 @@ def test_a_new_field_is_empty_and_does_not_take_the_keyboard():
     ti = play.new_text_input()
     assert ti.value == ""
     assert globals_list.focused_text_input is None
-
-
-# ── value property ───────────────────────────────────────────────────────────
 
 
 def test_value_setter():
@@ -58,7 +47,7 @@ def test_setting_a_number_as_the_value_shows_it_as_text():
 def test_typing_after_setting_the_value_appends_to_it():
     ti = play.new_text_input(value="abcdef")
     registry.focus(ti)
-    ti._handle_keydown(_keydown(pygame.K_HOME))
+    ti._handle_keydown(keydown_event(pygame.K_HOME))
     ti.value = "xy"
     ti._handle_text_input("z")
     assert ti.value == "xyz"
@@ -72,9 +61,6 @@ def test_value_setter_fires_callbacks():
     assert received == ["hello"]
 
 
-# ── keyboard input ───────────────────────────────────────────────────────────
-
-
 def test_text_input_appends_characters():
     ti = play.new_text_input()
     ti._handle_text_input("h")
@@ -84,13 +70,13 @@ def test_text_input_appends_characters():
 
 def test_backspace_removes_last_char():
     ti = play.new_text_input(value="abc")
-    ti._handle_keydown(_keydown(pygame.K_BACKSPACE))
+    ti._handle_keydown(keydown_event(pygame.K_BACKSPACE))
     assert ti.value == "ab"
 
 
 def test_backspace_on_empty_is_noop():
     ti = play.new_text_input()
-    ti._handle_keydown(_keydown(pygame.K_BACKSPACE))
+    ti._handle_keydown(keydown_event(pygame.K_BACKSPACE))
     assert ti.value == ""
 
 
@@ -118,9 +104,6 @@ def test_max_length_enforced_by_value_setter():
     assert ti.value == "yyyyy"
 
 
-# ── callbacks ────────────────────────────────────────────────────────────────
-
-
 def test_when_changed_fires_on_input():
     ti = play.new_text_input()
     received = []
@@ -138,7 +121,7 @@ def test_when_changed_fires_on_backspace():
     ti = play.new_text_input(value="ab")
     received = []
     ti.when_changed(received.append)
-    ti._handle_keydown(_keydown(pygame.K_BACKSPACE))
+    ti._handle_keydown(keydown_event(pygame.K_BACKSPACE))
     assert received == ["a"]
 
 
@@ -146,7 +129,7 @@ def test_when_submit_fires_on_enter():
     ti = play.new_text_input(value="done")
     submitted = []
     ti.when_submit(submitted.append)
-    ti._handle_keydown(_keydown(pygame.K_RETURN))
+    ti._handle_keydown(keydown_event(pygame.K_RETURN))
     assert submitted == ["done"]
 
 
@@ -154,7 +137,7 @@ def test_when_submit_fires_on_numpad_enter():
     ti = play.new_text_input(value="ok")
     submitted = []
     ti.when_submit(submitted.append)
-    ti._handle_keydown(_keydown(pygame.K_KP_ENTER))
+    ti._handle_keydown(keydown_event(pygame.K_KP_ENTER))
     assert submitted == ["ok"]
 
 
@@ -176,9 +159,6 @@ def test_when_submit_rejects_async():
             pass
 
 
-# ── focus management ─────────────────────────────────────────────────────────
-
-
 def test_focus_sets_is_focused():
     ti = play.new_text_input()
     registry.focus(ti)
@@ -197,7 +177,7 @@ def test_clear_focus_blurs_widget():
 def test_escape_clears_focus():
     ti = play.new_text_input()
     registry.focus(ti)
-    ti._handle_keydown(_keydown(pygame.K_ESCAPE))
+    ti._handle_keydown(keydown_event(pygame.K_ESCAPE))
     assert globals_list.focused_text_input is None
 
 
@@ -212,9 +192,6 @@ def test_focusing_another_blurs_previous():
     assert a._is_focused is False
 
 
-# ── alive & layer ────────────────────────────────────────────────────────────
-
-
 def test_text_input_alive():
     ti = play.new_text_input()
     assert ti.alive()
@@ -224,9 +201,6 @@ def test_text_input_layer():
     ti = play.new_text_input(layer=15)
     assert ti.layer == 15
     assert globals_list.sprites_group.get_layer_of_sprite(ti) == 15
-
-
-# ── update() click paths ─────────────────────────────────────────────────────
 
 
 def test_clicking_input_gains_focus():
@@ -239,7 +213,7 @@ def test_clicking_input_gains_focus():
 def test_clicking_back_into_a_field_puts_the_cursor_at_the_end():
     ti = play.new_text_input(value="abc", x=0, y=0)
     click_at(0, 0, ti)
-    ti._handle_keydown(_keydown(pygame.K_HOME))
+    ti._handle_keydown(keydown_event(pygame.K_HOME))
     click_at(300, 250, ti)
     click_at(0, 0, ti)
     ti._handle_text_input("X")
@@ -277,9 +251,6 @@ def test_clicking_another_input_moves_the_focus(first):
 
     assert globals_list.focused_text_input is b
     assert a._is_focused is False
-
-
-# ── _blit_input_text branches ────────────────────────────────────────────────
 
 
 def test_blit_placeholder_when_empty_and_unfocused():
@@ -354,17 +325,11 @@ def test_a_long_value_scrolls_so_its_end_is_visible_while_typing(monkeypatch):
     )
 
 
-# ── remove() ─────────────────────────────────────────────────────────────────
-
-
 def test_remove_clears_focus():
     ti = play.new_text_input()
     registry.focus(ti)
     ti.remove()
     assert globals_list.focused_text_input is None
-
-
-# ── registry dispatch ─────────────────────────────────────────────────────────
 
 
 def test_dispatch_text_reaches_focused_widget():
@@ -377,7 +342,7 @@ def test_dispatch_text_reaches_focused_widget():
 def test_dispatch_keydown_reaches_focused_widget():
     ti = play.new_text_input(value="abc")
     registry.focus(ti)
-    registry.dispatch_keydown(_keydown(pygame.K_BACKSPACE))
+    registry.dispatch_keydown(keydown_event(pygame.K_BACKSPACE))
     assert ti.value == "ab"
 
 
@@ -389,7 +354,7 @@ def test_dispatch_text_no_focused_is_noop():
 
 def test_dispatch_keydown_no_focused_is_noop():
     ti = play.new_text_input(value="abc")
-    registry.dispatch_keydown(_keydown(pygame.K_BACKSPACE))  # must not raise
+    registry.dispatch_keydown(keydown_event(pygame.K_BACKSPACE))  # must not raise
     assert ti.value == "abc"
 
 
@@ -398,7 +363,7 @@ def test_enter_blurs_field_after_submit():
     # game's keyboard callbacks stayed suspended after submitting.
     ti = play.new_text_input(value="done")
     registry.focus(ti)
-    ti._handle_keydown(_keydown(pygame.K_RETURN))
+    ti._handle_keydown(keydown_event(pygame.K_RETURN))
     assert globals_list.focused_text_input is None
     assert ti._is_focused is False
 
