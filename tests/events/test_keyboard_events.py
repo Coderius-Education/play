@@ -126,7 +126,7 @@ def test_ctrl_or_command_q_ends_the_game(modifier, monkeypatch):
     play.repeat_forever(lambda: frames.append(1))
     monkeypatch.setattr(pygame.key, "get_mods", lambda: modifier)
 
-    play_frames([key_down(pygame.K_q)], *[[]] * 20)
+    play_frames([key_down(pygame.K_q)], then=20)
 
     assert len(frames) < 5
 
@@ -180,6 +180,8 @@ def test_clearing_a_frame_keeps_the_held_keys():
 
 
 class _KeyEvent:  # pylint: disable=too-few-public-methods
+    """A key event that only carries its key code."""
+
     def __init__(self, key):
         self.key = key
 

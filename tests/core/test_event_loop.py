@@ -10,6 +10,7 @@ from play.globals import globals_list, ProgramState
 
 
 def _criticals(caplog):
+    """The messages logged at CRITICAL level or above."""
     return [r.getMessage() for r in caplog.records if r.levelno >= logging.CRITICAL]
 
 

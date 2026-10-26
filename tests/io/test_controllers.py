@@ -14,7 +14,7 @@ from tests.events.frames import (
 
 
 class _Joystick:
-    """A joystick whose every reading tells which input was read."""
+    """A joystick whose every reading tells which device and which input was read."""
 
     def __init__(self, device_index):
         self.device_index = device_index
@@ -26,28 +26,28 @@ class _Joystick:
         return 10 + self.device_index
 
     def get_numaxes(self):
-        return 6
+        return 6 + self.device_index
 
     def get_axis(self, axis):
-        return axis / 10
+        return self.device_index + axis / 10
 
     def get_numbuttons(self):
-        return 12
+        return 12 + self.device_index
 
     def get_button(self, button):
-        return button == 3
+        return button == 3 + self.device_index
 
     def get_numhats(self):
-        return 1
+        return 1 + self.device_index
 
     def get_hat(self, hat):
-        return (hat, -1)
+        return (hat, self.device_index)
 
     def get_numballs(self):
-        return 2
+        return 2 + self.device_index
 
     def get_ball(self, ball):
-        return (ball, 0.5)
+        return (ball, self.device_index)
 
 
 @pytest.fixture
@@ -72,15 +72,21 @@ def test_get_all_controllers_hands_out_a_copy(two_controllers):
     assert controllers.get_count() == 2
 
 
-def test_a_controller_is_read_input_by_input(two_controllers):
-    assert controllers.get_num_axes(1) == 6
-    assert controllers.get_axis(1, 4) == pytest.approx(0.4)
-    assert controllers.get_num_buttons(1) == 12
-    assert [controllers.get_button(1, b) for b in (2, 3)] == [False, True]
-    assert controllers.get_num_hats(1) == 1
-    assert controllers.get_hat(1, 2) == (2, -1)
-    assert controllers.get_num_balls(1) == 2
-    assert controllers.get_ball(1, 1) == (1, 0.5)
+def test_each_controller_is_read_input_by_input_from_its_own_device(two_controllers):
+    def readings(index):
+        return [
+            controllers.get_num_axes(index),
+            controllers.get_axis(index, 5),
+            controllers.get_num_buttons(index),
+            [controllers.get_button(index, b) for b in (3, 4)],
+            controllers.get_num_hats(index),
+            controllers.get_hat(index, 2),
+            controllers.get_num_balls(index),
+            controllers.get_ball(index, 1),
+        ]
+
+    assert readings(0) == [6, 0.5, 12, [True, False], 1, (2, 0), 2, (1, 0)]
+    assert readings(1) == [7, 1.5, 13, [False, True], 2, (2, 1), 3, (1, 1)]
 
 
 def test_when_button_pressed_fires_once_per_press_with_the_button():

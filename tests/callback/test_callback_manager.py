@@ -9,15 +9,16 @@ from play.callback import CallbackManager, CallbackType
 
 
 async def _noop():
-    pass
+    """A callback that does nothing."""
 
 
 async def _other():
-    pass
+    """A second callback that does nothing, told apart from _noop."""
 
 
 @pytest.fixture
 def manager():
+    """An empty callback manager of its own."""
     return CallbackManager()
 
 

@@ -10,18 +10,22 @@ from play.loop import get_loop
 
 
 def _add(a, b):
+    """Return the sum of *a* and *b*."""
     return a + b
 
 
 async def _add_async(a, b):
+    """Return the sum of *a* and *b*, as a coroutine."""
     return a + b
 
 
 def _fail():
+    """Raise a ValueError."""
     raise ValueError("sync error")
 
 
 async def _fail_async():
+    """Raise a ValueError, as a coroutine."""
     raise ValueError("async error")
 
 

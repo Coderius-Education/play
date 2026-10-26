@@ -12,7 +12,7 @@ def test_a_key_combination_fires_when_its_last_key_goes_down():
     fired = []
     play.when_key_pressed(["a", "s"])(lambda: fired.append("a+s"))
 
-    _run([[_down(pygame.K_a)], [], [_down(pygame.K_s)], [], [_up(pygame.K_s)]])
+    play_frames([_down(pygame.K_a)], [], [_down(pygame.K_s)], [], [_up(pygame.K_s)])
 
     assert fired == ["a+s"]
 
@@ -21,14 +21,12 @@ def test_a_key_combination_release_fires_once_when_one_of_its_keys_goes_up():
     fired = []
     play.when_key_released(["a", "s"])(lambda: fired.append("a+s"))
 
-    _run(
-        [
-            [_down(pygame.K_a)],
-            [_down(pygame.K_s)],
-            [_up(pygame.K_s)],
-            [],
-            [_up(pygame.K_a)],
-        ]
+    play_frames(
+        [_down(pygame.K_a)],
+        [_down(pygame.K_s)],
+        [_up(pygame.K_s)],
+        [],
+        [_up(pygame.K_a)],
     )
 
     assert fired == ["a+s"]
@@ -38,7 +36,7 @@ def test_a_key_combination_fires_for_a_key_tapped_within_one_frame():
     fired = []
     play.when_key_pressed(["left ctrl", "s"])(lambda: fired.append("ctrl+s"))
 
-    _run([[_down(pygame.K_LCTRL)], [_down(pygame.K_s), _up(pygame.K_s)]])
+    play_frames([_down(pygame.K_LCTRL)], [_down(pygame.K_s), _up(pygame.K_s)])
 
     assert fired == ["ctrl+s"]
 
@@ -48,13 +46,11 @@ def test_a_held_key_combination_does_not_fire_again_for_an_extra_key():
     play.when_key_pressed(["a", "s"])(lambda: fired.append("pressed"))
     play.when_key_released(["a", "s"])(lambda: fired.append("released"))
 
-    _run(
-        [
-            [_down(pygame.K_a), _down(pygame.K_s)],
-            [],
-            [_down(pygame.K_d)],
-            [_up(pygame.K_d)],
-        ]
+    play_frames(
+        [_down(pygame.K_a), _down(pygame.K_s)],
+        [],
+        [_down(pygame.K_d)],
+        [_up(pygame.K_d)],
     )
 
     assert fired == ["pressed"]
@@ -65,17 +61,13 @@ def test_a_held_key_combination_fires_every_frame_with_another_key_held_too():
     frames = []
     play.while_key_pressed(["a", "s"])(lambda: frames.append(1))
 
-    _run(
-        [[_down(pygame.K_a), _down(pygame.K_s), _down(pygame.K_d)]]
-        + [[]] * (held_frames - 1)
-        + [[_up(pygame.K_a)]]
+    play_frames(
+        [_down(pygame.K_a), _down(pygame.K_s), _down(pygame.K_d)],
+        *[[]] * (held_frames - 1),
+        [_up(pygame.K_a)],
     )
 
     assert len(frames) == held_frames
-
-
-def _run(steps):
-    play_frames(*steps)
 
 
 def _joy(event_type, **attributes):
@@ -86,7 +78,7 @@ def test_when_any_axis_moved_fires():
     moved = []
     controllers.when_any_axis_moved(0)(lambda axis, value: moved.append((axis, value)))
 
-    _run([[_joy(pygame.JOYAXISMOTION, instance_id=0, axis=1, value=1.0)]])
+    play_frames([_joy(pygame.JOYAXISMOTION, instance_id=0, axis=1, value=1.0)])
 
     assert moved == [(1, 1)]
 
@@ -95,11 +87,9 @@ def test_an_axis_callback_hears_its_own_controller_only():
     moved = []
     controllers.when_axis_moved(1, 1)(lambda axis, value: moved.append(value))
 
-    _run(
-        [
-            [_joy(pygame.JOYAXISMOTION, instance_id=1, axis=1, value=1.0)],
-            [_joy(pygame.JOYAXISMOTION, instance_id=0, axis=1, value=-1.0)],
-        ]
+    play_frames(
+        [_joy(pygame.JOYAXISMOTION, instance_id=1, axis=1, value=1.0)],
+        [_joy(pygame.JOYAXISMOTION, instance_id=0, axis=1, value=-1.0)],
     )
 
     assert moved == [1]
@@ -134,11 +124,9 @@ def test_a_controller_plugged_in_after_the_game_starts_gets_index_0(fake_joystic
     pressed = []
     controllers.when_button_pressed(0, 0)(lambda button: pressed.append(button))
 
-    _run(
-        [
-            [_joy(pygame.JOYDEVICEADDED, device_index=0)],
-            [_joy(pygame.JOYBUTTONDOWN, instance_id=5, button=0)],
-        ]
+    play_frames(
+        [_joy(pygame.JOYDEVICEADDED, device_index=0)],
+        [_joy(pygame.JOYBUTTONDOWN, instance_id=5, button=0)],
     )
 
     assert controllers.get_count() == 1
@@ -152,12 +140,10 @@ def test_a_replugged_controller_keeps_its_index(fake_joysticks):
     controllers._connect(0)
     fake_joysticks.next_instance_id = 6
 
-    _run(
-        [
-            [_joy(pygame.JOYDEVICEREMOVED, instance_id=5)],
-            [_joy(pygame.JOYDEVICEADDED, device_index=0)],
-            [_joy(pygame.JOYBUTTONDOWN, instance_id=6, button=0)],
-        ]
+    play_frames(
+        [_joy(pygame.JOYDEVICEREMOVED, instance_id=5)],
+        [_joy(pygame.JOYDEVICEADDED, device_index=0)],
+        [_joy(pygame.JOYBUTTONDOWN, instance_id=6, button=0)],
     )
 
     assert controllers.get_count() == 1
@@ -168,7 +154,7 @@ def test_an_unplugged_controller_reads_as_untouched(fake_joysticks):
     fake_joysticks.next_instance_id = 5
     controllers._connect(0)
 
-    _run([[_joy(pygame.JOYDEVICEREMOVED, instance_id=5)]])
+    play_frames([_joy(pygame.JOYDEVICEREMOVED, instance_id=5)])
 
     assert controllers.get_count() == 1
     assert controllers.get_axis(0, 1) == 0.0
@@ -192,7 +178,7 @@ def test_a_controller_gone_before_it_opens_is_skipped(monkeypatch):
     frames = []
     play.repeat_forever(lambda: frames.append(1))
 
-    _run([[_joy(pygame.JOYDEVICEADDED, device_index=3)]])
+    play_frames([_joy(pygame.JOYDEVICEADDED, device_index=3)])
 
     assert controllers.get_count() == 0
     assert len(frames) > 3
@@ -205,7 +191,7 @@ def test_every_index_below_the_count_is_a_controller_also_after_an_unplug(
         fake_joysticks.next_instance_id = instance_id
         controllers._connect(instance_id - 5)
 
-    _run([[_joy(pygame.JOYDEVICEREMOVED, instance_id=5)]])
+    play_frames([_joy(pygame.JOYDEVICEREMOVED, instance_id=5)])
 
     axes = [controllers.get_axis(index, 0) for index in range(controllers.get_count())]
     assert axes == [0.0, 0.75]
@@ -216,7 +202,7 @@ def test_a_controller_announced_again_at_start_up_is_counted_once(fake_joysticks
     fake_joysticks.next_instance_id = 5
     controllers._connect(0)
 
-    _run([[_joy(pygame.JOYDEVICEADDED, device_index=0)]])
+    play_frames([_joy(pygame.JOYDEVICEADDED, device_index=0)])
 
     assert controllers.get_count() == 1
 
@@ -225,7 +211,7 @@ def test_an_unplugged_controller_answers_every_joystick_method(fake_joysticks):
     fake_joysticks.next_instance_id = 5
     controllers._connect(0)
 
-    _run([[_joy(pygame.JOYDEVICEREMOVED, instance_id=5)]])
+    play_frames([_joy(pygame.JOYDEVICEREMOVED, instance_id=5)])
 
     stand_in = controllers.get_all_controllers()[0]
     for name in dir(pygame.joystick.JoystickType):
@@ -239,12 +225,10 @@ def test_a_button_combination_fires_when_its_last_button_goes_down():
     fired = []
     controllers.when_button_pressed(0, [1, 2])(lambda button: fired.append(button))
 
-    _run(
-        [
-            [_joy(pygame.JOYBUTTONDOWN, instance_id=0, button=1)],
-            [_joy(pygame.JOYBUTTONDOWN, instance_id=0, button=2)],
-            [_joy(pygame.JOYBUTTONDOWN, instance_id=0, button=3)],
-        ]
+    play_frames(
+        [_joy(pygame.JOYBUTTONDOWN, instance_id=0, button=1)],
+        [_joy(pygame.JOYBUTTONDOWN, instance_id=0, button=2)],
+        [_joy(pygame.JOYBUTTONDOWN, instance_id=0, button=3)],
     )
 
     assert fired == [{1, 2}]
