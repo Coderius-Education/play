@@ -56,6 +56,7 @@ def test_friction_slows_a_box_sliding_over_a_floor(set_later, friction, speed):
 
     _run_frames(60)
 
+    assert box.physics.friction == friction
     assert box.physics.x_speed == pytest.approx(speed, abs=1)
 
 

@@ -77,6 +77,47 @@ def test_caret_holds_still_inside_the_blink_interval(field, monkeypatch):
     assert field._cursor_visible is True
 
 
+def test_a_field_clicked_late_in_the_program_keeps_its_caret_for_half_a_second(
+    monkeypatch,
+):
+    now = [10_000]
+    monkeypatch.setattr(pygame.time, "get_ticks", lambda: now[0])
+    late = play.new_text_input(x=0, y=0, text_color="red")
+    click_at(0, 0, late)
+
+    now[0] = 10_400
+    late.update()
+
+    assert count_color(late.image, (255, 0, 0)) > 0
+
+
+@pytest.mark.parametrize(
+    "now",
+    [
+        0,
+        pytest.param(
+            10_000,
+            marks=pytest.mark.xfail(
+                strict=True,
+                reason="Tab focuses a field without restarting its blink, "
+                "so after the first half second it starts with the caret off",
+            ),
+        ),
+    ],
+    ids=["at the start", "later on"],
+)
+def test_a_field_reached_with_tab_shows_its_caret_at_once(monkeypatch, now):
+    monkeypatch.setattr(pygame.time, "get_ticks", lambda: now)
+    first = play.new_text_input(x=0, y=100)
+    second = play.new_text_input(x=0, y=-100, text_color="red")
+    click_at(0, 100, first)
+
+    first._handle_keydown(_keydown(pygame.K_TAB))
+    second.update()
+
+    assert count_color(second.image, (255, 0, 0)) > 0
+
+
 def test_blinking_redraws_the_field(field, monkeypatch):
     """A caret that changes state without a redraw never appears on screen.
 

@@ -114,6 +114,15 @@ def test_deleting_after_ctrl_a_empties_the_field_and_reports_it(key):
     assert changed == [""]
 
 
+def test_backspace_on_a_field_emptied_by_deleting_the_selection_reports_nothing():
+    ti = play.new_text_input(value="hello")
+    changed = []
+    ti.when_changed(changed.append)
+    _press(ti, pygame.K_a, mod=CTRL)
+    _press(ti, pygame.K_BACKSPACE, pygame.K_BACKSPACE)
+    assert changed == [""]
+
+
 def test_an_arrow_key_drops_the_selection():
     ti = play.new_text_input(value="hello")
     _press(ti, pygame.K_a, mod=CTRL)

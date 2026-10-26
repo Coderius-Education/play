@@ -56,6 +56,18 @@ def test_a_release_callback_is_told_which_sprite_was_released(register):
     assert released == [left, right]
 
 
+@pytest.mark.parametrize(
+    "decorator", [play.when_sprite_clicked, play.when_sprite_click_released]
+)
+def test_a_sprite_click_decorator_hands_back_the_function_itself(decorator):
+    box = play.new_box()
+
+    def greet(sprite):
+        return "hi"
+
+    assert decorator(box)(greet) is greet
+
+
 def test_click_callbacks_without_the_sprite_take_no_arguments():
     box = play.new_box(width=50, height=50)
     log = []

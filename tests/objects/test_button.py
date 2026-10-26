@@ -20,11 +20,21 @@ def test_a_new_button_shows_its_label_at_layer_10():
 
 def test_changing_the_text_redraws_the_label():
     btn = play.new_button("Start")
+    btn.update()
     before = pygame.image.tobytes(btn.image, "RGBA")
     btn.text = "Stop"
     assert btn.text == "Stop"
     btn.update()
     assert pygame.image.tobytes(btn.image, "RGBA") != before
+
+
+def test_changing_the_text_colour_redraws_the_label():
+    btn = play.new_button("Start", text_color="red")
+    btn.update()
+    btn.text_color = "green"
+    btn.update()
+    assert count_color(btn.image, color_name_to_rgb("green")) > 0
+    assert count_color(btn.image, color_name_to_rgb("red")) == 0
 
 
 @pytest.mark.parametrize(

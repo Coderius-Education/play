@@ -4,6 +4,7 @@ import pygame
 import pytest
 
 import play
+from play.utils import color_name_to_rgb
 
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
@@ -44,6 +45,12 @@ def test_the_border_is_a_ring_in_its_own_colour():
     assert colour_at(circle, 2, 20) == RED
     assert colour_at(circle, 20, 2) == RED
     assert colour_at(circle, 20, 20) == WHITE
+
+
+def test_a_border_without_a_colour_is_light_blue():
+    circle = play.new_circle(color="white", radius=20, border_width=5)
+
+    assert colour_at(circle, 2, 20) == color_name_to_rgb("light blue")[:3]
 
 
 def test_a_circle_border_set_later_is_drawn_too():

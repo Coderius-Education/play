@@ -80,6 +80,16 @@ def test_checkbox_toggles_once():
     assert len(calls) == 1, f"one click should report one change, got {len(calls)}"
 
 
+def test_the_first_click_of_the_program_reaches_a_widget(monkeypatch):
+    from play.core.mouse_loop import mouse_state
+
+    monkeypatch.setattr(mouse_state, "click_id", 0)
+
+    box, _ = _run_one_click(lambda record: play.new_checkbox(x=0, y=0, size_px=40))
+
+    assert box.checked is True
+
+
 def test_radio_group_reports_one_change():
     """Selecting is idempotent, but the change notification is not."""
 
