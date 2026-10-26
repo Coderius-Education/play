@@ -4,5 +4,5 @@ numpy==2.5.4; python_version >= "3.15" and sys_platform != "emscripten"
 numpy; sys_platform == "emscripten"
 pygame-ce==2.5.8; sys_platform != "emscripten"
 pygame-ce; sys_platform == "emscripten"
-av==17.1.0; sys_platform != "emscripten"
+av==18.1.0; sys_platform != "emscripten"
 pymunk==7.3.1
