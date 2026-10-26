@@ -1,5 +1,6 @@
 """play.reset_program(): back to the state of a fresh import, for a playground or a test suite."""
 
+import asyncio
 import gc
 import logging
 import weakref
@@ -8,6 +9,7 @@ import pygame
 import pytest
 
 import play
+from play.callback.collision_callbacks import collision_registry
 from play.globals import ProgramState, globals_list
 from play.io import controllers as controllers_module
 from play.io.controllers import controllers
@@ -177,6 +179,58 @@ def test_a_reset_puts_the_asyncio_logger_back():
     assert logging.getLogger("asyncio").level == logging.NOTSET
 
 
+def test_a_reset_gives_the_asyncio_logger_back_the_level_the_host_gave_it():
+    logger = logging.getLogger("asyncio")
+    logger.setLevel(logging.ERROR)
+    try:
+        play.repeat_forever(play.stop_program)
+        play.start_program()
+        play.reset_program()
+
+        assert logger.level == logging.ERROR
+    finally:
+        logger.setLevel(logging.NOTSET)
+
+
+def test_a_reset_forgets_the_last_programs_collision_callbacks():
+    a = play.new_box(x=0)
+    b = play.new_box(x=200)
+    a.when_touching(b)(lambda: None)
+    a.when_stopped_touching(b)(lambda: None)
+
+    play.reset_program()
+
+    assert collision_registry.callbacks == {True: {}, False: {}}
+
+
+def test_resets_one_after_another_keep_only_the_four_new_walls():
+    for _ in range(3):
+        play.reset_program()
+
+    assert len(globals_list.walls[0].body.shapes) == 4
+
+
+def test_a_reset_on_the_desktop_leaves_no_closed_event_loop_behind():
+    play.repeat_forever(play.stop_program)
+    play.start_program()
+
+    play.reset_program()
+
+    try:
+        current = asyncio.get_event_loop()
+    except RuntimeError:
+        current = None
+    assert current is None or not current.is_closed()
+
+
+def test_a_reset_on_the_desktop_can_be_awaited_like_in_the_browser():
+    async def host():
+        await play.reset_program()
+        return "reset"
+
+    assert asyncio.run(host()) == "reset"
+
+
 def test_a_callback_ends_its_finally_block_also_after_an_await_before_the_reset_returns(
     caplog,
 ):
@@ -195,11 +249,11 @@ def test_a_callback_ends_its_finally_block_also_after_an_await_before_the_reset_
     play.repeat_forever(play.stop_program)
     play.start_program()
 
-    with caplog.at_level(logging.CRITICAL, logger="play"):
+    with caplog.at_level(logging.INFO, logger="play"):
         play.reset_program()
 
     assert log == ["finally starts", "finally ends"]
-    assert not caplog.records
+    assert not [r for r in caplog.records if r.levelno >= logging.INFO]
 
 
 def test_a_reset_while_the_program_runs_is_refused_and_changes_nothing():
@@ -289,7 +343,9 @@ def test_programs_run_one_after_another_in_a_real_script_without_a_word_logged(
 
 
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-def test_a_task_that_will_not_end_is_closed_and_the_next_program_runs(monkeypatch):
+def test_a_task_that_will_not_end_is_closed_quietly_and_the_next_program_runs(
+    monkeypatch, caplog
+):
     monkeypatch.setattr(play.loop, "_SECONDS_TO_END", 0.05)
     frames = []
 
@@ -304,11 +360,51 @@ def test_a_task_that_will_not_end_is_closed_and_the_next_program_runs(monkeypatc
     play.repeat_forever(play.stop_program)
     play.start_program()
 
-    play.reset_program()
+    with caplog.at_level(logging.INFO, logger="play"):
+        play.reset_program()
     play.repeat_forever(_stop_on_the_first_frame(frames, "next"))
     play.start_program()
 
     assert frames == ["next"]
+    assert not [r for r in caplog.records if r.levelno >= logging.INFO]
+
+
+def test_a_task_that_waits_on_a_timer_inside_a_bare_except_does_not_hang_the_reset(
+    run_script,
+):
+    printed = run_script(
+        "import play.loop\n"
+        "play.loop._SECONDS_TO_END = 0.05\n"
+        "\n"
+        "@play.when_program_starts\n"
+        "async def blink():\n"
+        "    while True:\n"
+        "        try:\n"
+        "            await play.timer(0.5)\n"
+        "        except:\n"
+        "            pass\n"
+        "\n"
+        "play.repeat_forever(play.stop_program)\n"
+        "play.start_program()\n"
+        "play.reset_program()\n"
+        "print('reset')\n"
+        "os._exit(0)\n"
+    )
+
+    assert printed == ["reset"]
+
+
+def test_a_reset_turns_off_the_tracing_that_auto_start_turned_on(run_script):
+    printed = run_script(
+        "import sys\n"
+        "play.when_program_starts(lambda: None)\n"
+        "print(sys.gettrace() is not None)\n"
+        "play.reset_program()\n"
+        "print(sys.gettrace() is not None)\n"
+        "os._exit(0)\n"
+    )
+
+    assert printed == ["True", "False"]
 
 
 def test_a_click_left_in_the_last_frame_does_not_reach_the_next_programs_widgets():

@@ -90,7 +90,7 @@ class Screen:
         self._resizable = False
         self.caption = _DEFAULT_CAPTION
         self.update_display()
-        create_walls()
+        _create_walls_on_a_new_body()
 
     def _set_size(self, width, height):
         """Resize the window and move the walls to its new edges."""
@@ -209,6 +209,13 @@ def create_walls():
     """Create walls around the screen."""
     for a, b, wall_side in _wall_edges():
         globals_list.walls.append(create_wall(a, b, wall_side))
+
+
+def _create_walls_on_a_new_body():
+    """Create the walls on a new static body, so the old body lets go of its walls."""
+    global _walls_body
+    _walls_body = _pymunk.Body(body_type=_pymunk.Body.STATIC)
+    create_walls()
 
 
 def remove_walls():

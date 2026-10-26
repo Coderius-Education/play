@@ -497,8 +497,8 @@ def test_a_playground_run_that_failed_before_starting_does_not_stop_the_next_fro
 
 
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-def test_a_task_that_will_not_end_in_the_browser_is_closed_and_the_next_program_runs(
-    in_the_browser, monkeypatch
+def test_a_task_that_will_not_end_in_the_browser_is_closed_quietly_and_the_next_program_runs(
+    in_the_browser, monkeypatch, caplog
 ):
     monkeypatch.setattr(play.loop, "_SECONDS_TO_END", 0.05)
     frames = []
@@ -507,7 +507,7 @@ def test_a_task_that_will_not_end_in_the_browser_is_closed_and_the_next_program_
     async def stubborn():
         while True:
             try:
-                await play.animate()
+                await play.timer(0.01)
             except BaseException:
                 pass
 
@@ -522,13 +522,15 @@ def test_a_task_that_will_not_end_in_the_browser_is_closed_and_the_next_program_
         for _ in range(20):
             await asyncio.sleep(0)
 
-    in_the_browser.run_until_complete(page())
+    with caplog.at_level(logging.INFO, logger="play"):
+        in_the_browser.run_until_complete(page())
 
     assert frames == [1, 1, 1]
+    assert not [r for r in caplog.records if r.levelno >= logging.INFO]
 
 
-def test_a_task_closed_by_a_reset_that_wakes_up_later_does_not_stop_the_next_program(
-    in_the_browser, monkeypatch, caplog
+def test_a_task_closed_by_a_reset_in_the_browser_is_no_longer_one_of_play_s_tasks(
+    in_the_browser, monkeypatch
 ):
     monkeypatch.setattr(play.loop, "_SECONDS_TO_END", 0.05)
 
@@ -538,23 +540,66 @@ def test_a_task_closed_by_a_reset_that_wakes_up_later_does_not_stop_the_next_pro
             while True:
                 await play.animate()
         finally:
-            await play.timer(0.2)
+            await play.timer(10)
 
     async def page():
         play.start_program()
         for _ in range(5):
             await asyncio.sleep(0)
         await play.reset_program()
+        return set(play.loop._tasks)
+
+    assert in_the_browser.run_until_complete(page()) == set()
+
+
+def test_a_second_reset_while_the_first_is_ending_lets_the_finally_blocks_end(
+    in_the_browser,
+):
+    ended = []
+
+    @play.when_program_starts
+    async def walk():
+        try:
+            while True:
+                await play.animate()
+        finally:
+            ended.append("finally starts")
+            for _ in range(5):
+                await play.animate()
+            ended.append("finally ends")
+
+    async def page():
+        play.start_program()
+        for _ in range(5):
+            await asyncio.sleep(0)
+        first = play.reset_program()
+        await asyncio.sleep(0)
+        await play.reset_program()
+        await first
+
+    in_the_browser.run_until_complete(page())
+
+    assert ended == ["finally starts", "finally ends"]
+
+
+def test_starting_the_next_program_before_the_reset_is_done_is_refused(
+    in_the_browser,
+):
+    frames = []
+
+    async def page():
         play.repeat_forever(lambda: None)
         play.start_program()
-        await asyncio.sleep(0.4)
-        still_running = globals_list.program_state
-        play.stop_program()
+        await asyncio.sleep(0)
+        resetting = play.reset_program()
+        with pytest.raises(RuntimeError, match="Await it"):
+            play.start_program()
+        await resetting
+        play.repeat_forever(_stop_after(3))
+        play.repeat_forever(lambda: frames.append(1))
+        play.start_program()
         await _until_only_the_page_is_left()
-        return still_running
 
-    with caplog.at_level(logging.CRITICAL, logger="play"):
-        state = in_the_browser.run_until_complete(page())
+    in_the_browser.run_until_complete(page())
 
-    assert state is ProgramState.RUNNING
-    assert not caplog.records
+    assert frames == [1, 1, 1]

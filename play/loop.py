@@ -115,12 +115,18 @@ def _as_play_task(task):
     return task
 
 
+def _cancel(task):
+    """Cancel *task*, unless an earlier cancel already has it ending."""
+    if not task.cancelling():
+        task.cancel()
+
+
 def stop_loop():
     """Mark the program as stopped and stop the event loop; in the browser, cancel play's tasks."""
     globals_list.program_state = ProgramState.STOPPED
     if RUNS_IN_BROWSER:
         for task in list(_tasks):
-            task.cancel()
+            _cancel(task)
     else:
         get_loop().stop()
 
@@ -140,7 +146,8 @@ def _ignore_outcome(task):
 
 
 def _close(task):
-    """Close the coroutine of a *task* that did not end when it was cancelled."""
+    """Close the coroutine of a *task* that did not end when it was cancelled, and forget the task."""
+    _tasks.discard(task)
     coro = task.get_coro()
     if coro is not None:
         try:
@@ -160,7 +167,7 @@ def _runs_inside_the_program():
 
 def stop_for_reset():
     """Cancel play's tasks, for play.reset_program().
-    :return: The cancelled tasks, to end with end_tasks() or end_tasks_in_the_browser().
+    :return: The cancelled tasks, to end with end_tasks() or end_tasks_and_close_the_loop().
     :raises RuntimeError: When called from inside a running play program."""
     if RUNS_IN_BROWSER:
         if _runs_inside_the_program():
@@ -174,41 +181,32 @@ def stop_for_reset():
         tasks = list(asyncio.all_tasks(_loop))
     tasks = [task for task in tasks if not task.done()]
     for task in tasks:
-        task.cancel()
+        _cancel(task)
         task.add_done_callback(_ignore_outcome)
     return tasks
 
 
-def end_tasks(tasks):
+async def end_tasks(tasks):
+    """Wait until the cancelled *tasks* have ended, closing those still running after _SECONDS_TO_END."""
+    if tasks:
+        await asyncio.wait(tasks, timeout=_SECONDS_TO_END)
+    leftovers = [task for task in tasks if not task.done()]
+    if leftovers:
+        globals_list.claim_first_error()
+    for task in leftovers:
+        _close(task)
+
+
+def end_tasks_and_close_the_loop(tasks):
     """On the desktop, run play's loop until the cancelled *tasks* have ended, then close the loop."""
     global _loop
 
     if _loop is None or _loop.is_closed():
         return
-    if tasks:
-        ending = asyncio.gather(*tasks, return_exceptions=True)
-        out_of_time = []
-
-        def give_up():
-            out_of_time.append(True)
-            _loop.stop()
-
-        timer = _loop.call_later(_SECONDS_TO_END, give_up)
-        ending.add_done_callback(lambda _: _loop.stop())
-        while not ending.done() and not out_of_time:
-            _loop.run_forever()
-        timer.cancel()
-        for task in tasks:
-            if not task.done():
-                _close(task)
+    ending = _loop.create_task(end_tasks(tasks))
+    ending.add_done_callback(lambda _: _loop.stop())
+    while not ending.done():
+        _loop.run_forever()
     _loop.close()
     _loop = None
-
-
-async def end_tasks_in_the_browser(tasks):
-    """In the browser, wait until the cancelled *tasks* have ended, closing those still running after a second."""
-    if tasks:
-        await asyncio.wait(tasks, timeout=_SECONDS_TO_END)
-    for task in tasks:
-        if not task.done():
-            _close(task)
+    asyncio.set_event_loop(None)

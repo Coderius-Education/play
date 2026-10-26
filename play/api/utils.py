@@ -27,6 +27,10 @@ from play.objects.video.video import close_all_videos as _close_all_videos
 from play.utils import color_name_to_rgb as _color_name_to_rgb
 from play.utils.async_helpers import hint_forgotten_awaits as _hint_forgotten_awaits
 
+_asyncio_logger = _logging.getLogger("asyncio")
+_asyncio_log_level_before_the_program = None  # pylint: disable=invalid-name
+_resets = set()
+
 
 def start_program():
     """
@@ -34,6 +38,11 @@ def start_program():
 
     play.start_program() should almost certainly go at the very end of your program.
     """
+    if _resets:
+        raise RuntimeError(
+            "play.reset_program() has not finished yet. Await it before you "
+            "start the next program: await play.reset_program()"
+        )
     if (
         _play_loop.RUNS_IN_BROWSER
         and globals_list.program_state is ProgramState.RUNNING
@@ -63,11 +72,26 @@ def start_program():
         with _hint_forgotten_awaits():
             _run_until_stopped(_start_then_loop())
     finally:
-        logger = _logging.getLogger("asyncio")
-        logger.setLevel(_logging.CRITICAL)
+        _quiet_the_asyncio_logger()
         _close_all_videos()
         if _os.getpid() == globals_list.initial_pid:
             pygame.quit()
+
+
+def _quiet_the_asyncio_logger():
+    """Silence asyncio's logger after a program, remembering its level for play.reset_program()."""
+    global _asyncio_log_level_before_the_program
+    if _asyncio_log_level_before_the_program is None:
+        _asyncio_log_level_before_the_program = _asyncio_logger.level
+    _asyncio_logger.setLevel(_logging.CRITICAL)
+
+
+def _put_back_the_asyncio_logger():
+    """Give asyncio's logger back the level it had before play silenced it."""
+    global _asyncio_log_level_before_the_program
+    if _asyncio_log_level_before_the_program is not None:
+        _asyncio_logger.setLevel(_asyncio_log_level_before_the_program)
+        _asyncio_log_level_before_the_program = None
 
 
 async def _start_then_loop():
@@ -118,30 +142,32 @@ def stop_program():
     _play_loop.stop_loop()
 
 
+class _AlreadyReset:  # pylint: disable=too-few-public-methods
+    """What play.reset_program() returns on the desktop: an awaitable that is already done."""
+
+    def __await__(self):
+        return iter(())
+
+
 def reset_program():
-    """Put play back into the state it has right after ``import play``.
-    For programs that run one play program after another, such as a playground or a test suite.
-    A running program stops, and play's tasks end, running their finally blocks, before play is reset.
-    :return: In the browser, an awaitable that is done once play is reset: await it before the next program.
-        On the desktop, None: play is reset when it returns.
+    """Put play back into the state it has right after ``import play``, once play's tasks have ended.
+    :return: An awaitable that is done once play is reset. In the browser, await it before the next program;
+        on the desktop it is already done when reset_program() returns.
     :raises RuntimeError: When called from inside a running play program."""
     tasks = _play_loop.stop_for_reset()
-    if _play_loop.RUNS_IN_BROWSER:
-        resetting = _play_loop.get_loop().create_task(_reset_in_the_browser(tasks))
-        _resets.add(resetting)
-        resetting.add_done_callback(_resets.discard)
-        return resetting
-    _play_loop.end_tasks(tasks)
-    _reset_state()
-    return None
-
-
-_resets = set()
+    if not _play_loop.RUNS_IN_BROWSER:
+        _play_loop.end_tasks_and_close_the_loop(tasks)
+        _reset_state()
+        return _AlreadyReset()
+    resetting = _play_loop.get_loop().create_task(_reset_in_the_browser(tasks))
+    _resets.add(resetting)
+    resetting.add_done_callback(_resets.discard)
+    return resetting
 
 
 async def _reset_in_the_browser(tasks):
     """Let play's cancelled tasks end, then put play back into its starting state."""
-    await _play_loop.end_tasks_in_the_browser(tasks)
+    await _play_loop.end_tasks(tasks)
     _reset_state()
 
 
@@ -151,11 +177,12 @@ def _reset_state():
     pygame.init()
     if pygame.mixer.get_init():
         pygame.mixer.stop()
-    _logging.getLogger("asyncio").setLevel(_logging.NOTSET)
+    _put_back_the_asyncio_logger()
     _text_input_registry.clear_focus()
     globals_list.reset()
     _clicked_sprites.clear()
     _cleanup_auto_start()
+    stop_waiting_for_the_script()
     callback_manager.callbacks.clear()
     _collision_registry.reset()
     _text_input_registry.reset()
