@@ -16,6 +16,7 @@ def _ball_round_the_screen():
 
 
 def _run_frames(frames=150):
+    """Run the game loop for *frames* frames, then stop it."""
     counted = [0]
 
     @play.repeat_forever

@@ -9,6 +9,7 @@ from play.io.screen import remove_wall, screen
 
 
 def _launch(x_speed, y_speed):
+    """A ball launched from the centre at the given speed, without gravity."""
     ball = play.new_circle(x=0, y=0, radius=10)
     ball.start_physics(
         obeys_gravity=False, x_speed=x_speed, y_speed=y_speed, friction=1, mass=10
@@ -17,6 +18,7 @@ def _launch(x_speed, y_speed):
 
 
 def _run_frames(count, each_frame=None):
+    """Run *count* frames, calling *each_frame* before each, then stop."""
     frames = [0]
 
     @play.repeat_forever

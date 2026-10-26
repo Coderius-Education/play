@@ -208,11 +208,3 @@ def test_a_ball_level_with_the_side_of_a_box_is_not_touching_it():
     ball.start_physics(obeys_gravity=False, can_move=False)
 
     assert not ball.is_touching(box)
-
-
-if __name__ == "__main__":
-    test_edge_sprites_at_boundaries()
-    test_edge_empty_callbacks()
-    test_edge_rapid_hide_show()
-    test_edge_remove_mid_game()
-    test_edge_zero_speed_midgame()

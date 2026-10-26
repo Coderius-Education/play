@@ -33,4 +33,5 @@ def test_a_sprite_far_off_screen_keeps_moving_without_crashing():
     play.start_program()
 
     assert frames_run[0] == 10
-    assert (box.x, box.y) == (pytest.approx(1e10 + 10), 1e10)
+    assert box.x - 1e10 == pytest.approx(10, abs=0.01)
+    assert box.y == 1e10

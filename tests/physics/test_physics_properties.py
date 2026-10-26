@@ -7,6 +7,7 @@ from play.physics import set_gravity
 
 
 def _run_frames(frames, each_frame=None):
+    """Run *frames* frames, calling *each_frame* with the frame number, then stop."""
     counted = [0]
 
     @play.repeat_forever
@@ -61,6 +62,7 @@ def test_friction_slows_a_box_sliding_over_a_floor(set_later, friction, speed):
 
 
 def _highest_bounce(bounciness, set_later=False):
+    """The highest y a ball reaches after its first bounce off a floor."""
     ball = play.new_circle(y=0, radius=10)
     floor = play.new_box(y=-200, width=400, height=20)
     ball.start_physics(bounciness=0 if set_later else bounciness)

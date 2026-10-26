@@ -7,6 +7,7 @@ from play.physics import set_gravity
 
 
 def _run_frames(frames):
+    """Run the game loop for *frames* frames, then stop it."""
     counted = [0]
 
     @play.repeat_forever
@@ -19,6 +20,7 @@ def _run_frames(frames):
 
 
 def _ball_hitting(x, y):
+    """A heavy ball 100 pixels left of (x, y + 30), moving fast to the right."""
     ball = play.new_circle(x=x - 100, y=y + 30, radius=10)
     ball.start_physics(x_speed=300, obeys_gravity=False, mass=50)
     return ball
@@ -50,15 +52,16 @@ def test_a_stable_sprite_that_obeys_gravity_still_falls():
 
 def test_a_moving_platform_carries_a_box_without_sagging_or_slowing():
     platform = play.new_box(y=-100, width=200, height=20)
-    platform.start_physics(stable=True, obeys_gravity=False, x_speed=30)
-    box = play.new_box(y=0, width=20, height=20)
-    box.start_physics(bounciness=0)
+    platform.start_physics(stable=True, obeys_gravity=False, x_speed=30, friction=1)
+    box = play.new_box(y=-80, width=20, height=20)
+    box.start_physics(bounciness=0, friction=1)
 
     _run_frames(120)
 
     assert (platform.x, platform.y) == (pytest.approx(60), -100)
     assert platform.physics.x_speed == 30
     assert box.y == pytest.approx(-80, abs=0.5)
+    assert 50 < box.x <= 60
 
 
 def test_without_gravity_a_stable_sprite_is_pushed_but_does_not_turn():

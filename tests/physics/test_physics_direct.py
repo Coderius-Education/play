@@ -5,6 +5,7 @@ from play.physics import set_gravity
 
 
 def _run_frames(frames):
+    """Run the game loop for *frames* frames, then stop it."""
     counted = [0]
 
     @play.repeat_forever

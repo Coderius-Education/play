@@ -43,6 +43,7 @@ def test_spinner():
         for frame in range(MAX_FRAMES):
             await play.animate()
             frames_run[0] += 1
+            spinner_sizes[spinner.angle] = spinner.rect.size
 
             # Rotate the spinner
             spinner.angle = frame * 6  # 6 degrees per frame
@@ -56,8 +57,6 @@ def test_spinner():
             dist = play.mouse.distance_to(spinner.x, spinner.y)
             distances.append(dist)
 
-            if frame in (1, 16):
-                spinner_sizes[frame - 1] = spinner.rect.size
             backdrop_pixels.append(tuple(globals_list.display.get_at((5, 5)))[:3])
 
         play.stop_program()
@@ -79,7 +78,7 @@ def test_spinner():
     assert pygame.display.get_caption()[0] == screen.caption
 
     assert spinner_sizes[0] == (60, 20), "unturned, the spinner lies flat"
-    width, height = spinner_sizes[15]
+    width, height = spinner_sizes[90]
     assert (
         height > width
     ), f"at 90 degrees it should stand upright, got {width}x{height}"

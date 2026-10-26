@@ -2,6 +2,7 @@ import play
 
 
 def _ball_and_block():
+    """A bouncy ball moving right towards an immovable block."""
     ball = play.new_circle(color="black", radius=20)
     block = play.new_box(color="black", x=200)
     ball.start_physics(
@@ -14,6 +15,7 @@ def _ball_and_block():
 
 
 def _run_frames(frames):
+    """Run the game loop for *frames* frames, then stop it."""
     counted = [0]
 
     @play.repeat_forever

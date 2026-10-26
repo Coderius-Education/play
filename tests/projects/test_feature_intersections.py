@@ -158,6 +158,7 @@ def test_restarting_physics_while_touching_does_not_wedge():
 
 
 def _position_after_frames(sprite, count):
+    """The sprite's (x, y) at frame *count*."""
     frames = [0]
     seen = []
 

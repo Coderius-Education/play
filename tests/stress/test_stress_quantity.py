@@ -12,7 +12,7 @@ def setup_play(clean_play_state):
 
 @pytest.mark.slow(120)
 @pytest.mark.xdist_group("stress")
-def test_a_thousand_falling_boxes_land_on_the_floor_in_their_own_columns():
+def test_a_thousand_boxes_fall_straight_down_and_the_bottom_row_lands_on_the_floor():
     columns, rows = 40, 25
     boxes = []
     for i in range(columns * rows):

@@ -4,6 +4,7 @@ import play
 
 
 def _positions_per_frame(sprite, axis, frames, each_frame=None):
+    """The sprite's *axis* position before and after each of *frames* frames."""
     positions = [getattr(sprite, axis)]
     counted = [0]
 

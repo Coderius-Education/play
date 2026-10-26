@@ -225,24 +225,32 @@ def test_run_once_runs_the_function_only_the_first_time():
 
 
 def _text_width(font, text):
+    """Width in pixels of *text* drawn in *font*."""
     return font.render(text, True, (0, 0, 0)).get_width()
 
 
-def test_load_font_uses_the_font_file_it_is_given():
+def test_load_font_opens_the_font_file_it_is_given(monkeypatch):
+    import os
+
     import pygame
     from play.utils import load_font
 
-    path = pygame.font.match_font("dejavusansmono") or pygame.font.match_font(
-        "freemono"
+    path = os.path.join(
+        os.path.dirname(pygame.__file__), pygame.font.get_default_font()
     )
-    if path is None:
-        pytest.skip("no monospaced system font to tell apart from the default")
+    opened = []
+    real_font = pygame.font.Font
 
-    font = load_font(path, 30)
+    def font(name, size):
+        opened.append((name, size))
+        return real_font(name, size)
 
-    assert _text_width(font, "iiii") == _text_width(font, "MMMM")
-    default = load_font(None, 30)
-    assert _text_width(default, "iiii") < _text_width(default, "MMMM")
+    monkeypatch.setattr(pygame.font, "Font", font)
+
+    loaded = load_font(path, 30)
+
+    assert opened == [(path, 30)]
+    assert loaded.get_height() == real_font(path, 30).get_height()
 
 
 @pytest.mark.parametrize("name", [None, "default", "missing.ttf", "empty.ttf"])
@@ -280,7 +288,7 @@ def test_text_that_renders_to_nothing_keeps_the_line_height():
 
     font = pygame.font.SysFont(None, 30)
 
-    empty = render_text(font, "​", True, (0, 0, 0))
+    empty = render_text(font, "\u200b", True, (0, 0, 0))
     word = render_text(font, "Hi", True, (0, 0, 0))
 
     assert empty.get_size() == (0, font.get_height())

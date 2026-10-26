@@ -39,15 +39,18 @@ def test_angled_platform_collision():
 
 
 def _make_sensor_at_start(platform):
+    """Make *platform* an immovable sensor in start_physics()."""
     platform.start_physics(can_move=False, sensor=True)
 
 
 def _make_sensor_later(platform):
+    """Make *platform* immovable, then a sensor through the setter."""
     platform.start_physics(can_move=False)
     platform.physics.sensor = True
 
 
 def _make_sensor_then_retype(platform):
+    """Make *platform* a sensor, then switch can_move on and off again."""
     _make_sensor_later(platform)
     platform.physics.can_move = True
     platform.physics.can_move = False

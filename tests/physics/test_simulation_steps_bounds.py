@@ -4,6 +4,7 @@ import play
 
 
 def _ball_after_a_second(sim_steps):
+    """A ball moving 60 px/s after 60 frames at *sim_steps* simulation steps."""
     play.set_physics_simulation_steps(sim_steps)
     ball = play.new_circle(radius=10)
     ball.start_physics(x_speed=60, obeys_gravity=False)

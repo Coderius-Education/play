@@ -2,6 +2,7 @@ import play
 
 
 def _y_per_frame(ball, frames, stop_at):
+    """The ball's rounded y per frame, stopping its physics at frame *stop_at*."""
     y_values = [round(ball.y)]
     counted = [0]
 
