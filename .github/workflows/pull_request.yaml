@@ -11,11 +11,11 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-26.04, windows-latest]
         physics: [pymunk 7]
         include:
           - python-version: "3.12"
-            os: ubuntu-latest
+            os: ubuntu-26.04
             physics: pymunk 6
     runs-on: ${{ matrix.os }}
     steps:
@@ -78,7 +78,7 @@ jobs:
 
   pygbag:
     name: In the browser (pygbag)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     steps:
     - uses: actions/checkout@v5
@@ -106,7 +106,7 @@ jobs:
       fail-fast: false
       matrix:
         pyodide: ["0.29.5", "314.0.7"]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
     - uses: actions/checkout@v5
