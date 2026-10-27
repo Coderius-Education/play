@@ -242,6 +242,65 @@ def test_a_reset_inside_a_running_event_loop_on_the_desktop_is_refused_and_chang
     assert heard == ["first", "second"]
 
 
+def test_a_stop_in_one_finally_does_not_cut_another_finally_short_during_a_reset():
+    ended = []
+
+    @play.when_program_starts
+    async def walk():
+        try:
+            while True:
+                await play.animate()
+        finally:
+            ended.append("finally starts")
+            for _ in range(5):
+                await play.animate()
+            ended.append("finally ends")
+
+    @play.when_program_starts
+    async def quitter():
+        try:
+            while True:
+                await play.animate()
+        finally:
+            await play.animate()
+            play.stop_program()
+
+    play.repeat_forever(play.stop_program)
+    play.start_program()
+
+    play.reset_program()
+
+    assert ended == ["finally starts", "finally ends"]
+
+
+@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
+def test_a_task_of_its_own_that_will_not_end_is_closed_quietly_and_the_next_program_runs(
+    monkeypatch, caplog
+):
+    monkeypatch.setattr(play.loop, "_SECONDS_TO_END", 0.05)
+    heard = []
+
+    async def stubborn():
+        while True:
+            try:
+                await play.animate()
+            except BaseException:
+                pass
+
+    play.when_program_starts(lambda: asyncio.ensure_future(stubborn()))
+    play.repeat_forever(play.stop_program)
+    play.start_program()
+
+    with caplog.at_level(logging.INFO, logger="play"):
+        play.reset_program()
+        gc.collect()
+    play.repeat_forever(_stop_on_the_first_frame(heard, "next"))
+    play.start_program()
+
+    assert heard == ["next"]
+    assert not [r for r in caplog.records if r.levelno >= logging.INFO]
+
+
 def test_a_task_whose_finally_raises_does_not_keep_the_next_program_from_starting():
     heard = []
 

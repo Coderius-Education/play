@@ -28,7 +28,7 @@ from play.utils import color_name_to_rgb as _color_name_to_rgb
 from play.utils.async_helpers import hint_forgotten_awaits as _hint_forgotten_awaits
 
 _asyncio_logger = _logging.getLogger("asyncio")
-_asyncio_log_level_before_the_program = None  # pylint: disable=invalid-name
+_saved_asyncio_log_level = []
 _resets = set()
 
 
@@ -87,18 +87,15 @@ def _a_reset_is_still_running():
 
 def _quiet_the_asyncio_logger():
     """Silence asyncio's logger after a program, remembering its level for play.reset_program()."""
-    global _asyncio_log_level_before_the_program
-    if _asyncio_log_level_before_the_program is None:
-        _asyncio_log_level_before_the_program = _asyncio_logger.level
+    if not _saved_asyncio_log_level:
+        _saved_asyncio_log_level.append(_asyncio_logger.level)
     _asyncio_logger.setLevel(_logging.CRITICAL)
 
 
 def _put_back_the_asyncio_logger():
     """Give asyncio's logger back the level it had before play silenced it."""
-    global _asyncio_log_level_before_the_program
-    if _asyncio_log_level_before_the_program is not None:
-        _asyncio_logger.setLevel(_asyncio_log_level_before_the_program)
-        _asyncio_log_level_before_the_program = None
+    if _saved_asyncio_log_level:
+        _asyncio_logger.setLevel(_saved_asyncio_log_level.pop())
 
 
 async def _start_then_loop():
@@ -175,7 +172,7 @@ async def _reset_in_the_browser(tasks):
 
 
 def _reset_state():
-    """Put every part of play back into the state it has right after ``import play``."""
+    """Put every part of play back into its state right after ``import play``; new global state belongs here too."""
     _close_all_videos()
     pygame.init()
     if pygame.mixer.get_init():
