@@ -38,7 +38,7 @@ def start_program():
 
     play.start_program() should almost certainly go at the very end of your program.
     """
-    if _a_reset_is_still_running():
+    if _reset_pending():
         raise RuntimeError(
             "play.reset_program() has not finished yet. Await it before you "
             "start the next program: await play.reset_program()"
@@ -72,27 +72,27 @@ def start_program():
         with _hint_forgotten_awaits():
             _run_until_stopped(_start_then_loop())
     finally:
-        _quiet_the_asyncio_logger()
+        _silence_asyncio_logger()
         _close_all_videos()
         if _os.getpid() == globals_list.initial_pid:
             pygame.quit()
 
 
-def _a_reset_is_still_running():
+def _reset_pending():
     """Whether a reset in the browser has not finished on a page loop that is still open."""
     return any(
         not reset.done() and not reset.get_loop().is_closed() for reset in _resets
     )
 
 
-def _quiet_the_asyncio_logger():
+def _silence_asyncio_logger():
     """Silence asyncio's logger after a program, remembering its level for play.reset_program()."""
     if not _saved_asyncio_log_level:
         _saved_asyncio_log_level.append(_asyncio_logger.level)
     _asyncio_logger.setLevel(_logging.CRITICAL)
 
 
-def _put_back_the_asyncio_logger():
+def _restore_asyncio_logger():
     """Give asyncio's logger back the level it had before play silenced it."""
     if _saved_asyncio_log_level:
         _asyncio_logger.setLevel(_saved_asyncio_log_level.pop())
@@ -154,16 +154,16 @@ def reset_program():
         inside a running event loop."""
     tasks = _play_loop.stop_for_reset()
     if not _play_loop.RUNS_IN_BROWSER:
-        _play_loop.end_tasks_and_close_the_loop(tasks)
+        _play_loop.end_tasks_and_close_loop(tasks)
         _reset_state()
         return None
-    resetting = _play_loop.get_loop().create_task(_reset_in_the_browser(tasks))
+    resetting = _play_loop.get_loop().create_task(_reset_in_browser(tasks))
     _resets.add(resetting)
     resetting.add_done_callback(_resets.discard)
     return resetting
 
 
-async def _reset_in_the_browser(tasks):
+async def _reset_in_browser(tasks):
     """Let play's cancelled tasks end, then put play back into its starting state, also when the page cancels this."""
     try:
         await _play_loop.end_tasks(tasks)
@@ -177,7 +177,7 @@ def _reset_state():
     pygame.init()
     if pygame.mixer.get_init():
         pygame.mixer.stop()
-    _put_back_the_asyncio_logger()
+    _restore_asyncio_logger()
     _text_input_registry.clear_focus()
     globals_list.reset()
     _clicked_sprites.clear()

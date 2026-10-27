@@ -411,7 +411,7 @@ def test_a_debugger_still_sees_a_top_level_await_pause(in_the_browser):
     assert returns == ["<module>", "<module>"]
 
 
-def test_an_awaited_reset_in_the_browser_lets_play_s_tasks_end_then_a_new_program_runs(
+def test_awaited_browser_reset_ends_tasks_before_next_program(
     in_the_browser,
 ):
     ended = []
@@ -445,7 +445,7 @@ def test_an_awaited_reset_in_the_browser_lets_play_s_tasks_end_then_a_new_progra
     assert frames == [1, 1, 1]
 
 
-def test_a_reset_from_inside_the_program_in_the_browser_is_refused(in_the_browser):
+def test_browser_reset_inside_program_is_refused(in_the_browser):
     refused = []
 
     @play.repeat_forever
@@ -466,7 +466,7 @@ def test_a_reset_from_inside_the_program_in_the_browser_is_refused(in_the_browse
     _UNDER_A_C_TRACER,
     reason="auto-start cannot see the script end under a C trace function, such as coverage's on 3.11",
 )
-def test_a_playground_run_that_failed_before_starting_does_not_stop_the_next_from_starting(
+def test_failed_playground_run_does_not_block_next_run(
     in_the_browser,
 ):
     frames = []
@@ -497,9 +497,7 @@ def test_a_playground_run_that_failed_before_starting_does_not_stop_the_next_fro
 
 
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-def test_a_task_that_will_not_end_in_the_browser_is_closed_quietly_and_the_next_program_runs(
-    in_the_browser, monkeypatch, caplog
-):
+def test_stubborn_browser_task_is_closed_quietly(in_the_browser, monkeypatch, caplog):
     monkeypatch.setattr(play.loop, "_SECONDS_TO_END", 0.05)
     frames = []
 
@@ -529,9 +527,7 @@ def test_a_task_that_will_not_end_in_the_browser_is_closed_quietly_and_the_next_
     assert not [r for r in caplog.records if r.levelno >= logging.INFO]
 
 
-def test_a_task_closed_by_a_reset_in_the_browser_is_no_longer_one_of_play_s_tasks(
-    in_the_browser, monkeypatch
-):
+def test_browser_reset_forgets_closed_task(in_the_browser, monkeypatch):
     monkeypatch.setattr(play.loop, "_SECONDS_TO_END", 0.05)
 
     @play.when_program_starts
@@ -552,7 +548,7 @@ def test_a_task_closed_by_a_reset_in_the_browser_is_no_longer_one_of_play_s_task
     assert in_the_browser.run_until_complete(page()) == set()
 
 
-def test_a_second_reset_while_the_first_is_ending_lets_the_finally_blocks_end(
+def test_second_browser_reset_lets_finally_blocks_end(
     in_the_browser,
 ):
     ended = []
@@ -582,7 +578,7 @@ def test_a_second_reset_while_the_first_is_ending_lets_the_finally_blocks_end(
     assert ended == ["finally starts", "finally ends"]
 
 
-def test_a_stop_in_one_finally_does_not_cut_another_finally_short_during_a_reset(
+def test_stop_in_finally_does_not_cut_other_finally_short_in_browser(
     in_the_browser,
 ):
     ended = []
@@ -618,7 +614,7 @@ def test_a_stop_in_one_finally_does_not_cut_another_finally_short_during_a_reset
     assert ended == ["finally starts", "finally ends"]
 
 
-def test_a_reset_the_page_gives_up_on_still_leaves_play_ready_for_the_next_program(
+def test_abandoned_browser_reset_still_resets_play(
     in_the_browser,
 ):
     frames = []
@@ -649,7 +645,7 @@ def test_a_reset_the_page_gives_up_on_still_leaves_play_ready_for_the_next_progr
     assert not ended
 
 
-def test_a_task_play_starts_while_a_reset_ends_a_running_program_is_cancelled_straight_away(
+def test_task_started_during_browser_reset_is_cancelled(
     in_the_browser,
 ):
     started = []
@@ -679,7 +675,7 @@ def test_a_task_play_starts_while_a_reset_ends_a_running_program_is_cancelled_st
     assert not started
 
 
-def test_a_reset_left_unfinished_on_a_closed_page_does_not_block_the_next_program(
+def test_unfinished_reset_on_closed_page_does_not_block_next_program(
     in_the_browser, monkeypatch
 ):
     frames = []
@@ -714,7 +710,7 @@ def test_a_reset_left_unfinished_on_a_closed_page_does_not_block_the_next_progra
     assert frames == [1, 1, 1]
 
 
-def test_starting_the_next_program_before_the_reset_is_done_is_refused(
+def test_start_before_browser_reset_is_done_is_refused(
     in_the_browser,
 ):
     frames = []

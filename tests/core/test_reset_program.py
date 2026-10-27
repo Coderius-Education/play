@@ -19,7 +19,7 @@ from play.physics import physics_space, set_gravity
 from tests.events.frames import button_down, mouse_down, mouse_move, play_frames
 
 
-def _stop_on_the_first_frame(heard, name):
+def _stop_on_first_frame(heard, name):
     """A repeat_forever callback that notes *name* in *heard* and stops the program."""
 
     def tick():
@@ -29,19 +29,19 @@ def _stop_on_the_first_frame(heard, name):
     return tick
 
 
-def test_a_second_program_runs_after_a_reset_without_the_first_programs_callbacks():
+def test_second_program_runs_without_first_programs_callbacks():
     heard = []
-    play.repeat_forever(_stop_on_the_first_frame(heard, "first"))
+    play.repeat_forever(_stop_on_first_frame(heard, "first"))
     play.start_program()
 
     play.reset_program()
-    play.repeat_forever(_stop_on_the_first_frame(heard, "second"))
+    play.repeat_forever(_stop_on_first_frame(heard, "second"))
     play.start_program()
 
     assert heard == ["first", "second"]
 
 
-def test_a_reset_puts_back_the_screen_physics_backdrop_and_event_queue():
+def test_reset_restores_screen_physics_backdrop_and_event_queue():
     play.new_box(color="red", width=200, height=200)
     play.screen.width, play.screen.height = 300, 200
     play.screen.caption = "My game"
@@ -63,7 +63,7 @@ def test_a_reset_puts_back_the_screen_physics_backdrop_and_event_queue():
     assert len(globals_list.walls) == 4
 
 
-def test_a_reset_forgets_the_mouse_keys_and_buttons_of_the_last_program():
+def test_reset_forgets_mouse_keys_and_buttons():
     play.mouse.x, play.mouse.y = 120, -80
     play.mouse._is_clicked = True
     keyboard_state.pressed.add("a")
@@ -83,7 +83,7 @@ def test_a_reset_forgets_the_mouse_keys_and_buttons_of_the_last_program():
     assert held == []
 
 
-def test_a_reset_lets_go_of_the_last_programs_sprites_and_widgets():
+def test_reset_releases_sprites_and_widgets():
     box = play.new_box(x=-200, width=50, height=50)
     box.when_touching(play.new_circle(x=200, radius=10))(lambda: None)
     field = play.new_text_input(x=0, y=200)
@@ -111,7 +111,7 @@ def test_a_reset_lets_go_of_the_last_programs_sprites_and_widgets():
     assert [ref() for ref in left_behind] == [None] * 4
 
 
-def test_a_reset_stops_videos_and_sounds(video_file, monkeypatch):
+def test_reset_stops_videos_and_sounds(video_file, monkeypatch):
     stopped = []
     monkeypatch.setattr(pygame.mixer, "get_init", lambda: (22050, -16, 2))
     monkeypatch.setattr(pygame.mixer, "stop", lambda: stopped.append(True))
@@ -125,7 +125,7 @@ def test_a_reset_stops_videos_and_sounds(video_file, monkeypatch):
     assert stopped == [True]
 
 
-def test_a_reset_lets_go_of_a_focused_text_field(monkeypatch):
+def test_reset_releases_focused_text_field(monkeypatch):
     calls = []
     monkeypatch.setattr(pygame.key, "start_text_input", lambda: calls.append("on"))
     monkeypatch.setattr(pygame.key, "stop_text_input", lambda: calls.append("off"))
@@ -139,7 +139,7 @@ def test_a_reset_lets_go_of_a_focused_text_field(monkeypatch):
     assert globals_list.focused_text_input is None
 
 
-def test_a_reset_finds_the_controllers_that_are_plugged_in_now(monkeypatch):
+def test_reset_finds_plugged_in_controllers(monkeypatch):
     class _Joystick:
         """A plugged-in controller that tells which device it is."""
 
@@ -161,7 +161,7 @@ def test_a_reset_finds_the_controllers_that_are_plugged_in_now(monkeypatch):
     assert controllers.get_count() == 2
 
 
-def test_a_reset_empties_the_physics_space_of_constraints_too():
+def test_reset_removes_constraints():
     import pymunk
 
     a, b = pymunk.Body(), pymunk.Body()
@@ -172,7 +172,7 @@ def test_a_reset_empties_the_physics_space_of_constraints_too():
     assert not physics_space.constraints
 
 
-def test_a_reset_puts_the_asyncio_logger_back():
+def test_reset_restores_asyncio_logger():
     play.repeat_forever(play.stop_program)
     play.start_program()
     assert logging.getLogger("asyncio").level == logging.CRITICAL
@@ -182,7 +182,7 @@ def test_a_reset_puts_the_asyncio_logger_back():
     assert logging.getLogger("asyncio").level == logging.NOTSET
 
 
-def test_a_reset_gives_the_asyncio_logger_back_the_level_the_host_gave_it():
+def test_reset_restores_host_asyncio_log_level():
     logger = logging.getLogger("asyncio")
     logger.setLevel(logging.ERROR)
     try:
@@ -195,7 +195,7 @@ def test_a_reset_gives_the_asyncio_logger_back_the_level_the_host_gave_it():
         logger.setLevel(logging.NOTSET)
 
 
-def test_a_reset_forgets_the_last_programs_collision_callbacks():
+def test_reset_forgets_collision_callbacks():
     a = play.new_box(x=0)
     b = play.new_box(x=200)
     a.when_touching(b)(lambda: None)
@@ -206,14 +206,14 @@ def test_a_reset_forgets_the_last_programs_collision_callbacks():
     assert collision_registry.callbacks == {True: {}, False: {}}
 
 
-def test_resets_one_after_another_keep_only_the_four_new_walls():
+def test_repeated_resets_keep_four_walls():
     for _ in range(3):
         play.reset_program()
 
     assert len(globals_list.walls[0].body.shapes) == 4
 
 
-def test_a_reset_on_the_desktop_leaves_no_closed_event_loop_behind():
+def test_desktop_reset_leaves_no_closed_event_loop():
     play.repeat_forever(play.stop_program)
     play.start_program()
 
@@ -226,9 +226,9 @@ def test_a_reset_on_the_desktop_leaves_no_closed_event_loop_behind():
     assert current is None or not current.is_closed()
 
 
-def test_a_reset_inside_a_running_event_loop_on_the_desktop_is_refused_and_changes_nothing():
+def test_desktop_reset_inside_event_loop_is_refused():
     heard = []
-    play.repeat_forever(_stop_on_the_first_frame(heard, "first"))
+    play.repeat_forever(_stop_on_first_frame(heard, "first"))
     play.start_program()
 
     async def host():
@@ -239,13 +239,13 @@ def test_a_reset_inside_a_running_event_loop_on_the_desktop_is_refused_and_chang
     assert globals_list.program_state is ProgramState.STOPPED
 
     play.reset_program()
-    play.repeat_forever(_stop_on_the_first_frame(heard, "second"))
+    play.repeat_forever(_stop_on_first_frame(heard, "second"))
     play.start_program()
 
     assert heard == ["first", "second"]
 
 
-def test_a_stop_in_one_finally_does_not_cut_another_finally_short_during_a_reset():
+def test_stop_in_finally_does_not_cut_other_finally_short():
     ended = []
 
     @play.when_program_starts
@@ -277,9 +277,7 @@ def test_a_stop_in_one_finally_does_not_cut_another_finally_short_during_a_reset
 
 
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-def test_a_task_of_its_own_that_will_not_end_is_closed_quietly_and_the_next_program_runs(
-    monkeypatch, caplog
-):
+def test_stubborn_student_task_is_closed_quietly(monkeypatch, caplog):
     monkeypatch.setattr(play.loop, "_SECONDS_TO_END", 0.05)
     heard = []
 
@@ -297,7 +295,7 @@ def test_a_task_of_its_own_that_will_not_end_is_closed_quietly_and_the_next_prog
     with caplog.at_level(logging.INFO, logger="play"):
         play.reset_program()
         gc.collect()
-    play.repeat_forever(_stop_on_the_first_frame(heard, "next"))
+    play.repeat_forever(_stop_on_first_frame(heard, "next"))
     play.start_program()
 
     assert heard == ["next"]
@@ -305,9 +303,7 @@ def test_a_task_of_its_own_that_will_not_end_is_closed_quietly_and_the_next_prog
 
 
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-def test_a_closed_task_that_fails_later_does_not_stop_the_next_program(
-    monkeypatch, caplog
-):
+def test_closed_task_failing_later_does_not_stop_next_program(monkeypatch, caplog):
     monkeypatch.setattr(play.loop, "_SECONDS_TO_END", 0.05)
     frames = []
 
@@ -328,14 +324,14 @@ def test_a_closed_task_that_fails_later_does_not_stop_the_next_program(
     with caplog.at_level(logging.INFO, logger="play"):
         play.reset_program()
         gc.collect()
-        play.repeat_forever(_stop_on_the_first_frame(frames, "next"))
+        play.repeat_forever(_stop_on_first_frame(frames, "next"))
         play.start_program()
 
     assert frames == ["next"]
     assert not [r for r in caplog.records if r.levelno >= logging.INFO]
 
 
-def test_a_task_whose_finally_raises_does_not_keep_the_next_program_from_starting():
+def test_task_whose_finally_raises_does_not_block_next_program():
     heard = []
 
     async def helper():
@@ -351,13 +347,13 @@ def test_a_task_whose_finally_raises_does_not_keep_the_next_program_from_startin
 
     play.reset_program()
     gc.collect()
-    play.repeat_forever(_stop_on_the_first_frame(heard, "next"))
+    play.repeat_forever(_stop_on_first_frame(heard, "next"))
     play.start_program()
 
     assert heard == ["next"]
 
 
-def test_a_callback_ends_its_finally_block_also_after_an_await_before_the_reset_returns(
+def test_finally_with_await_ends_before_reset_returns(
     caplog,
 ):
     log = []
@@ -382,7 +378,7 @@ def test_a_callback_ends_its_finally_block_also_after_an_await_before_the_reset_
     assert not [r for r in caplog.records if r.levelno >= logging.INFO]
 
 
-def test_a_reset_while_the_program_runs_is_refused_and_changes_nothing():
+def test_reset_while_program_runs_is_refused():
     refused = []
     frames = []
     box = play.new_box(color="red", width=100, height=100)
@@ -405,7 +401,7 @@ def test_a_reset_while_the_program_runs_is_refused_and_changes_nothing():
     assert box in globals_list.sprites_group
 
 
-def test_a_script_that_never_started_does_not_keep_the_next_one_from_starting(
+def test_script_that_never_started_does_not_block_next_one(
     run_script,
 ):
     printed = run_script(
@@ -425,7 +421,7 @@ def test_a_script_that_never_started_does_not_keep_the_next_one_from_starting(
     assert printed == ["started"]
 
 
-def test_programs_run_one_after_another_in_a_real_script_without_a_word_logged(
+def test_programs_run_in_turn_in_script_without_logs(
     run_script,
 ):
     printed = run_script(
@@ -469,9 +465,7 @@ def test_programs_run_one_after_another_in_a_real_script_without_a_word_logged(
 
 
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
-def test_a_task_that_will_not_end_is_closed_quietly_and_the_next_program_runs(
-    monkeypatch, caplog
-):
+def test_stubborn_task_is_closed_quietly(monkeypatch, caplog):
     monkeypatch.setattr(play.loop, "_SECONDS_TO_END", 0.05)
     frames = []
 
@@ -488,14 +482,14 @@ def test_a_task_that_will_not_end_is_closed_quietly_and_the_next_program_runs(
 
     with caplog.at_level(logging.INFO, logger="play"):
         play.reset_program()
-    play.repeat_forever(_stop_on_the_first_frame(frames, "next"))
+    play.repeat_forever(_stop_on_first_frame(frames, "next"))
     play.start_program()
 
     assert frames == ["next"]
     assert not [r for r in caplog.records if r.levelno >= logging.INFO]
 
 
-def test_a_task_that_waits_on_a_timer_inside_a_bare_except_does_not_hang_the_reset(
+def test_timer_in_bare_except_does_not_hang_reset(
     run_script,
 ):
     printed = run_script(
@@ -520,7 +514,7 @@ def test_a_task_that_waits_on_a_timer_inside_a_bare_except_does_not_hang_the_res
     assert printed == ["reset"]
 
 
-def test_a_reset_gives_a_debugger_back_its_trace_of_the_script(run_script):
+def test_reset_keeps_debugger_trace(run_script):
     printed = run_script(
         "import sys\n"
         "lines = []\n"
@@ -542,7 +536,7 @@ def test_a_reset_gives_a_debugger_back_its_trace_of_the_script(run_script):
     assert printed == ["True"]
 
 
-def test_a_reset_turns_off_the_tracing_that_auto_start_turned_on(run_script):
+def test_reset_turns_off_auto_start_tracing(run_script):
     printed = run_script(
         "import sys\n"
         "play.when_program_starts(lambda: None)\n"
@@ -555,7 +549,7 @@ def test_a_reset_turns_off_the_tracing_that_auto_start_turned_on(run_script):
     assert printed == ["True", "False"]
 
 
-def test_a_click_left_in_the_last_frame_does_not_reach_the_next_programs_widgets():
+def test_last_frames_click_does_not_reach_next_programs_widgets():
     play.new_box(x=0, y=0, width=50, height=50)
     play_frames([mouse_move(0, 0)], [mouse_down(0, 0)], then=0)
 

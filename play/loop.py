@@ -27,17 +27,17 @@ _tasks = set()
 _page_exception_handler = None  # pylint: disable=invalid-name
 
 
-def _handle_exception(the_loop, context):
+def _handle_exception(event_loop, context):
     exception = context.get("exception")
     task = context.get("future") or context.get("task")
     task_name = task.get_name() if hasattr(task, "get_name") else "unknown"
     message = context.get("message", "Unhandled exception in async task")
 
     if RUNS_IN_BROWSER and not task_name.startswith(_TASK_NAME_PREFIX):
-        _pass_to_the_page(the_loop, context)
+        _pass_to_the_page(event_loop, context)
         return
 
-    if the_loop is not _loop:
+    if event_loop is not _loop:
         play_logger.debug(message)
         return
 
@@ -58,12 +58,12 @@ def _handle_exception(the_loop, context):
     stop_loop()
 
 
-def _pass_to_the_page(the_loop, context):
+def _pass_to_the_page(event_loop, context):
     """Hand an error that is not play's to the handler the page had, or to asyncio's default one."""
     if _page_exception_handler is None:
-        the_loop.default_exception_handler(context)
+        event_loop.default_exception_handler(context)
     else:
-        _page_exception_handler(the_loop, context)
+        _page_exception_handler(event_loop, context)
 
 
 def get_loop():
@@ -137,12 +137,12 @@ def stop_loop():
 
 _SECONDS_TO_END = 1.0
 
-_RESET_INSIDE_THE_PROGRAM = (
+_RESET_INSIDE_PROGRAM = (
     "play.reset_program() cannot run inside a running play program. Call it "
     "after play.start_program() has returned, or in the browser from the page."
 )
 
-_RESET_INSIDE_AN_EVENT_LOOP = (
+_RESET_INSIDE_EVENT_LOOP = (
     "On the desktop, play.reset_program() cannot run inside a running event "
     "loop, such as in asyncio.run(). Call it outside the event loop."
 )
@@ -165,7 +165,7 @@ def _close(task):
             pass
 
 
-def _runs_inside_the_program():
+def _inside_play_task():
     """Whether the code running now is one of play's own tasks."""
     try:
         current = asyncio.current_task()
@@ -174,7 +174,7 @@ def _runs_inside_the_program():
     return current is not None and current.get_name().startswith(_TASK_NAME_PREFIX)
 
 
-def _another_event_loop_runs():
+def _other_loop_running():
     """Whether an event loop other than play's runs in this thread."""
     try:
         running = asyncio.get_running_loop()
@@ -185,16 +185,16 @@ def _another_event_loop_runs():
 
 def stop_for_reset():
     """Stop the program and cancel play's tasks, for play.reset_program().
-    :return: The cancelled tasks, to end with end_tasks() or end_tasks_and_close_the_loop().
+    :return: The cancelled tasks, to end with end_tasks() or end_tasks_and_close_loop().
     :raises RuntimeError: When called from inside a running play program, or on the desktop
         inside a running event loop."""
     if RUNS_IN_BROWSER:
-        if _runs_inside_the_program():
-            raise RuntimeError(_RESET_INSIDE_THE_PROGRAM)
-    elif _another_event_loop_runs():
-        raise RuntimeError(_RESET_INSIDE_AN_EVENT_LOOP)
+        if _inside_play_task():
+            raise RuntimeError(_RESET_INSIDE_PROGRAM)
+    elif _other_loop_running():
+        raise RuntimeError(_RESET_INSIDE_EVENT_LOOP)
     elif _loop is not None and _loop.is_running():
-        raise RuntimeError(_RESET_INSIDE_THE_PROGRAM)
+        raise RuntimeError(_RESET_INSIDE_PROGRAM)
     globals_list.program_state = ProgramState.STOPPED
     if RUNS_IN_BROWSER:
         tasks = list(_tasks)
@@ -227,7 +227,7 @@ def _close_leftovers(tasks):
         _close(task)
 
 
-def end_tasks_and_close_the_loop(tasks):
+def end_tasks_and_close_loop(tasks):
     """On the desktop, run play's loop until the cancelled *tasks* have ended, then close the loop."""
     global _loop
 
