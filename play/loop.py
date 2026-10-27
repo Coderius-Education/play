@@ -37,6 +37,10 @@ def _handle_exception(the_loop, context):
         _pass_to_the_page(the_loop, context)
         return
 
+    if the_loop is not _loop:
+        play_logger.debug(message)
+        return
+
     if not exception and message.startswith(_DESTROYED_PENDING):
         # Expected once the loop has stopped, and nothing the user can act on.
         play_logger.debug(message)

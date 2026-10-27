@@ -194,6 +194,7 @@ def _reset_state():
     _mouse_state.clear()
     _mouse_state.click_claimants.clear()
     _controller_state.buttons_pressed.clear()
+    _controller_state.clear()
     _mouse.x = _mouse.y = 0
     _mouse._is_clicked = False
     pygame.event.clear()

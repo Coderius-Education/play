@@ -6,7 +6,6 @@ clean_play_state fixture reinitialises pygame and resets all play globals
 between tests to prevent state bleed.
 """
 
-import logging
 import os
 import sys as _sys
 import time

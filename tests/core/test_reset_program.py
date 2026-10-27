@@ -10,6 +10,7 @@ import pytest
 
 import play
 from play.callback.collision_callbacks import collision_registry
+from play.core.controller_loop import controller_state
 from play.globals import ProgramState, globals_list
 from play.io import controllers as controllers_module
 from play.io.controllers import controllers
@@ -69,6 +70,8 @@ def test_a_reset_forgets_the_mouse_keys_and_buttons_of_the_last_program():
     play_frames([button_down(4)], then=0)
 
     play.reset_program()
+    assert not controller_state.any()
+    assert not controller_state.buttons_pressed_this_frame
     held = []
     controllers.while_button_pressed(0, 4)(held.append)
     play.repeat_forever(play.stop_program)
@@ -301,6 +304,37 @@ def test_a_task_of_its_own_that_will_not_end_is_closed_quietly_and_the_next_prog
     assert not [r for r in caplog.records if r.levelno >= logging.INFO]
 
 
+@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
+def test_a_closed_task_that_fails_later_does_not_stop_the_next_program(
+    monkeypatch, caplog
+):
+    monkeypatch.setattr(play.loop, "_SECONDS_TO_END", 0.05)
+    frames = []
+
+    @play.when_program_starts
+    async def stubborn():
+        try:
+            while True:
+                try:
+                    await play.timer(0.01)
+                except asyncio.CancelledError:
+                    pass
+        finally:
+            raise ValueError("a mistake in the cleanup")
+
+    play.repeat_forever(play.stop_program)
+    play.start_program()
+
+    with caplog.at_level(logging.INFO, logger="play"):
+        play.reset_program()
+        gc.collect()
+        play.repeat_forever(_stop_on_the_first_frame(frames, "next"))
+        play.start_program()
+
+    assert frames == ["next"]
+    assert not [r for r in caplog.records if r.levelno >= logging.INFO]
+
+
 def test_a_task_whose_finally_raises_does_not_keep_the_next_program_from_starting():
     heard = []
 
@@ -484,6 +518,28 @@ def test_a_task_that_waits_on_a_timer_inside_a_bare_except_does_not_hang_the_res
     )
 
     assert printed == ["reset"]
+
+
+def test_a_reset_gives_a_debugger_back_its_trace_of_the_script(run_script):
+    printed = run_script(
+        "import sys\n"
+        "lines = []\n"
+        "def local(frame, event, arg):\n"
+        "    if event == 'line':\n"
+        "        lines.append(frame.f_lineno)\n"
+        "    return local\n"
+        "sys.settrace(lambda frame, event, arg: None)\n"
+        "sys._getframe().f_trace = local\n"
+        "play.when_program_starts(lambda: None)\n"
+        "play.reset_program()\n"
+        "before = len(lines)\n"
+        "after = len(lines)\n"
+        "sys.settrace(None)\n"
+        "print(after > before)\n"
+        "os._exit(0)\n"
+    )
+
+    assert printed == ["True"]
 
 
 def test_a_reset_turns_off_the_tracing_that_auto_start_turned_on(run_script):
