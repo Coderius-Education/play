@@ -223,12 +223,45 @@ def test_a_reset_on_the_desktop_leaves_no_closed_event_loop_behind():
     assert current is None or not current.is_closed()
 
 
-def test_a_reset_on_the_desktop_can_be_awaited_like_in_the_browser():
-    async def host():
-        await play.reset_program()
-        return "reset"
+def test_a_reset_inside_a_running_event_loop_on_the_desktop_is_refused_and_changes_nothing():
+    heard = []
+    play.repeat_forever(_stop_on_the_first_frame(heard, "first"))
+    play.start_program()
 
-    assert asyncio.run(host()) == "reset"
+    async def host():
+        play.reset_program()
+
+    with pytest.raises(RuntimeError, match="inside a running event loop"):
+        asyncio.run(host())
+    assert globals_list.program_state is ProgramState.STOPPED
+
+    play.reset_program()
+    play.repeat_forever(_stop_on_the_first_frame(heard, "second"))
+    play.start_program()
+
+    assert heard == ["first", "second"]
+
+
+def test_a_task_whose_finally_raises_does_not_keep_the_next_program_from_starting():
+    heard = []
+
+    async def helper():
+        try:
+            while True:
+                await play.animate()
+        finally:
+            raise ValueError("a mistake in the cleanup")
+
+    play.when_program_starts(lambda: asyncio.ensure_future(helper()))
+    play.repeat_forever(play.stop_program)
+    play.start_program()
+
+    play.reset_program()
+    gc.collect()
+    play.repeat_forever(_stop_on_the_first_frame(heard, "next"))
+    play.start_program()
+
+    assert heard == ["next"]
 
 
 def test_a_callback_ends_its_finally_block_also_after_an_await_before_the_reset_returns(

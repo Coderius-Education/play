@@ -38,7 +38,7 @@ def start_program():
 
     play.start_program() should almost certainly go at the very end of your program.
     """
-    if _resets:
+    if _a_reset_is_still_running():
         raise RuntimeError(
             "play.reset_program() has not finished yet. Await it before you "
             "start the next program: await play.reset_program()"
@@ -76,6 +76,13 @@ def start_program():
         _close_all_videos()
         if _os.getpid() == globals_list.initial_pid:
             pygame.quit()
+
+
+def _a_reset_is_still_running():
+    """Whether a reset in the browser has not finished on a page loop that is still open."""
+    return any(
+        not reset.done() and not reset.get_loop().is_closed() for reset in _resets
+    )
 
 
 def _quiet_the_asyncio_logger():
@@ -142,23 +149,17 @@ def stop_program():
     _play_loop.stop_loop()
 
 
-class _AlreadyReset:  # pylint: disable=too-few-public-methods
-    """What play.reset_program() returns on the desktop: an awaitable that is already done."""
-
-    def __await__(self):
-        return iter(())
-
-
 def reset_program():
     """Put play back into the state it has right after ``import play``, once play's tasks have ended.
-    :return: An awaitable that is done once play is reset. In the browser, await it before the next program;
-        on the desktop it is already done when reset_program() returns.
-    :raises RuntimeError: When called from inside a running play program."""
+    :return: In the browser, an awaitable that is done once play is reset: await it before the next program.
+        On the desktop, None: play is reset when reset_program() returns.
+    :raises RuntimeError: When called from inside a running play program, or on the desktop
+        inside a running event loop."""
     tasks = _play_loop.stop_for_reset()
     if not _play_loop.RUNS_IN_BROWSER:
         _play_loop.end_tasks_and_close_the_loop(tasks)
         _reset_state()
-        return _AlreadyReset()
+        return None
     resetting = _play_loop.get_loop().create_task(_reset_in_the_browser(tasks))
     _resets.add(resetting)
     resetting.add_done_callback(_resets.discard)
@@ -166,9 +167,11 @@ def reset_program():
 
 
 async def _reset_in_the_browser(tasks):
-    """Let play's cancelled tasks end, then put play back into its starting state."""
-    await _play_loop.end_tasks(tasks)
-    _reset_state()
+    """Let play's cancelled tasks end, then put play back into its starting state, also when the page cancels this."""
+    try:
+        await _play_loop.end_tasks(tasks)
+    finally:
+        _reset_state()
 
 
 def _reset_state():

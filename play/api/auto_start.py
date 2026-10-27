@@ -103,7 +103,7 @@ callback_manager.on_first_callback = _schedule_auto_start
 def _cleanup_auto_start():
     """Reset all auto-start state and remove any installed frame trace.
 
-    Used by test fixtures to prevent state leakage between tests.
+    Used by play.reset_program() to prevent state leakage between programs.
     """
     globals_list.program_state = ProgramState.NOT_STARTED
     globals_list.should_auto_start = False

@@ -138,6 +138,11 @@ _RESET_INSIDE_THE_PROGRAM = (
     "after play.start_program() has returned, or in the browser from the page."
 )
 
+_RESET_INSIDE_AN_EVENT_LOOP = (
+    "On the desktop, play.reset_program() cannot run inside a running event "
+    "loop, such as in asyncio.run(). Call it outside the event loop."
+)
+
 
 def _ignore_outcome(task):
     """Take the outcome of an ended task, so the loop does not report it."""
@@ -165,18 +170,32 @@ def _runs_inside_the_program():
     return current is not None and current.get_name().startswith(_TASK_NAME_PREFIX)
 
 
+def _another_event_loop_runs():
+    """Whether an event loop other than play's runs in this thread."""
+    try:
+        running = asyncio.get_running_loop()
+    except RuntimeError:
+        return False
+    return running is not _loop
+
+
 def stop_for_reset():
-    """Cancel play's tasks, for play.reset_program().
+    """Stop the program and cancel play's tasks, for play.reset_program().
     :return: The cancelled tasks, to end with end_tasks() or end_tasks_and_close_the_loop().
-    :raises RuntimeError: When called from inside a running play program."""
+    :raises RuntimeError: When called from inside a running play program, or on the desktop
+        inside a running event loop."""
     if RUNS_IN_BROWSER:
         if _runs_inside_the_program():
             raise RuntimeError(_RESET_INSIDE_THE_PROGRAM)
+    elif _another_event_loop_runs():
+        raise RuntimeError(_RESET_INSIDE_AN_EVENT_LOOP)
+    elif _loop is not None and _loop.is_running():
+        raise RuntimeError(_RESET_INSIDE_THE_PROGRAM)
+    globals_list.program_state = ProgramState.STOPPED
+    if RUNS_IN_BROWSER:
         tasks = list(_tasks)
     elif _loop is None or _loop.is_closed():
         tasks = []
-    elif _loop.is_running():
-        raise RuntimeError(_RESET_INSIDE_THE_PROGRAM)
     else:
         tasks = list(asyncio.all_tasks(_loop))
     tasks = [task for task in tasks if not task.done()]
@@ -188,8 +207,15 @@ def stop_for_reset():
 
 async def end_tasks(tasks):
     """Wait until the cancelled *tasks* have ended, closing those still running after _SECONDS_TO_END."""
-    if tasks:
-        await asyncio.wait(tasks, timeout=_SECONDS_TO_END)
+    try:
+        if tasks:
+            await asyncio.wait(tasks, timeout=_SECONDS_TO_END)
+    finally:
+        _close_leftovers(tasks)
+
+
+def _close_leftovers(tasks):
+    """Close the *tasks* that have not ended, without showing the errors closing them raises."""
     leftovers = [task for task in tasks if not task.done()]
     if leftovers:
         globals_list.claim_first_error()
