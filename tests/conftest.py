@@ -6,7 +6,6 @@ clean_play_state fixture reinitialises pygame and resets all play globals
 between tests to prevent state bleed.
 """
 
-import logging
 import os
 import sys as _sys
 import time
@@ -279,8 +278,6 @@ def count_color(surface, rgb):
     return total
 
 
-_PLAY_DEFAULTS = {}
-
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
@@ -392,127 +389,21 @@ def clean_play_state(request):
     """Flush play globals, physics, callbacks, and groups before every test.
     This prevents state bleed across tests and resolves random hanging test loops.
     """
-    import asyncio
-
     import pygame
 
     import play
-    import play.loop
+    import play.core
 
-    # Headless Execution Fixes: properly initialize Pygame
-    pygame.init()
-    pygame.display.init()
-    pygame.font.init()
-
-    try:
-        pygame.display.set_mode((800, 600))
-        from play.io.screen import screen
-
-        screen.update_display()
-    except Exception as e:
-        logging.warning("Failed to initialize pygame display: %s", e)
-
-    old_loop = play.loop.get_loop()
-    if old_loop and not old_loop.is_closed():
-        # Cancel any leftover tasks and close their coroutines to prevent
-        # "coroutine was never awaited" warnings during garbage collection.
-        for task in asyncio.all_tasks(loop=old_loop):
-            task.cancel()
-            coro = task.get_coro()
-            if coro is not None:
-                coro.close()
-        old_loop.stop()
-        old_loop.close()
-    # Reset so get_loop() creates a new properly configured loop on the next
-    # call (with exception handler, debug mode, etc.).
-    play.loop._creator_pid = None
-
-    from play.physics import physics_space
-    from play.callback import callback_manager
+    play.reset_program()
 
     _install_collision_error_recorder()
     COLLISION_HANDLER_ERRORS.clear()
-
-    # Clean play globals
-    play.globals.globals_list.reset()
-
-    import play.core.sprites_loop
-
-    play.core.sprites_loop._clicked_sprites.clear()
-
-    import play.api.auto_start
-
-    play.api.auto_start._cleanup_auto_start()
     play.globals.globals_list.initial_pid = -1
-
-    play.globals.globals_list.gravity.vertical = -100
-    play.globals.globals_list.gravity.horizontal = 0
-    physics_space.gravity = (0, -100)
-    from play.io.screen import screen
-
-    # The width/height setters would also rebuild the walls.
-    screen._width, screen._height = 800, 600
-    screen._resizable = False
-    screen.caption = _PLAY_DEFAULTS.setdefault("caption", screen.caption)
-    screen.update_display()
-
-    # Clean Pymunk physics spaces
-    for body in list(physics_space.bodies):
-        physics_space.remove(body)
-    for shape in list(physics_space.shapes):
-        physics_space.remove(shape)
-    for constraint in list(physics_space.constraints):
-        physics_space.remove(constraint)
-
-    from play.io.screen import create_walls
-
-    create_walls()
-
-    import play.core
 
     if request.node.get_closest_marker("real_clock"):
         play.core._clock = pygame.time.Clock()
     else:
         play.core._clock = _NoSleepClock()
-
-    # Clean callback queues
-    callback_manager.callbacks.clear()
-
-    from play.callback.collision_callbacks import collision_registry
-
-    # Call the registry's own reset rather than reassigning its dict: doing
-    # that from here overwrote the constructor's initialisation before every
-    # test, leaving that line permanently unverifiable.
-    collision_registry.reset()
-
-    from play.objects.widgets import text_input_registry as _ti_registry
-
-    _ti_registry.reset()
-
-    from play.core import keyboard_state, mouse_state
-
-    keyboard_state.pressed.clear()
-    keyboard_state.pressed_this_frame.clear()
-    mouse_state.click_happened = False
-    mouse_state.click_release_happened = False
-    mouse_state.click_owner = None
-    mouse_state.click_claimants.clear()
-
-    from play.core.controller_loop import controller_state
-
-    controller_state.buttons_pressed.clear()
-    controller_state.clear()
-
-    from play.io.mouse import mouse
-
-    mouse.x = 0
-    mouse.y = 0
-    mouse._is_clicked = False
-
-    # Final event queue flush — the only clear that matters
-    if pygame.display.get_init():
-        pygame.event.pump()
-        pygame.event.clear()
 
     # Safety timeout: automatically stop the game loop so that any test
     # whose stop_program() path never fires will fail rather than hang.
@@ -535,6 +426,8 @@ def clean_play_state(request):
     from play.objects.video.video import close_all_videos
 
     close_all_videos()
+
+    from play.physics import physics_space
 
     # Teardown: remove all pymunk bodies/shapes so C destructors don't race
     # with interpreter shutdown and cause a segfault on process exit.

@@ -9,6 +9,8 @@ from play.globals import globals_list
 from play.physics import physics_space
 from play.utils.async_helpers import make_async
 
+_DEFAULT_CAPTION = "coderius-play"
+
 
 class Screen:
     def update_display(self, extra_flags=0):
@@ -27,7 +29,7 @@ class Screen:
 
         self._resizable = False
         self._fullscreen = False
-        self._caption = "coderius-play"
+        self._caption = _DEFAULT_CAPTION
 
         self.update_display()
         pygame.display.set_caption(self._caption)
@@ -81,6 +83,14 @@ class Screen:
         """Set the height of the screen.
         :param _height: The new height of the screen."""
         self._set_size(self._width, _height)
+
+    def _reset(self):
+        """Go back to the size, window flags and caption of a new screen, with fresh walls."""
+        self._width, self._height = globals_list.width, globals_list.height
+        self._resizable = False
+        self.caption = _DEFAULT_CAPTION
+        self.update_display()
+        _create_walls_on_new_body()
 
     def _set_size(self, width, height):
         """Resize the window and move the walls to its new edges."""
@@ -199,6 +209,13 @@ def create_walls():
     """Create walls around the screen."""
     for a, b, wall_side in _wall_edges():
         globals_list.walls.append(create_wall(a, b, wall_side))
+
+
+def _create_walls_on_new_body():
+    """Create the walls on a new static body, so the old body lets go of its walls."""
+    global _walls_body
+    _walls_body = _pymunk.Body(body_type=_pymunk.Body.STATIC)
+    create_walls()
 
 
 def remove_walls():

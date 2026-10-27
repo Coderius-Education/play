@@ -25,7 +25,7 @@ def _start_after_the_script():
         globals_list.start_program_fn()
 
 
-def _make_main_return_trace(existing_trace, existing_f_trace):
+def _make_main_return_trace(existing_trace, existing_f_trace, existing_f_trace_lines):
     """Create the trace for the script's frame: it starts the program once the script ends normally."""
 
     def _on_main_return(frame, event, arg):
@@ -44,6 +44,7 @@ def _make_main_return_trace(existing_trace, existing_f_trace):
             existing_f_trace(frame, event, arg)
         return _on_main_return
 
+    _on_main_return.replaced = (existing_f_trace, existing_f_trace_lines)
     return _on_main_return
 
 
@@ -90,7 +91,9 @@ def _schedule_auto_start():
         existing_trace = _sys.gettrace()
         if existing_trace is None:
             _sys.settrace(_placeholder_trace)
-        frame.f_trace = _make_main_return_trace(existing_trace, frame.f_trace)
+        frame.f_trace = _make_main_return_trace(
+            existing_trace, frame.f_trace, frame.f_trace_lines
+        )
         frame.f_trace_lines = False
     # If no __main__ frame was found (e.g. interactive REPL, embedded context),
     # should_auto_start is True but no trace is installed — start_program()
@@ -101,9 +104,9 @@ callback_manager.on_first_callback = _schedule_auto_start
 
 
 def _cleanup_auto_start():
-    """Reset all auto-start state and remove any installed frame trace.
+    """Reset all auto-start state and give the script's frame back the trace auto-start replaced.
 
-    Used by test fixtures to prevent state leakage between tests.
+    Used by play.reset_program() to prevent state leakage between programs.
     """
     globals_list.program_state = ProgramState.NOT_STARTED
     globals_list.should_auto_start = False
@@ -112,5 +115,5 @@ def _cleanup_auto_start():
     callback_manager.on_first_callback = _schedule_auto_start
 
     frame = _main_module_frame()
-    if frame is not None:
-        frame.f_trace = None
+    if frame is not None and hasattr(frame.f_trace, "replaced"):
+        frame.f_trace, frame.f_trace_lines = frame.f_trace.replaced

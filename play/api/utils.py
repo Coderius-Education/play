@@ -6,17 +6,30 @@ import os as _os
 
 import pygame
 
-from play.api.auto_start import stop_waiting_for_the_script
+from play.api.auto_start import _cleanup_auto_start, stop_waiting_for_the_script
 from play.callback import callback_manager, CallbackType
+from play.callback.collision_callbacks import collision_registry as _collision_registry
 from play.core import game_loop as _game_loop
+from play.core.controller_loop import controller_state as _controller_state
+from play.core.mouse_loop import mouse_state as _mouse_state
+from play.core.sprites_loop import _clicked_sprites
 from play import loop as _play_loop
 from play.globals import globals_list, ProgramState
 from play.io.keypress import keyboard_state
+from play.io.controllers import controllers as _controllers
 from play.io.logging import play_logger
+from play.io.mouse import mouse as _mouse
+from play.io.screen import screen as _screen
+from play.objects.widgets import text_input_registry as _text_input_registry
+from play.physics import _reset_physics
 from play.physics import set_physics_simulation_steps as _set_physics_simulation_steps
 from play.objects.video.video import close_all_videos as _close_all_videos
 from play.utils import color_name_to_rgb as _color_name_to_rgb
 from play.utils.async_helpers import hint_forgotten_awaits as _hint_forgotten_awaits
+
+_asyncio_logger = _logging.getLogger("asyncio")
+_saved_asyncio_log_level = []
+_resets = set()
 
 
 def start_program():
@@ -25,6 +38,11 @@ def start_program():
 
     play.start_program() should almost certainly go at the very end of your program.
     """
+    if _reset_pending():
+        raise RuntimeError(
+            "play.reset_program() has not finished yet. Await it before you "
+            "start the next program: await play.reset_program()"
+        )
     if (
         _play_loop.RUNS_IN_BROWSER
         and globals_list.program_state is ProgramState.RUNNING
@@ -54,11 +72,30 @@ def start_program():
         with _hint_forgotten_awaits():
             _run_until_stopped(_start_then_loop())
     finally:
-        logger = _logging.getLogger("asyncio")
-        logger.setLevel(_logging.CRITICAL)
+        _silence_asyncio_logger()
         _close_all_videos()
         if _os.getpid() == globals_list.initial_pid:
             pygame.quit()
+
+
+def _reset_pending():
+    """Whether a reset in the browser has not finished on a page loop that is still open."""
+    return any(
+        not reset.done() and not reset.get_loop().is_closed() for reset in _resets
+    )
+
+
+def _silence_asyncio_logger():
+    """Silence asyncio's logger after a program, remembering its level for play.reset_program()."""
+    if not _saved_asyncio_log_level:
+        _saved_asyncio_log_level.append(_asyncio_logger.level)
+    _asyncio_logger.setLevel(_logging.CRITICAL)
+
+
+def _restore_asyncio_logger():
+    """Give asyncio's logger back the level it had before play silenced it."""
+    if _saved_asyncio_log_level:
+        _asyncio_logger.setLevel(_saved_asyncio_log_level.pop())
 
 
 async def _start_then_loop():
@@ -107,6 +144,60 @@ def stop_program():
     play.stop_program() should almost certainly go at the very end of your program.
     """
     _play_loop.stop_loop()
+
+
+def reset_program():
+    """Put play back into the state it has right after ``import play``, once play's tasks have ended.
+    :return: In the browser, an awaitable that is done once play is reset: await it before the next program.
+        On the desktop, None: play is reset when reset_program() returns.
+    :raises RuntimeError: When called from inside a running play program, or on the desktop
+        inside a running event loop."""
+    tasks = _play_loop.stop_for_reset()
+    if not _play_loop.RUNS_IN_BROWSER:
+        _play_loop.end_tasks_and_close_loop(tasks)
+        _reset_state()
+        return None
+    resetting = _play_loop.get_loop().create_task(_reset_in_browser(tasks))
+    _resets.add(resetting)
+    resetting.add_done_callback(_resets.discard)
+    return resetting
+
+
+async def _reset_in_browser(tasks):
+    """Let play's cancelled tasks end, then put play back into its starting state, also when the page cancels this."""
+    try:
+        await _play_loop.end_tasks(tasks)
+    finally:
+        _reset_state()
+
+
+def _reset_state():
+    """Put every part of play back into its state right after ``import play``; new global state belongs here too."""
+    _close_all_videos()
+    pygame.init()
+    if pygame.mixer.get_init():
+        pygame.mixer.stop()
+    _restore_asyncio_logger()
+    _text_input_registry.clear_focus()
+    globals_list.reset()
+    _clicked_sprites.clear()
+    _cleanup_auto_start()
+    stop_waiting_for_the_script()
+    callback_manager.callbacks.clear()
+    _collision_registry.reset()
+    _text_input_registry.reset()
+    _reset_physics()
+    _screen._reset()
+    _controllers._reconnect()
+    keyboard_state.pressed.clear()
+    keyboard_state.clear()
+    _mouse_state.clear()
+    _mouse_state.click_claimants.clear()
+    _controller_state.buttons_pressed.clear()
+    _controller_state.clear()
+    _mouse.x = _mouse.y = 0
+    _mouse._is_clicked = False
+    pygame.event.clear()
 
 
 async def animate():

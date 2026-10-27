@@ -43,6 +43,7 @@ from play.api.events import (
 from play.api.utils import (
     start_program,
     stop_program,
+    reset_program,
     animate,
     set_backdrop,
     set_backdrop_image,

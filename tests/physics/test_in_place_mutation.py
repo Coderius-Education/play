@@ -12,7 +12,7 @@ import pytest
 import play
 from play.callback.collision_callbacks import WallSide
 from play.globals import globals_list
-from play.io.screen import _walls_body, rebuild_walls, remove_wall, screen
+from play.io.screen import rebuild_walls, remove_wall, screen
 from play.physics import physics_space, set_gravity
 
 ANYTHING = pymunk.ShapeFilter()
@@ -275,11 +275,12 @@ def test_segments_that_are_not_one_of_the_four_walls_are_dropped():
     # The old rebuild removed every segment in the list before recreating
     # four. Anything that is not one of the four still has to leave the space,
     # however many there are.
+    walls_body = globals_list.walls[0].body
     for _ in range(2):
-        stray = pymunk.Segment(_walls_body, (0, 0), (1, 1), 0)
+        stray = pymunk.Segment(walls_body, (0, 0), (1, 1), 0)
         physics_space.add(stray)
         globals_list.walls.append(stray)
-    duplicate = pymunk.Segment(_walls_body, (0, 0), (1, 1), 0)
+    duplicate = pymunk.Segment(walls_body, (0, 0), (1, 1), 0)
     duplicate.wall_side = WallSide.TOP
     physics_space.add(duplicate)
     globals_list.walls.append(duplicate)

@@ -406,6 +406,18 @@ def _empty_physics_space():
     physics_space.remove(*physics_space.shapes, *physics_space.bodies)
 
 
+def _reset_physics():
+    """Empty play's physics space and give it the gravity of a fresh import."""
+    physics_space.remove(
+        *physics_space.constraints, *physics_space.shapes, *physics_space.bodies
+    )
+    globals_list.gravity = _Gravity()
+    physics_space.gravity = (
+        globals_list.gravity.horizontal,
+        globals_list.gravity.vertical,
+    )
+
+
 def set_gravity(vertical=-100, horizontal=None):
     """
     Set the gravity of the game.

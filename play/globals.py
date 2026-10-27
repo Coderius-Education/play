@@ -53,7 +53,7 @@ class Globals:
 
         Note: ``gravity`` and ``display`` are intentionally NOT reset here.
         ``gravity`` requires re-initialisation with a pymunk Space object and
-        is handled separately in the test conftest.  ``display`` needs an
+        is handled separately by play.physics._reset_physics().  ``display`` needs an
         active pygame Surface and is managed by the screen module.
         """
         self.sprites_group.empty()

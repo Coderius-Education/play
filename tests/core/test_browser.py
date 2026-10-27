@@ -409,3 +409,325 @@ def test_a_debugger_still_sees_a_top_level_await_pause(in_the_browser):
         sys.settrace(previous)
 
     assert returns == ["<module>", "<module>"]
+
+
+def test_awaited_browser_reset_ends_tasks_before_next_program(
+    in_the_browser,
+):
+    ended = []
+    frames = []
+
+    @play.when_program_starts
+    async def walk():
+        try:
+            while True:
+                await play.animate()
+        finally:
+            ended.append("finally starts")
+            for _ in range(5):
+                await play.animate()
+            ended.append("finally ends")
+
+    async def page():
+        play.start_program()
+        for _ in range(5):
+            await asyncio.sleep(0)
+        await play.reset_program()
+        ended.append("reset done")
+        play.repeat_forever(_stop_after(3))
+        play.repeat_forever(lambda: frames.append(1))
+        play.start_program()
+        await _until_only_the_page_is_left()
+
+    in_the_browser.run_until_complete(page())
+
+    assert ended == ["finally starts", "finally ends", "reset done"]
+    assert frames == [1, 1, 1]
+
+
+def test_browser_reset_inside_program_is_refused(in_the_browser):
+    refused = []
+
+    @play.repeat_forever
+    def restart():
+        try:
+            play.reset_program()
+        except RuntimeError as error:
+            refused.append(str(error))
+        play.stop_program()
+
+    _run_page(in_the_browser, play.start_program)
+
+    assert len(refused) == 1
+    assert "inside a running play program" in refused[0]
+
+
+@pytest.mark.skipif(
+    _UNDER_A_C_TRACER,
+    reason="auto-start cannot see the script end under a C trace function, such as coverage's on 3.11",
+)
+def test_failed_playground_run_does_not_block_next_run(
+    in_the_browser,
+):
+    frames = []
+    failing_run = _main_py(
+        "play.new_circle()\n"
+        "play.when_program_starts(lambda: None)\n"
+        "raise NameError('a typo after new_circle')\n"
+    )
+    names = {"frames": frames, "stop_after": _stop_after}
+    code = compile(
+        "play.repeat_forever(stop_after(3))\n"
+        "play.repeat_forever(lambda: frames.append(1))\n",
+        "main.py",
+        "exec",
+    )
+    next_run = types.FunctionType(code, {"__name__": "__main__", "play": play, **names})
+
+    async def page():
+        with pytest.raises(NameError):
+            failing_run()
+        await play.reset_program()
+        next_run()
+        await _until_only_the_page_is_left()
+
+    in_the_browser.run_until_complete(page())
+
+    assert frames == [1, 1, 1]
+
+
+@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
+def test_stubborn_browser_task_is_closed_quietly(in_the_browser, monkeypatch, caplog):
+    monkeypatch.setattr(play.loop, "_SECONDS_TO_END", 0.05)
+    frames = []
+
+    @play.when_program_starts
+    async def stubborn():
+        while True:
+            try:
+                await play.timer(0.01)
+            except BaseException:
+                pass
+
+    async def page():
+        play.start_program()
+        for _ in range(5):
+            await asyncio.sleep(0)
+        await play.reset_program()
+        play.repeat_forever(_stop_after(3))
+        play.repeat_forever(lambda: frames.append(1))
+        play.start_program()
+        for _ in range(20):
+            await asyncio.sleep(0)
+
+    with caplog.at_level(logging.INFO, logger="play"):
+        in_the_browser.run_until_complete(page())
+
+    assert frames == [1, 1, 1]
+    assert not [r for r in caplog.records if r.levelno >= logging.INFO]
+
+
+def test_browser_reset_forgets_closed_task(in_the_browser, monkeypatch):
+    monkeypatch.setattr(play.loop, "_SECONDS_TO_END", 0.05)
+
+    @play.when_program_starts
+    async def slow_to_end():
+        try:
+            while True:
+                await play.animate()
+        finally:
+            await play.timer(10)
+
+    async def page():
+        play.start_program()
+        for _ in range(5):
+            await asyncio.sleep(0)
+        await play.reset_program()
+        return set(play.loop._tasks)
+
+    assert in_the_browser.run_until_complete(page()) == set()
+
+
+def test_second_browser_reset_lets_finally_blocks_end(
+    in_the_browser,
+):
+    ended = []
+
+    @play.when_program_starts
+    async def walk():
+        try:
+            while True:
+                await play.animate()
+        finally:
+            ended.append("finally starts")
+            for _ in range(5):
+                await play.animate()
+            ended.append("finally ends")
+
+    async def page():
+        play.start_program()
+        for _ in range(5):
+            await asyncio.sleep(0)
+        first = play.reset_program()
+        await asyncio.sleep(0)
+        await play.reset_program()
+        await first
+
+    in_the_browser.run_until_complete(page())
+
+    assert ended == ["finally starts", "finally ends"]
+
+
+def test_stop_in_finally_does_not_cut_other_finally_short_in_browser(
+    in_the_browser,
+):
+    ended = []
+
+    @play.when_program_starts
+    async def walk():
+        try:
+            while True:
+                await play.animate()
+        finally:
+            ended.append("finally starts")
+            for _ in range(5):
+                await play.animate()
+            ended.append("finally ends")
+
+    @play.when_program_starts
+    async def quitter():
+        try:
+            while True:
+                await play.animate()
+        finally:
+            await play.animate()
+            play.stop_program()
+
+    async def page():
+        play.start_program()
+        for _ in range(5):
+            await asyncio.sleep(0)
+        await play.reset_program()
+
+    in_the_browser.run_until_complete(page())
+
+    assert ended == ["finally starts", "finally ends"]
+
+
+def test_abandoned_browser_reset_still_resets_play(
+    in_the_browser,
+):
+    frames = []
+    ended = []
+
+    @play.when_program_starts
+    async def slow_to_end():
+        try:
+            while True:
+                await play.animate()
+        finally:
+            await play.timer(0.2)
+            ended.append("old finally ends")
+
+    async def page():
+        play.start_program()
+        await asyncio.sleep(0.05)
+        with pytest.raises(asyncio.TimeoutError):
+            await asyncio.wait_for(play.reset_program(), 0.05)
+        play.repeat_forever(_stop_after(3))
+        play.repeat_forever(lambda: frames.append(1))
+        play.start_program()
+        await asyncio.sleep(0.3)
+
+    in_the_browser.run_until_complete(page())
+
+    assert frames == [1, 1, 1]
+    assert not ended
+
+
+def test_task_started_during_browser_reset_is_cancelled(
+    in_the_browser,
+):
+    started = []
+
+    async def late():
+        started.append("late")
+
+    @play.when_program_starts
+    async def walk():
+        try:
+            while True:
+                await play.animate()
+        finally:
+            play.loop.create_task(late())
+            await play.animate()
+
+    async def page():
+        play.start_program()
+        for _ in range(5):
+            await asyncio.sleep(0)
+        await play.reset_program()
+        for _ in range(5):
+            await asyncio.sleep(0)
+
+    in_the_browser.run_until_complete(page())
+
+    assert not started
+
+
+def test_unfinished_reset_on_closed_page_does_not_block_next_program(
+    in_the_browser, monkeypatch
+):
+    frames = []
+
+    @play.when_program_starts
+    async def slow_to_end():
+        try:
+            while True:
+                await play.animate()
+        finally:
+            await play.timer(10)
+
+    async def page():
+        play.start_program()
+        for _ in range(5):
+            await asyncio.sleep(0)
+        play.reset_program()
+        for _ in range(5):
+            await asyncio.sleep(0)
+
+    in_the_browser.run_until_complete(page())
+    in_the_browser.close()
+    monkeypatch.setattr(play.loop, "RUNS_IN_BROWSER", False)
+    monkeypatch.setattr(play.loop, "_loop", None)
+
+    play.reset_program()
+    play.repeat_forever(_stop_after(3))
+    play.repeat_forever(lambda: frames.append(1))
+    play.start_program()
+    play.reset_program()
+
+    assert frames == [1, 1, 1]
+
+
+def test_start_before_browser_reset_is_done_is_refused(
+    in_the_browser,
+):
+    frames = []
+
+    async def page():
+        play.repeat_forever(lambda: None)
+        play.start_program()
+        await asyncio.sleep(0)
+        resetting = play.reset_program()
+        with pytest.raises(RuntimeError, match="Await it"):
+            play.start_program()
+        await resetting
+        play.repeat_forever(_stop_after(3))
+        play.repeat_forever(lambda: frames.append(1))
+        play.start_program()
+        await _until_only_the_page_is_left()
+
+    in_the_browser.run_until_complete(page())
+
+    assert frames == [1, 1, 1]
