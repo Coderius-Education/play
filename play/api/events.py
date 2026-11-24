@@ -256,9 +256,9 @@ def while_key_pressed(*keys):
 
 
 # @decorator
-def while_mouse_pressed(func):
+def while_mouse_pressed(*buttons):
     """
-    Calls the given function every frame while the mouse button is held down.
+    Calls the given function every frame while a mouse button, or one of the specified buttons, is held down.
 
     Example:
         text = play.new_text(words='hi there!')
@@ -266,14 +266,18 @@ def while_mouse_pressed(func):
         @play.while_mouse_pressed
         def show():
             text.words = 'mouse held'
+
+        @play.while_mouse_pressed('right')
+        def show_button(button):
+            text.words = button
     """
-    return mouse.while_pressed(func)
+    return mouse.while_pressed(*buttons)
 
 
 # @decorator
-def when_mouse_clicked(func):
+def when_mouse_clicked(*buttons):
     """
-    Calls the given function when the mouse is clicked.
+    Calls the given function when the mouse is clicked, by any button or one of the specified buttons.
 
     Example:
         text = play.new_text(words='hi there!')
@@ -281,14 +285,18 @@ def when_mouse_clicked(func):
         @play.when_mouse_clicked
         def show():
             text.words = 'mouse click'
+
+        @play.when_mouse_clicked('left', 'right')
+        def show_button(button):
+            text.words = button
     """
-    return mouse.when_clicked(func)
+    return mouse.when_clicked(*buttons)
 
 
 # @decorator
-def when_click_released(func):
+def when_click_released(*buttons):
     """
-    Calls the given function when the mouse click is released.
+    Calls the given function when the mouse click is released, by any button or one of the specified buttons.
 
     Example:
         text = play.new_text(words='hi there!')
@@ -296,8 +304,12 @@ def when_click_released(func):
         @play.when_click_released
         def show():
             text.words = 'mouse click released'
+
+        @play.when_click_released('right')
+        def show_button(button):
+            text.words = button
     """
-    return mouse.when_click_released(func)
+    return mouse.when_click_released(*buttons)
 
 
 def _check_videos(method_name, videos):

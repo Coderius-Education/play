@@ -193,6 +193,7 @@ def _reset_state():
     keyboard_state.clear()
     _mouse_state.clear()
     _mouse_state.click_claimants.clear()
+    _mouse_state.buttons_pressed.clear()
     _controller_state.buttons_pressed.clear()
     _controller_state.clear()
     _mouse.x = _mouse.y = 0
