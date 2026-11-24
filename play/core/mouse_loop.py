@@ -4,7 +4,7 @@ import pygame
 
 from play.callback import callback_manager, CallbackType
 from play.globals import globals_list
-from play.io.mouse import mouse
+from play.io.mouse import mouse, MOUSE_BUTTONS
 from play.io.screen import screen
 
 
@@ -13,19 +13,23 @@ class MouseState:
 
     click_happened = False
     click_release_happened = False
-    # Widget that exclusively claimed this frame's click (e.g. an open
-    # dropdown menu overlapping other widgets), or None.
+
     click_owner = None
     sprites_above_owner = frozenset()
-    # Widgets that may claim exclusive ownership of a click. Populated by
-    # widgets that draw on top of others (an open Dropdown registers here).
+
     click_claimants = []
     click_id = 0
+
+    buttons_pressed = set()
+    buttons_clicked = set()
+    buttons_released = set()
 
     def clear(self):
         """Clear the mouse state for the next frame."""
         self.click_happened = False
         self.click_release_happened = False
+        self.buttons_clicked.clear()
+        self.buttons_released.clear()
         self.click_owner = None
         self.sprites_above_owner = frozenset()
 
@@ -55,14 +59,10 @@ class MouseState:
         self.click_claimants[:] = [w for w in self.click_claimants if w.alive()]
         claiming = [w for w in self.click_claimants if w._claims_click()]
         if claiming:
-            # Registration order says nothing about what is drawn on top, so
-            # pick by layer rather than taking the first claimant.
             self.click_owner = max(claiming, key=lambda w: w._layer)
             self.sprites_above_owner = frozenset()
             return
-        # sprites() is layer-ordered back-to-front, so the last hit is on top.
-        # is_touching() excludes hidden sprites; a disabled one would otherwise
-        # win ownership and then decline to act, losing the click.
+
         sprites = globals_list.sprites_group.sprites()
         widgets = [
             i
@@ -83,10 +83,6 @@ class MouseState:
 
 mouse_state = MouseState()
 
-
-# pygame emits synthetic button 4/5 down+up pairs for wheel scrolling (kept for
-# SDL1 compatibility). They are not clicks, and treating them as clicks lets a
-# scroll toggle every widget it passes under the cursor.
 _WHEEL_BUTTONS = (4, 5)
 
 
@@ -107,9 +103,25 @@ def handle_mouse_events(event):
         mouse_state.click_happened = True
         mouse._is_clicked = True
         mouse_state.resolve_click_owner()
+        _press_button(MOUSE_BUTTONS.get(event.button))
     if event.type == pygame.MOUSEBUTTONUP:
         mouse_state.click_release_happened = True
         mouse._is_clicked = False
+        _release_button(MOUSE_BUTTONS.get(event.button))
+
+
+def _press_button(name):
+    """Record that the named mouse button went down this frame."""
+    if name is not None and name not in mouse_state.buttons_pressed:
+        mouse_state.buttons_pressed.add(name)
+        mouse_state.buttons_clicked.add(name)
+
+
+def _release_button(name):
+    """Record that the named mouse button went up this frame."""
+    if name in mouse_state.buttons_pressed:
+        mouse_state.buttons_pressed.discard(name)
+        mouse_state.buttons_released.add(name)
 
 
 async def handle_mouse_loop():
@@ -119,15 +131,32 @@ async def handle_mouse_loop():
     ####################################
     if mouse_state.click_happened:
         callback_manager.run_callbacks(CallbackType.WHEN_CLICKED)
+    await callback_manager.run_callbacks_with_filter(
+        CallbackType.WHEN_CLICKED,
+        mouse_state.buttons_clicked,
+        required_args=["button"],
+        held_states=mouse_state.buttons_pressed | mouse_state.buttons_clicked,
+    )
 
     ########################################
     # @mouse.when_click_released callbacks
     ########################################
     if mouse_state.click_release_happened:
         callback_manager.run_callbacks(CallbackType.WHEN_CLICK_RELEASED)
+    await callback_manager.run_callbacks_with_filter(
+        CallbackType.WHEN_CLICK_RELEASED,
+        mouse_state.buttons_released,
+        required_args=["button"],
+        held_states=mouse_state.buttons_pressed | mouse_state.buttons_released,
+    )
 
     ########################################
     # @mouse.while_pressed callbacks
     ########################################
     if mouse._is_clicked:
         callback_manager.run_callbacks(CallbackType.WHILE_MOUSE_PRESSED)
+    await callback_manager.run_callbacks_with_filter(
+        CallbackType.WHILE_MOUSE_PRESSED,
+        mouse_state.buttons_pressed,
+        required_args=["button"],
+    )

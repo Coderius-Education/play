@@ -82,9 +82,6 @@ async def game_loop():
     if not _handle_pygame_events():
         return
 
-    # A focused TextInput captures the keyboard exclusively: every
-    # @when_key_pressed / while-pressed / released callback and key poll is
-    # suspended until the field is blurred (click elsewhere, Escape, or Enter).
     if not globals_list.focused_text_input:
         await _handle_keyboard()
 
@@ -92,6 +89,7 @@ async def game_loop():
         mouse_state.click_happened
         or mouse_state.click_release_happened
         or mouse._is_clicked
+        or mouse_state.buttons_pressed
     ):
         await _handle_mouse_loop()
 

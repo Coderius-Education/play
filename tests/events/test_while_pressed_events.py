@@ -159,3 +159,33 @@ def test_a_button_combination_is_held_while_all_its_buttons_are_held():
 def test_while_button_pressed_rejects_a_button_that_is_not_a_number(buttons):
     with pytest.raises(ValueError, match="Button must be an integer"):
         controllers.while_button_pressed(0, *buttons)
+
+
+def test_while_mouse_pressed_with_a_button_fires_only_while_that_button_is_held():
+    held = []
+    play.while_mouse_pressed("right")(lambda button: held.append(button))
+
+    play_frames(
+        [mouse_down(button=1)],
+        [],
+        [mouse_up(button=1), mouse_down(button=3)],
+        *TWO_MORE_FRAMES,
+        [mouse_up(button=3)],
+        [],
+    )
+
+    assert held == ["right"] * 3
+
+
+def test_while_mouse_pressed_keeps_firing_for_a_button_held_after_another_is_let_go():
+    held = []
+    play.mouse.while_pressed("left")(lambda: held.append(True))
+
+    play_frames(
+        [mouse_down(button=1), mouse_down(button=3)],
+        [mouse_up(button=3)],
+        *TWO_MORE_FRAMES,
+        [mouse_up(button=1)],
+    )
+
+    assert held == [True] * 4

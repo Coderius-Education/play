@@ -81,3 +81,112 @@ def test_a_sprite_clicked_without_any_mouse_motion_hears_the_click():
     play_frames([mouse_down(150, 100)], [mouse_up(150, 100)])
 
     assert clicked == [1]
+
+
+LEFT, MIDDLE, RIGHT = 1, 2, 3
+
+
+def test_when_mouse_clicked_with_a_button_fires_only_for_that_button():
+    clicks = []
+    play.when_mouse_clicked("right")(lambda button: clicks.append(button))
+
+    play_frames(
+        [mouse_down(button=LEFT)],
+        [mouse_up(button=LEFT)],
+        [mouse_down(button=RIGHT)],
+        [mouse_up(button=RIGHT)],
+    )
+
+    assert clicks == ["right"]
+
+
+def test_when_mouse_clicked_fires_for_each_of_its_buttons():
+    clicks = []
+    play.when_mouse_clicked("left", "middle")(lambda button: clicks.append(button))
+
+    play_frames(
+        [mouse_down(button=MIDDLE), mouse_up(button=MIDDLE)],
+        [mouse_down(button=RIGHT), mouse_up(button=RIGHT)],
+        [mouse_down(button=LEFT), mouse_up(button=LEFT)],
+    )
+
+    assert clicks == ["middle", "left"]
+
+
+def test_when_mouse_clicked_with_a_button_may_leave_out_the_button_parameter():
+    clicks = []
+    play.when_mouse_clicked("left")(lambda: clicks.append(True))
+
+    play_frames([mouse_down(button=LEFT)], [mouse_up(button=LEFT)])
+
+    assert clicks == [True]
+
+
+def test_when_mouse_clicked_with_a_list_fires_when_the_buttons_are_held_together():
+    clicks = []
+    play.when_mouse_clicked(["left", "right"])(lambda: clicks.append(True))
+
+    play_frames(
+        [mouse_down(button=LEFT)],
+        [mouse_up(button=LEFT)],
+        [mouse_down(button=LEFT)],
+        [mouse_down(button=RIGHT)],
+        [mouse_up(button=RIGHT), mouse_up(button=LEFT)],
+    )
+
+    assert clicks == [True]
+
+
+def test_when_click_released_with_a_button_fires_only_for_that_button():
+    released = []
+    play.when_click_released("left")(lambda button: released.append(button))
+
+    play_frames(
+        [mouse_down(button=RIGHT)],
+        [mouse_up(button=RIGHT)],
+        [mouse_down(button=LEFT)],
+        [mouse_up(button=LEFT)],
+    )
+
+    assert released == ["left"]
+
+
+def test_the_bare_decorators_still_fire_for_every_button():
+    log = []
+    play.when_mouse_clicked(lambda: log.append("clicked"))
+    play.when_click_released(lambda: log.append("released"))
+
+    play_frames([mouse_down(button=RIGHT)], [mouse_up(button=RIGHT)])
+
+    assert log == ["clicked", "released"]
+
+
+def test_the_mouse_object_takes_button_names_too():
+    log = []
+    play.mouse.when_clicked("middle")(lambda button: log.append(("clicked", button)))
+    play.mouse.when_click_released("middle")(
+        lambda button: log.append(("released", button))
+    )
+
+    play_frames(
+        [mouse_down(button=LEFT), mouse_up(button=LEFT)],
+        [mouse_down(button=MIDDLE)],
+        [mouse_up(button=MIDDLE)],
+    )
+
+    assert log == [("clicked", "middle"), ("released", "middle")]
+
+
+@pytest.mark.parametrize(
+    "buttons",
+    [(), ("wheel",), (1,), (["left", "back"],), ([],)],
+    ids=["nothing", "unknown name", "number", "unknown in a list", "empty list"],
+)
+@pytest.mark.parametrize(
+    "decorator",
+    [play.when_mouse_clicked, play.when_click_released, play.while_mouse_pressed],
+    ids=["when_mouse_clicked", "when_click_released", "while_mouse_pressed"],
+)
+def test_mouse_decorators_reject_anything_but_button_names(decorator, buttons):
+    with pytest.raises(ValueError, match="(?i)mouse button"):
+        decorator(*buttons)
