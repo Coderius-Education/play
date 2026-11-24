@@ -83,7 +83,7 @@ def test_a_sprite_clicked_without_any_mouse_motion_hears_the_click():
     assert clicked == [1]
 
 
-LEFT, MIDDLE, RIGHT = 1, 2, 3
+LEFT, MIDDLE, RIGHT, BACK, FORWARD = 1, 2, 3, 6, 7
 
 
 def test_when_mouse_clicked_with_a_button_fires_only_for_that_button():
@@ -179,7 +179,7 @@ def test_the_mouse_object_takes_button_names_too():
 
 @pytest.mark.parametrize(
     "buttons",
-    [(), ("wheel",), (1,), (["left", "back"],), ([],)],
+    [(), ("wheel",), (1,), (["left", "x3"],), ([],)],
     ids=["nothing", "unknown name", "number", "unknown in a list", "empty list"],
 )
 @pytest.mark.parametrize(
@@ -190,3 +190,26 @@ def test_the_mouse_object_takes_button_names_too():
 def test_mouse_decorators_reject_anything_but_button_names(decorator, buttons):
     with pytest.raises(ValueError, match="(?i)mouse button"):
         decorator(*buttons)
+
+
+def test_the_side_buttons_are_named_back_and_forward():
+    log = []
+    play.when_mouse_clicked("back", "forward")(lambda button: log.append(button))
+    play.when_click_released("forward")(lambda button: log.append(f"{button} up"))
+
+    play_frames(
+        [mouse_down(button=BACK), mouse_up(button=BACK)],
+        [mouse_down(button=FORWARD)],
+        [mouse_up(button=FORWARD)],
+    )
+
+    assert log == ["back", "forward", "forward up"]
+
+
+def test_while_mouse_pressed_fires_while_a_side_button_is_held():
+    held = []
+    play.while_mouse_pressed("back")(lambda button: held.append(button))
+
+    play_frames([mouse_down(button=BACK)], [], [mouse_up(button=BACK)])
+
+    assert held == ["back"] * 2

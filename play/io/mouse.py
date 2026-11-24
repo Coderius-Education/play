@@ -29,7 +29,7 @@ class Mouse:
     # @decorator
     def when_clicked(self, *buttons):
         """Run a function when the mouse is clicked, by any button or only the named ones.
-        :param buttons: The function to run, or 'left', 'middle' or 'right'; a list means held together.
+        :param buttons: The function to run, or 'left', 'middle', 'right', 'back' or 'forward'; a list: held together.
         :return: The function, or a decorator when buttons are named."""
         if _is_a_single_function(buttons):
             return _when_any_button(CallbackType.WHEN_CLICKED, buttons[0])
@@ -38,7 +38,7 @@ class Mouse:
     # @decorator
     def when_click_released(self, *buttons):
         """Run a function when the mouse click is released, by any button or only the named ones.
-        :param buttons: The function to run, or 'left', 'middle' or 'right'; a list means held together.
+        :param buttons: The function to run, or 'left', 'middle', 'right', 'back' or 'forward'; a list: held together.
         :return: The function, or a decorator when buttons are named."""
         if _is_a_single_function(buttons):
             return _when_any_button(CallbackType.WHEN_CLICK_RELEASED, buttons[0])
@@ -47,7 +47,7 @@ class Mouse:
     # @decorator
     def while_pressed(self, *buttons):
         """Run a function every frame while a mouse button, or one of the named ones, is held down.
-        :param buttons: The function to run, or 'left', 'middle' or 'right'; a list means held together.
+        :param buttons: The function to run, or 'left', 'middle', 'right', 'back' or 'forward'; a list: held together.
         :return: The function, or a decorator when buttons are named."""
         if _is_a_single_function(buttons):
             return _while_any_button(buttons[0])
@@ -63,7 +63,7 @@ class Mouse:
         return _math.dist((self.x, self.y), (x, y))
 
 
-MOUSE_BUTTONS = {1: "left", 2: "middle", 3: "right"}
+MOUSE_BUTTONS = {1: "left", 2: "middle", 3: "right", 6: "back", 7: "forward"}
 
 
 def _is_a_single_function(buttons):

@@ -60,7 +60,7 @@ def when_key(*keys, released=False):
             continue
         for sub_key in control_key:
             if not isinstance(sub_key, str):
-                raise ValueError("Key must be a string or a list of strings.")
+                raise ValueError("Sub-key must be a string.")
 
     def decorator(func):
         async_callback = make_async(func)
@@ -93,7 +93,7 @@ def while_key(*keys):
             continue
         for sub_key in control_key:
             if not isinstance(sub_key, str):
-                raise ValueError("Key must be a string or a list of strings.")
+                raise ValueError("Sub-key must be a string.")
 
     def decorator(func):
         async_callback = make_async(func)

@@ -161,9 +161,16 @@ def test_any_key_decorators_reject_a_key_in_brackets(decorator):
 
 
 @pytest.mark.parametrize("decorator", [play.when_key_pressed, play.when_key_released])
-@pytest.mark.parametrize("keys", [(123,), (["a", 123],)], ids=["number", "in a list"])
-def test_a_key_that_is_not_a_string_is_rejected(decorator, keys):
-    with pytest.raises(ValueError, match="Key must be a string or a list of strings"):
+@pytest.mark.parametrize(
+    "keys, message",
+    [
+        ((123,), "Key must be a string or a list of strings"),
+        ((["a", 123],), "Sub-key must be a string"),
+    ],
+    ids=["number", "in a list"],
+)
+def test_a_key_that_is_not_a_string_is_rejected(decorator, keys, message):
+    with pytest.raises(ValueError, match=message):
         decorator(*keys)
 
 

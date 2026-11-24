@@ -89,9 +89,16 @@ def test_while_any_key_pressed_rejects_a_key_in_brackets():
         play.while_any_key_pressed("a")
 
 
-@pytest.mark.parametrize("keys", [(123,), (["a", 123],)], ids=["number", "in a list"])
-def test_while_key_pressed_rejects_a_key_that_is_not_a_string(keys):
-    with pytest.raises(ValueError, match="Key must be a string or a list of strings"):
+@pytest.mark.parametrize(
+    "keys, message",
+    [
+        ((123,), "Key must be a string or a list of strings"),
+        ((["a", 123],), "Sub-key must be a string"),
+    ],
+    ids=["number", "in a list"],
+)
+def test_while_key_pressed_rejects_a_key_that_is_not_a_string(keys, message):
+    with pytest.raises(ValueError, match=message):
         play.while_key_pressed(*keys)
 
 
